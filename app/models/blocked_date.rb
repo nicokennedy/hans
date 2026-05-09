@@ -1,0 +1,2 @@
+class BlockedDate < ApplicationRecord
+end

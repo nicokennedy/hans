@@ -1,0 +1,8 @@
+<%= turbo_frame_tag "cart_count" do %>
+  <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+  <%= link_to "Carrito (#{cart_count})",
+    cart_path,
+    class: "btn btn-sm btn-outline-dark",
+    data: { turbo_frame: "_top" } %>
+<% end %>

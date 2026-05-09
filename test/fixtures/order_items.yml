@@ -1,0 +1,23 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  order: one
+  product: one
+  product_name_snapshot: MyString
+  category_name_snapshot: MyString
+  quantity: 1
+  unit_price_cents_snapshot: 1
+  unit_cost_cents_snapshot: 1
+  line_revenue_cents: 1
+  line_cost_cents: 1
+
+two:
+  order: two
+  product: two
+  product_name_snapshot: MyString
+  category_name_snapshot: MyString
+  quantity: 1
+  unit_price_cents_snapshot: 1
+  unit_cost_cents_snapshot: 1
+  line_revenue_cents: 1
+  line_cost_cents: 1

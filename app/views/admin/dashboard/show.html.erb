@@ -1,0 +1,36 @@
+<div class="container py-5">
+  <div class="mb-5">
+    <h1 class="fw-bold mb-1">Admin HANS</h1>
+    <div class="text-muted">Panel operativo mayorista</div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <%= link_to admin_orders_path, class: "text-decoration-none text-dark" do %>
+        <div class="product-card h-100">
+          <div class="text-muted mb-2">Pedidos recibidos</div>
+          <div class="fw-bold fs-2 mb-2"><%= Order.count %></div>
+          <div class="small text-muted">Ver y gestionar pedidos</div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="col-md-4">
+      <%= link_to admin_production_index_path, class: "text-decoration-none text-dark" do %>
+        <div class="product-card h-100">
+          <div class="text-muted mb-2">Producción</div>
+          <div class="fw-bold fs-2 mb-2">Resumen</div>
+          <div class="small text-muted">Totales por fecha y café</div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="col-md-4">
+      <div class="product-card h-100">
+        <div class="text-muted mb-2">Clientes</div>
+        <div class="fw-bold fs-2 mb-2"><%= Customer.count %></div>
+        <div class="small text-muted">Próximo módulo</div>
+      </div>
+    </div>
+  </div>
+</div>

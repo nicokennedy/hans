@@ -1,0 +1,21 @@
+<%= turbo_frame_tag "product_#{product.id}_quantity" do %>
+  <% quantity = session[:cart].to_h[product.id.to_s].to_i %>
+
+  <div class="quantity-control">
+    <%= button_to "-",
+      update_item_cart_path(product_id: product.id, quantity: [quantity - 1, 0].max),
+      method: :patch,
+      form: { data: { turbo_frame: "product_#{product.id}_quantity" } },
+      class: "quantity-btn quantity-btn-light" %>
+
+    <div class="quantity-number">
+      <%= quantity %>
+    </div>
+
+    <%= button_to "+",
+      add_cart_path(product_id: product.id),
+      method: :post,
+      form: { data: { turbo_frame: "product_#{product.id}_quantity" } },
+      class: "quantity-btn quantity-btn-dark" %>
+  </div>
+<% end %>

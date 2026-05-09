@@ -1,0 +1,103 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+      <h1 class="fw-bold mb-1">Producción</h1>
+      <div class="text-muted">
+        Semana actual y detalle por día
+      </div>
+    </div>
+
+    <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="fw-bold mb-0">Semana</h3>
+      <div class="text-muted small">
+        Tocá un día para ver el detalle
+      </div>
+    </div>
+
+    <div class="production-calendar">
+      <% @week_days.each do |day| %>
+        <% selected = day[:date] == @selected_date %>
+
+        <%= link_to admin_production_index_path(date: day[:date]),
+          class: "production-calendar-day #{'selected' if selected}" do %>
+
+          <div class="production-calendar-weekday">
+            <%= l(day[:date], format: "%A") %>
+          </div>
+
+          <div class="production-calendar-date">
+            <%= l(day[:date], format: "%d/%m") %>
+          </div>
+
+          <div class="production-calendar-orders">
+            <%= day[:orders_count] %> pedidos
+          </div>
+
+          <div class="production-calendar-stats">
+            <div>
+              <span>Productos</span>
+              <strong><%= day[:items_count] %></strong>
+            </div>
+
+            <div>
+              <span>Cafés</span>
+              <strong><%= day[:customers_count] %></strong>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <h2 class="fw-bold mb-1">
+      Detalle <%= l(@selected_date, format: "%A %d/%m") %>
+    </h2>
+
+    <div class="text-muted">
+      Total por producto y desglose por café
+    </div>
+  </div>
+
+  <% if @rows.empty? %>
+    <div class="product-card">
+      No hay pedidos para esta fecha.
+    </div>
+  <% else %>
+    <div class="product-card">
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">TOTAL</th>
+
+              <% @customers.each do |customer| %>
+                <th class="text-center"><%= customer.name %></th>
+              <% end %>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @rows.each do |row| %>
+              <tr>
+                <td class="fw-bold"><%= row[:product_name] %></td>
+                <td class="text-center fw-bold"><%= row[:total] %></td>
+
+                <% @customers.each do |customer| %>
+                  <td class="text-center">
+                    <%= row[:quantities_by_customer][customer.name].presence || "" %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+</div>

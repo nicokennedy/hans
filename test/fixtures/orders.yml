@@ -1,0 +1,29 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  number: MyString
+  customer: one
+  delivery_date: 2026-05-09
+  status: MyString
+  payment_method_selected: MyString
+  payment_status: MyString
+  amount_paid_cents: 1
+  paid_at: 2026-05-09 15:12:30
+  customer_comment: MyText
+  internal_note: MyText
+  total_cents: 1
+  created_by_admin: false
+
+two:
+  number: MyString
+  customer: two
+  delivery_date: 2026-05-09
+  status: MyString
+  payment_method_selected: MyString
+  payment_status: MyString
+  amount_paid_cents: 1
+  paid_at: 2026-05-09 15:12:30
+  customer_comment: MyText
+  internal_note: MyText
+  total_cents: 1
+  created_by_admin: false

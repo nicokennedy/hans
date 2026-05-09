@@ -1,0 +1,7 @@
+<%= turbo_stream.replace "product_#{@product.id}_quantity" do %>
+  <%= render "carts/quantity_control", product: @product %>
+<% end %>
+
+<%= turbo_stream.replace "cart_count" do %>
+  <%= render "carts/cart_count" %>
+<% end %>

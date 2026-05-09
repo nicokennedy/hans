@@ -1,0 +1,38 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-4">
+      <div class="product-card p-4">
+        <h2 class="mb-4 fw-bold">
+          Ingresar
+        </h2>
+
+        <%= form_for(resource,
+          as: resource_name,
+          url: session_path(resource_name)) do |f| %>
+
+          <div class="mb-3">
+            <%= f.label :email, class: "form-label" %>
+
+            <%= f.email_field :email,
+              autofocus: true,
+              autocomplete: "email",
+              class: "form-control form-control-lg" %>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :password, class: "form-label" %>
+
+            <%= f.password_field :password,
+              autocomplete: "current-password",
+              class: "form-control form-control-lg" %>
+          </div>
+
+          <div class="d-grid">
+            <%= f.submit "Ingresar",
+              class: "btn btn-hans btn-lg" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

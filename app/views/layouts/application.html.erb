@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HANS Pastelería</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-hans py-3">
+      <div class="container">
+        <%= link_to "HANS", root_path, class: "brand-hans" %>
+
+        <div class="ms-auto d-flex align-items-center gap-3 mobile-actions">
+          <% if user_signed_in? %>
+            <span><%= current_user.email %></span>
+
+            <% if current_user.admin? %>
+              <%= link_to "Panel", admin_root_path, class: "btn btn-sm btn-dark" %>
+              <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-outline-dark" %>
+              <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
+            <% else %>
+              <%= link_to "Mi portal", dashboard_path, class: "btn btn-sm btn-dark" %>
+
+              <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+              <%= turbo_frame_tag "cart_count" do %>
+                <%= link_to "Carrito (#{cart_count})",
+                  cart_path,
+                  class: "btn btn-sm btn-outline-dark",
+                  data: { turbo_frame: "_top" } %>
+              <% end %>
+
+              <%= link_to "Mis pedidos", orders_path, class: "btn btn-sm btn-outline-dark" %>
+            <% end %>
+
+            <%= button_to "Salir",
+              destroy_user_session_path,
+              method: :delete,
+              class: "btn btn-outline-dark btn-sm" %>
+          <% else %>
+            <%= link_to "Ingresar",
+              new_user_session_path,
+              class: "btn btn-dark btn-sm" %>
+          <% end %>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-4">
+      <% if notice.present? %>
+        <div class="alert alert-success"><%= notice %></div>
+      <% end %>
+
+      <% if alert.present? %>
+        <div class="alert alert-danger"><%= alert %></div>
+      <% end %>
+    </div>
+
+    <%= yield %>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-start mb-5 mobile-stack">
+    <div>
+      <h1 class="fw-bold mb-1">Mis pedidos</h1>
+      <div class="text-muted">Historial de pedidos realizados</div>
+    </div>
+
+    <%= link_to "Nuevo pedido", dashboard_path, class: "btn btn-hans mt-3 mt-md-0" %>
+  </div>
+
+  <% if @orders.empty? %>
+    <div class="product-card">
+      Todavía no hiciste pedidos.
+    </div>
+  <% else %>
+    <% @orders.each do |order| %>
+      <div class="product-card mb-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-bold fs-5"><%= order.number %></div>
+            <div class="text-muted">
+              Entrega: <%= order.delivery_date.strftime("%d/%m/%Y") %>
+            </div>
+            <div class="small mt-2">
+              <%= order.order_items.sum(&:quantity) %> unidades
+            </div>
+          </div>
+
+          <div class="text-end">
+            <div class="fw-bold mb-2">
+              $<%= number_with_delimiter(order.total_cents / 100) %>
+            </div>
+
+            <div class="badge bg-secondary mb-3">
+              <%= order.status.humanize %>
+            </div>
+
+            <div class="d-flex gap-2">
+              <%= link_to "Ver", order_path(order), class: "btn btn-sm btn-outline-dark" %>
+
+              <%= button_to "Repetir",
+                repeat_order_path(order),
+                method: :post,
+                class: "btn btn-sm btn-dark" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
