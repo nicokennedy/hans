@@ -1,0 +1,58 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Productos</h1>
+      <p class="text-muted mb-0">Alta, edición y costos internos.</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+      <%= link_to "+ Nuevo producto", new_admin_product_path, class: "btn btn-dark" %>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Categoría cliente</th>
+        	<th>Categoría interna</th>
+          <th>Precio</th>
+          <th>Costo</th>
+          <th>Activo</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @products.each do |product| %>
+          <tr>
+            <td class="fw-bold"><%= product.name %></td>
+            <td><%= product.category&.name %></td>
+						<td><%= product.internal_category.presence || "-" %></td>
+            <td>$<%= number_with_delimiter(product.price_cents.to_i / 100) %></td>
+            <td>$<%= number_with_delimiter(product.cost_cents.to_i / 100) %></td>
+            <td>
+              <% if product.active? %>
+                <span class="badge bg-success">Sí</span>
+              <% else %>
+                <span class="badge bg-secondary">No</span>
+              <% end %>
+            </td>
+            <td class="text-end">
+              <%= link_to "Editar", edit_admin_product_path(product), class: "btn btn-sm btn-outline-dark" %>
+
+              <%= button_to "Eliminar",
+                admin_product_path(product),
+                method: :delete,
+                class: "btn btn-sm btn-outline-danger",
+                form: { class: "d-inline" },
+                data: { turbo_confirm: "¿Seguro que querés eliminar este producto?" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

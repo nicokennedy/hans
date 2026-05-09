@@ -21,5 +21,7 @@ Rails.application.routes.draw do
     root "dashboard#show"
     resources :orders, only: [:index, :show]
     resources :production, only: [:index]
+    resources :products
+    resources :categories
   end
 end

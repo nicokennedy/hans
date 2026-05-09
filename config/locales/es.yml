@@ -1,0 +1,7 @@
+es:
+  activerecord:
+    attributes:
+      order:
+        delivery_date: "Fecha de entrega"
+        payment_method_selected: "Forma de pago"
+        comment: "Comentario"

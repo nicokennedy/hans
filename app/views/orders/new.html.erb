@@ -56,9 +56,10 @@
 					<strong>No pudimos crear el pedido:</strong>
 
 					<ul class="mb-0 mt-2">
-						<% @order.errors.full_messages.each do |message| %>
-							<li><%= message %></li>
+						<% @order.errors.each do |error| %>
+							<li><%= error.message %></li>
 						<% end %>
+
 					</ul>
 				</div>
 			<% end %>
@@ -69,9 +70,10 @@
               "Fecha de entrega",
               class: "form-label fw-bold" %>
 
-            <%= f.date_field :delivery_date,
-              class: "form-control form-control-lg",
-              min: Date.current %>
+            <%= f.text_field :delivery_date,
+							class: "form-control form-control-lg",
+							id: "delivery-date-picker",
+							autocomplete: "off" %>
           </div>
 
           <div class="mb-4">
@@ -110,3 +112,26 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("turbo:load", function() {
+  const input = document.querySelector("#delivery-date-picker")
+
+  if (!input) return
+
+  flatpickr(input, {
+    locale: "es",
+    minDate: "today",
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "d/m/Y",
+
+    disable: [
+      function(date) {
+        const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
+        return disabledDays.includes(date.getDay())
+      }
+    ]
+  })
+})
+</script>

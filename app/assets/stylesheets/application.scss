@@ -420,3 +420,108 @@ h1, h2, h3,
 .navbar-hans {
   border-bottom-color: var(--hans-orange-light);
 }
+
+.nav-hans-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-hans-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-hans-toggle {
+  display: none;
+  border: 1px solid var(--hans-orange);
+  background: transparent;
+  color: var(--hans-orange);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.nav-hans-email {
+  color: #2b2b2b;
+}
+
+@media (max-width: 768px) {
+  .nav-hans-wrapper {
+    align-items: flex-start;
+  }
+
+  .nav-hans-toggle {
+    display: block;
+  }
+
+  .nav-hans-menu {
+    display: none;
+    width: 100%;
+    margin-top: 18px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  body.nav-open .nav-hans-menu {
+    display: flex;
+  }
+
+  .nav-hans-wrapper {
+    flex-wrap: wrap;
+  }
+
+  .nav-hans-menu .btn,
+  .nav-hans-menu form,
+  .nav-hans-menu form button {
+    width: 100%;
+  }
+
+  .nav-hans-email {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+}
+
+.flatpickr-calendar {
+  border-radius: 18px;
+  border: 1px solid #f5c9ad;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.flatpickr-day.selected {
+  background: #f89a5b;
+  border-color: #f89a5b;
+}
+
+.flatpickr-day.flatpickr-disabled {
+  color: #d0d0d0 !important;
+  text-decoration: line-through;
+}
+
+.flatpickr-day.today {
+  border-color: #f89a5b;
+}
+
+.flatpickr-calendar {
+  border-radius: 18px;
+  border: 1px solid #f5c9ad;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.flatpickr-day.selected {
+  background: #f89a5b !important;
+  border-color: #f89a5b !important;
+}
+
+.flatpickr-day.flatpickr-disabled {
+  color: #d0d0d0 !important;
+  text-decoration: line-through;
+}
+
+.flatpickr-day.today {
+  border-color: #f89a5b;
+}

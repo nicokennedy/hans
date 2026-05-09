@@ -5,3 +5,14 @@
 <%= turbo_stream.replace "cart_count" do %>
   <%= render "carts/cart_count" %>
 <% end %>
+
+<%= turbo_stream.replace "cart_count_big" do %>
+  <%= turbo_frame_tag "cart_count_big" do %>
+    <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+    <%= link_to "Carrito (#{cart_count})",
+      cart_path,
+      class: "btn btn-hans btn-lg",
+      data: { turbo_frame: "_top" } %>
+  <% end %>
+<% end %>

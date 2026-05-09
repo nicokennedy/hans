@@ -19,7 +19,7 @@ class DeliveryDateValidator
 
   def reason
     return "Fecha bloqueada manualmente" if blocked_date?
-    return "No hay entregas ese día" if unavailable_weekday?
+    return "No tenemos entregas ese día" if unavailable_weekday?
     return "Cerró el horario de pedidos para esta fecha" if cutoff_passed?
 
     nil

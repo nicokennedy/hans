@@ -9,12 +9,7 @@
       <div class="fw-bold mt-2"><%= total_quantity %> productos en el carrito</div>
     </div>
 
-    <% if @cart_items.any? %>
-      <%= button_to "Vaciar",
-        clear_cart_path,
-        method: :delete,
-        class: "btn btn-outline-danger btn-sm" %>
-    <% end %>
+    <%= link_to "Agregar más productos", dashboard_path, class: "btn btn-outline-dark btn-sm" %>
   </div>
 
   <% if @cart_items.empty? %>
@@ -29,9 +24,16 @@
         <div class="fw-bold fs-4">$<%= number_with_delimiter(total_cents / 100) %></div>
       </div>
 
-      <%= link_to "Continuar",
-        new_order_path,
-        class: "btn btn-hans" %>
+      <div class="d-flex gap-2 align-items-center">
+        <%= button_to "Vaciar carrito",
+          clear_cart_path,
+          method: :delete,
+          class: "btn btn-sm btn-outline-dark" %>
+
+        <%= link_to "Continuar",
+          new_order_path,
+          class: "btn btn-hans" %>
+      </div>
     </div>
 
     <div class="cart-items">
@@ -46,9 +48,9 @@
           </div>
 
           <div class="cart-item-side">
-							<div class="mb-2">
-								<%= render "carts/quantity_control", product: item[:product] %>
-							</div>
+            <div class="mb-2">
+              <%= render "carts/quantity_control", product: item[:product] %>
+            </div>
 
             <div class="cart-item-subtotal">
               $<%= number_with_delimiter(item[:subtotal_cents] / 100) %>
@@ -57,21 +59,10 @@
             <%= button_to "Eliminar",
               remove_item_cart_path(product_id: item[:product].id),
               method: :delete,
-              class: "btn btn-sm btn-outline-danger mt-2" %>
+              class: "btn btn-sm btn-outline-dark mt-2" %>
           </div>
         </div>
       <% end %>
-    </div>
-
-    <div class="cart-total-card mt-4">
-      <div>
-        <div class="text-muted small">Total</div>
-        <div class="fw-bold fs-4">$<%= number_with_delimiter(total_cents / 100) %></div>
-      </div>
-
-      <%= link_to "Continuar",
-        new_order_path,
-        class: "btn btn-hans" %>
     </div>
   <% end %>
 </div>
