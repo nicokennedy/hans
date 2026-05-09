@@ -23,3 +23,13 @@ es:
         delivery_date: "Fecha de entrega"
         payment_method_selected: "Forma de pago"
         comment: "Comentario"
+  devise:
+    sessions:
+      signed_in: "Sesión iniciada correctamente."
+      signed_out: "Sesión cerrada correctamente."
+      already_signed_out: "La sesión ya estaba cerrada."
+    failure:
+      user:
+        unauthenticated: "Tenés que iniciar sesión para continuar."
+        invalid: "Email o contraseña incorrectos."
+        not_found_in_database: "Email o contraseña incorrectos."
