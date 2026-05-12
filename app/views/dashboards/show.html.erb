@@ -1,35 +1,93 @@
-<div class="container py-4">
+<div class="container py-2">
   <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+  <% search_query = params[:q].to_s.strip %>
+  <% normalized_search_query = search_query.downcase %>
+  <% selected_category_id = params[:category_id].presence %>
+
+  <%
+    visible_category_names = [
+      "Muffins",
+      "Chipa",
+      "Alfajorcitos",
+      "Cookies",
+      "Alfajores",
+      "Macarons",
+      "Postres",
+      "Budines",
+      "Otros",
+      "Mini tartas",
+      "Mini tortas",
+      "Cuadrados"
+    ]
+
+    categories = Category
+      .active
+      .ordered
+      .includes(:products)
+      .select { |category| visible_category_names.include?(category.name) }
+  %>
 
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-start gap-3">
       <div>
-        <h1 class="fw-bold mb-1">HANS</h1>
-        <div class="text-muted">Hola <%= current_user.customer.name %></div>
+        <h1 class="fw-bold mb-2"><%= current_user.customer.name %></h1>
       </div>
 
       <%= turbo_frame_tag "cart_count_big" do %>
-        <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
-
-        <%= link_to "Carrito (#{cart_count})",
-          cart_path,
-          class: "btn btn-hans btn-lg",
-          data: { turbo_frame: "_top" } %>
+        <%= link_to cart_path,
+          class: "top-cart-icon",
+          data: { turbo_frame: "_top" } do %>
+          🛒
+          <% if cart_count.positive? %>
+            <span class="top-cart-badge"><%= cart_count %></span>
+          <% end %>
+        <% end %>
       <% end %>
-    </div>
-
-    <div class="mt-3">
-      <%= link_to "Mis pedidos", orders_path, class: "btn btn-sm btn-outline-dark" %>
     </div>
   </div>
 
   <div class="mb-4">
     <h2 class="fw-bold fs-4 mb-1">Hacé tu pedido</h2>
-    <div class="text-muted small">Sumá productos y confirmá desde el carrito.</div>
+    <div class="text-muted small">Buscá por producto o filtrá por categoría.</div>
   </div>
 
-  <% Category.active.ordered.includes(:products).each do |category| %>
+  <div class="mb-4">
+    <%= form_with url: dashboard_path, method: :get, local: true do %>
+      <div class="d-flex gap-2 mb-2">
+        <%= text_field_tag :q,
+          search_query,
+          placeholder: "Buscar producto...",
+          class: "form-control" %>
+
+        <%= submit_tag "Buscar", class: "btn btn-hans btn-sm px-3" %>
+      </div>
+
+      <div>
+        <%= select_tag :category_id,
+          options_from_collection_for_select(categories, :id, :name, selected_category_id),
+          include_blank: "Todas las categorías",
+          class: "form-select" %>
+      </div>
+
+      <% if search_query.present? || selected_category_id.present? %>
+        <div class="mt-2">
+          <%= link_to "Limpiar búsqueda",
+            dashboard_path,
+            class: "btn btn-sm btn-outline-dark" %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% categories.each do |category| %>
+    <% next if selected_category_id.present? && category.id.to_s != selected_category_id %>
+
     <% products = category.products.active.order(:position, :name) %>
+
+    <% if normalized_search_query.present? %>
+      <% products = products.select { |product| product.name.downcase.include?(normalized_search_query) } %>
+    <% end %>
+
     <% next if products.empty? %>
 
     <section class="mb-4">
@@ -37,8 +95,6 @@
 
       <div class="order-list">
         <% products.each do |product| %>
-          <% quantity = session[:cart].to_h[product.id.to_s].to_i %>
-
           <div class="order-item-card" id="product-<%= product.id %>">
             <div class="order-item-info">
               <div class="order-item-name"><%= product.name %></div>
@@ -59,4 +115,93 @@
     </section>
   <% end %>
 
+  <%= turbo_frame_tag "floating_cart_bar" do %>
+    <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+    <div class="floating-cart-bar <%= 'd-none' unless cart_count.positive? %>">
+      <div class="floating-cart-content">
+        <div>
+          <div class="floating-cart-title">
+            🛒 <%= cart_count %> <%= cart_count == 1 ? "producto" : "productos" %>
+          </div>
+
+          <div class="floating-cart-subtitle">
+            Ver carrito y confirmar pedido
+          </div>
+        </div>
+
+        <%= link_to "Ver carrito",
+          cart_path,
+          class: "btn btn-light fw-bold px-3",
+          data: { turbo_frame: "_top" } %>
+      </div>
+    </div>
+  <% end %>
 </div>
+
+<style>
+  .top-cart-icon {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid #ff9a62;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    background: white;
+    font-size: 18px;
+  }
+
+  .top-cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ff9a62;
+    color: white;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    padding: 0 4px;
+  }
+
+  .floating-cart-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 9999;
+    background: #ff9a62;
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  }
+
+  .floating-cart-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .floating-cart-title {
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .floating-cart-subtitle {
+    color: rgba(255,255,255,0.9);
+    font-size: 12px;
+  }
+
+  body {
+    padding-bottom: 100px;
+  }
+</style>

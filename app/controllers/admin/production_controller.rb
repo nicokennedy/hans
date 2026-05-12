@@ -3,11 +3,9 @@ class Admin::ProductionController < ApplicationController
   before_action :require_admin!
 
   def index
-    @delivery_date = params[:date].presence || params[:delivery_date].presence || Date.current.to_s
-    selected_date = Date.parse(@delivery_date.to_s)
-    @selected_date = selected_date
+    today = Date.current
 
-    @week_days = (Date.current..6.days.from_now.to_date).map do |date|
+    @week_days = (today..6.days.from_now.to_date).map do |date|
       orders_for_day = Order
         .includes(:customer, :order_items)
         .where(delivery_date: date)
@@ -21,9 +19,35 @@ class Admin::ProductionController < ApplicationController
       }
     end
 
+    past_dates = Order
+      .where.not(status: "canceled")
+      .where("delivery_date < ?", today)
+      .where("delivery_date >= ?", 30.days.ago.to_date)
+      .distinct
+      .order(delivery_date: :desc)
+      .pluck(:delivery_date)
+
+    @past_days = past_dates.map do |date|
+      orders_for_day = Order
+        .includes(:customer, :order_items)
+        .where(delivery_date: date)
+        .where.not(status: "canceled")
+
+      {
+        date: date,
+        orders_count: orders_for_day.count,
+        items_count: orders_for_day.sum { |order| order.order_items.sum(&:quantity) },
+        customers_count: orders_for_day.map(&:customer_id).uniq.count
+      }
+    end
+  end
+
+  def show
+    @selected_date = Date.parse(params[:id])
+
     orders = Order
       .includes(:customer, :order_items)
-      .where(delivery_date: selected_date)
+      .where(delivery_date: @selected_date)
       .where.not(status: "canceled")
 
     @customers = orders.map(&:customer).uniq.sort_by(&:name)

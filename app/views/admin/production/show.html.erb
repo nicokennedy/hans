@@ -1,0 +1,88 @@
+<div class="container py-5">
+
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+      <h1 class="fw-bold mb-1">
+        Producción <%= l(@selected_date, format: "%d/%m") %>
+      </h1>
+
+      <div class="text-muted">
+        Resumen para fábrica
+      </div>
+    </div>
+
+    <%= link_to "← Semana",
+      admin_production_index_path,
+      class: "btn btn-outline-dark" %>
+  </div>
+
+  <% if @rows.empty? %>
+
+    <div class="product-card">
+      No hay pedidos para esta fecha.
+    </div>
+
+  <% else %>
+
+    <div class="product-card production-sheet">
+      <div class="table-responsive">
+
+        <table class="production-table align-middle mb-0">
+
+          <thead>
+            <tr>
+              <th>Producto</th>
+
+							<th class="text-center">
+							Categoría
+							</th>
+
+							<th class="text-center">
+							TOTAL
+							</th>
+
+              <% @customers.each do |customer| %>
+                <th class="text-center vertical-column">
+                  <%= customer.name %>
+                </th>
+              <% end %>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <% @rows.each do |row| %>
+
+              <tr>
+                <td class="fw-bold">
+									<%= row[:product_name] %>
+								</td>
+
+								<td class="text-center fw-bold">
+									<%= Product.find_by(name: row[:product_name])&.category&.name %>
+								</td>
+
+								<td class="text-center fw-bold">
+									<%= row[:total] %>
+								</td>
+
+                <% @customers.each do |customer| %>
+                  <td class="text-center">
+                    <%= row[:quantities_by_customer][customer.name].presence || "" %>
+                  </td>
+                <% end %>
+
+              </tr>
+
+            <% end %>
+
+          </tbody>
+
+        </table>
+
+      </div>
+    </div>
+
+  <% end %>
+
+</div>

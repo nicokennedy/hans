@@ -10,9 +10,38 @@
   <%= turbo_frame_tag "cart_count_big" do %>
     <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
 
-    <%= link_to "Carrito (#{cart_count})",
-      cart_path,
-      class: "btn btn-hans btn-lg",
-      data: { turbo_frame: "_top" } %>
+    <%= link_to cart_path,
+      class: "top-cart-icon",
+      data: { turbo_frame: "_top" } do %>
+      🛒
+      <% if cart_count.positive? %>
+        <span class="top-cart-badge"><%= cart_count %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.replace "floating_cart_bar" do %>
+  <%= turbo_frame_tag "floating_cart_bar" do %>
+    <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+    <div class="floating-cart-bar <%= 'd-none' unless cart_count.positive? %>">
+      <div class="floating-cart-content">
+        <div>
+          <div class="floating-cart-title">
+            🛒 <%= cart_count %> <%= cart_count == 1 ? "producto" : "productos" %>
+          </div>
+
+          <div class="floating-cart-subtitle">
+            Ver carrito y confirmar pedido
+          </div>
+        </div>
+
+        <%= link_to "Ver carrito",
+          cart_path,
+          class: "btn btn-light fw-bold px-3",
+          data: { turbo_frame: "_top" } %>
+      </div>
+    </div>
   <% end %>
 <% end %>

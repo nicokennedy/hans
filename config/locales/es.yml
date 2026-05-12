@@ -33,3 +33,5 @@ es:
         unauthenticated: "Tenés que iniciar sesión para continuar."
         invalid: "Email o contraseña incorrectos."
         not_found_in_database: "Email o contraseña incorrectos."
+        already_authenticated: "Ya iniciaste sesión."
+      

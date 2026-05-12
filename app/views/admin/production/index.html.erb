@@ -3,27 +3,26 @@
     <div>
       <h1 class="fw-bold mb-1">Producción</h1>
       <div class="text-muted">
-        Semana actual y detalle por día
+        Hoy + próximos 6 días
       </div>
     </div>
 
     <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
   </div>
 
-  <div class="product-card mb-5">
+  <div class="product-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-bold mb-0">Semana</h3>
+      <h3 class="fw-bold mb-0">Próximos días</h3>
+
       <div class="text-muted small">
-        Tocá un día para ver el detalle
+        Tocá un día para abrir producción
       </div>
     </div>
 
     <div class="production-calendar">
       <% @week_days.each do |day| %>
-        <% selected = day[:date] == @selected_date %>
-
-        <%= link_to admin_production_index_path(date: day[:date]),
-          class: "production-calendar-day #{'selected' if selected}" do %>
+        <%= link_to admin_production_path(day[:date]),
+          class: "production-calendar-day" do %>
 
           <div class="production-calendar-weekday">
             <%= l(day[:date], format: "%A") %>
@@ -37,62 +36,40 @@
             <%= day[:orders_count] %> pedidos
           </div>
 
-          <div class="production-calendar-stats">
-            <div>
-              <span>Productos</span>
-              <strong><%= day[:items_count] %></strong>
-            </div>
-
-          </div>
         <% end %>
       <% end %>
     </div>
   </div>
 
-  <div class="mb-4">
-    <h2 class="fw-bold mb-1">
-      Detalle <%= l(@selected_date, format: "%A %d/%m") %>
-    </h2>
+  <% if @past_days.present? %>
+    <div class="product-card mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0">Días pasados</h3>
 
-    <div class="text-muted">
-      Total por producto y desglose por café
-    </div>
-  </div>
+        <div class="text-muted small">
+          Últimos 30 días con pedidos
+        </div>
+      </div>
 
-  <% if @rows.empty? %>
-    <div class="product-card">
-      No hay pedidos para esta fecha.
-    </div>
-  <% else %>
-    <div class="product-card">
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th class="text-center">TOTAL</th>
+      <div class="production-calendar production-calendar-past">
+        <% @past_days.each do |day| %>
+          <%= link_to admin_production_path(day[:date]),
+            class: "production-calendar-day production-calendar-day-small" do %>
 
-              <% @customers.each do |customer| %>
-                <th class="text-center"><%= customer.name %></th>
-              <% end %>
-            </tr>
-          </thead>
+            <div class="production-calendar-weekday">
+              <%= l(day[:date], format: "%A") %>
+            </div>
 
-          <tbody>
-            <% @rows.each do |row| %>
-              <tr>
-                <td class="fw-bold"><%= row[:product_name] %></td>
-                <td class="text-center fw-bold"><%= row[:total] %></td>
+            <div class="production-calendar-date">
+              <%= l(day[:date], format: "%d/%m") %>
+            </div>
 
-                <% @customers.each do |customer| %>
-                  <td class="text-center">
-                    <%= row[:quantities_by_customer][customer.name].presence || "" %>
-                  </td>
-                <% end %>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+            <div class="production-calendar-orders">
+              <%= day[:orders_count] %> pedidos
+            </div>
+
+          <% end %>
+        <% end %>
       </div>
     </div>
   <% end %>

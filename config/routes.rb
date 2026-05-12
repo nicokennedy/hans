@@ -20,7 +20,7 @@ Rails.application.routes.draw do
     get 'production/index'
     root "dashboard#show"
     resources :orders, only: [:index, :show]
-    resources :production, only: [:index]
+    resources :production, only: [:index, :show]  
     resources :products
     resources :categories
   end
