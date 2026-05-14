@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Producción <%= l(@selected_date, format: "%d/%m") %></title>
+
+  <style>
+    body {
+      background: white;
+      margin: 0;
+      padding: 12px;
+      font-family: Arial, sans-serif;
+      color: #111;
+    }
+
+    .print-actions {
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .print-actions a,
+    .print-actions button {
+      font-size: 14px;
+      padding: 8px 12px;
+      border: 1px solid #333;
+      background: white;
+      color: #111;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .production-date {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border: 1px solid #777;
+      padding: 6px 8px;
+    }
+
+    thead th {
+      background: #bfbfbf;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #e9e9e9;
+    }
+
+    .product-col {
+      text-align: left;
+      font-weight: bold;
+      min-width: 210px;
+    }
+
+    .category-col {
+      width: 34px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .total-col {
+      width: 55px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .customer-col {
+      width: 70px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .customer-header {
+      height: 90px;
+      vertical-align: bottom;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+    }
+
+    .number-cell {
+      text-align: center;
+    }
+
+    @media print {
+      @page {
+        size: landscape;
+        margin: 8mm;
+      }
+
+      .print-actions {
+        display: none !important;
+      }
+
+      body {
+        padding: 0;
+      }
+
+      table {
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        padding: 5px 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="print-actions">
+    <%= link_to "← Volver", admin_production_path(@selected_date) %>
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+
+  <div class="production-date">
+    <%= l(@selected_date, format: "%d/%m/%Y") %>
+  </div>
+
+  <% if @rows.empty? %>
+    <p>No hay pedidos para esta fecha.</p>
+  <% else %>
+    <table>
+      <thead>
+        <tr>
+          <th class="category-col"></th>
+          <th class="product-col"></th>
+          <th class="total-col">TOTAL</th>
+
+          <% @customers.each do |customer| %>
+            <th class="customer-col customer-header">
+              <%= customer.name %>
+            </th>
+          <% end %>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @rows.each do |row| %>
+          <% product = Product.find_by(name: row[:product_name]) %>
+
+          <tr>
+            <td class="category-col">
+              <%= product&.category&.name.to_s.first(2).upcase %>
+            </td>
+
+            <td class="product-col">
+              <%= row[:product_name] %>
+            </td>
+
+            <td class="total-col">
+              <%= row[:total] %>
+            </td>
+
+            <% @customers.each do |customer| %>
+              <td class="number-cell">
+                <%= row[:quantities_by_customer][customer.name].presence || "" %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</body>
+</html>

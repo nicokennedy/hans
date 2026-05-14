@@ -11,9 +11,19 @@
       </div>
     </div>
 
-    <%= link_to "← Semana",
-      admin_production_index_path,
-      class: "btn btn-outline-dark" %>
+    <div class="d-flex gap-2">
+      <% print_url = print_admin_production_url(@selected_date) %>
+      <% whatsapp_text = "Hola! Te paso la plantilla de producción del #{l(@selected_date, format: "%d/%m")} para imprimir: #{print_url}" %>
+
+      <%= link_to "Enviar por WhatsApp",
+        "https://wa.me/5492914168790?text=#{ERB::Util.url_encode(whatsapp_text)}",
+        target: "_blank",
+        class: "btn btn-success" %>
+
+      <%= link_to "← Semana",
+        admin_production_index_path,
+        class: "btn btn-outline-dark" %>
+    </div>
   </div>
 
   <% if @rows.empty? %>

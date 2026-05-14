@@ -69,6 +69,11 @@ class Admin::ProductionController < ApplicationController
     end.sort_by { |row| row[:product_name] }
   end
 
+  def print
+    show
+    render :print, layout: false
+  end
+
   private
 
   def require_admin!

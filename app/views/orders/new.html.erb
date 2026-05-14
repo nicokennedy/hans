@@ -71,9 +71,10 @@
               class: "form-label fw-bold" %>
 
             <%= f.text_field :delivery_date,
-							class: "form-control form-control-lg",
-							id: "delivery-date-picker",
-							autocomplete: "off" %>
+              class: "form-control hans-input",
+              id: "delivery-date-picker",
+              autocomplete: "off",
+              placeholder: "Seleccioná una fecha" %>
           </div>
 
           <div class="mb-4">
@@ -88,7 +89,7 @@
                 ["Transferencia", "bank_transfer"]
               ],
               {},
-              class: "form-select form-select-lg" %>
+              class: "form-select hans-input" %>
           </div>
 
           <div class="mb-4">
@@ -129,7 +130,28 @@ document.addEventListener("turbo:load", function() {
     disable: [
       function(date) {
         const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
-        return disabledDays.includes(date.getDay())
+
+        // Bloquea días sin entrega
+        if (disabledDays.includes(date.getDay())) {
+          return true
+        }
+
+        // Si ya pasaron las 14hs, bloquear mañana
+        const now = new Date()
+
+        const tomorrow = new Date()
+        tomorrow.setDate(now.getDate() + 1)
+
+        const isTomorrow =
+          date.getDate() === tomorrow.getDate() &&
+          date.getMonth() === tomorrow.getMonth() &&
+          date.getFullYear() === tomorrow.getFullYear()
+
+        if (isTomorrow && now.getHours() >= 14) {
+          return true
+        }
+
+        return false
       }
     ]
   })

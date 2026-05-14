@@ -47,6 +47,17 @@ class OrdersController < ApplicationController
       )
     end
 
+    delivery_date = Date.parse(order.delivery_date.to_s)
+
+    tomorrow = Date.tomorrow
+
+    if delivery_date == tomorrow && Time.current.hour >= 14
+      order.errors.add(:delivery_date, "ya no está disponible para mañana después de las 14hs")
+      @order = order
+      render :new, status: :unprocessable_entity
+      return
+    end
+
     if order.save
       session[:cart] = {}
       redirect_to order_path(order), notice: "Pedido creado correctamente."
