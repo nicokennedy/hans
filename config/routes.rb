@@ -16,6 +16,8 @@ Rails.application.routes.draw do
     post :repeat, on: :member
   end
 
+  get "/production/:id/print", to: "admin/production#public_print", as: :public_production_print
+
   namespace :admin do
     get 'production/index'
     root "dashboard#show"

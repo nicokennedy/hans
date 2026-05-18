@@ -1,6 +1,6 @@
 class Admin::ProductionController < ApplicationController
-  before_action :authenticate_user!
-  before_action :require_admin!
+  before_action :authenticate_user!, except: [:public_print]
+  before_action :require_admin!, except: [:public_print]
 
   def index
     today = Date.current
@@ -70,6 +70,11 @@ class Admin::ProductionController < ApplicationController
   end
 
   def print
+    show
+    render :print, layout: false
+  end
+
+  def public_print
     show
     render :print, layout: false
   end
