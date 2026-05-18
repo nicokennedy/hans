@@ -71,6 +71,7 @@
               class: "form-label fw-bold" %>
 
             <%= f.text_field :delivery_date,
+              value: nil,
               class: "form-control hans-input",
               id: "delivery-date-picker",
               autocomplete: "off",
@@ -115,45 +116,61 @@
 </div>
 
 <script>
-document.addEventListener("turbo:load", function() {
+function initDeliveryDatePicker() {
   const input = document.querySelector("#delivery-date-picker")
 
   if (!input) return
+  if (typeof flatpickr === "undefined") return
 
-  flatpickr(input, {
+  if (input._flatpickr) {
+    input._flatpickr.destroy()
+  }
+
+  const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
+  const cutoffHour = <%= DeliverySetting.current.cutoff_hour %>
+  const hasErrors = <%= @order&.errors&.any? ? "true" : "false" %>
+
+  const now = new Date()
+  let minDate = new Date()
+
+  if (now.getHours() >= cutoffHour) {
+    minDate.setDate(now.getDate() + 2)
+  } else {
+    minDate.setDate(now.getDate() + 1)
+  }
+
+  const picker = flatpickr(input, {
     locale: "es",
-    minDate: "today",
+    minDate: minDate,
     dateFormat: "Y-m-d",
-    altInput: true,
-    altFormat: "d/m/Y",
+    allowInput: false,
+    clickOpens: true,
 
     disable: [
       function(date) {
-        const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
-
-        // Bloquea días sin entrega
-        if (disabledDays.includes(date.getDay())) {
-          return true
-        }
-
-        // Si ya pasaron las 14hs, bloquear mañana
-        const now = new Date()
-
-        const tomorrow = new Date()
-        tomorrow.setDate(now.getDate() + 1)
-
-        const isTomorrow =
-          date.getDate() === tomorrow.getDate() &&
-          date.getMonth() === tomorrow.getMonth() &&
-          date.getFullYear() === tomorrow.getFullYear()
-
-        if (isTomorrow && now.getHours() >= 14) {
-          return true
-        }
-
-        return false
+        return disabledDays.includes(date.getDay())
       }
-    ]
+    ],
+
+    onReady: function(selectedDates, dateStr, instance) {
+      input.placeholder = "Seleccioná una fecha"
+
+      if (hasErrors) {
+        instance.clear()
+      }
+    }
   })
-})
+
+  input.addEventListener("focus", function() {
+    picker.open()
+  })
+
+  input.addEventListener("click", function() {
+    picker.open()
+  })
+}
+
+initDeliveryDatePicker()
+document.addEventListener("turbo:load", initDeliveryDatePicker)
+document.addEventListener("DOMContentLoaded", initDeliveryDatePicker)
 </script>
