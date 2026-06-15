@@ -37,13 +37,25 @@
       </div>
     </div>
 
-    <div style="width: 120px;">
-      <label class="form-label small">Cantidad</label>
-      <%= number_field_tag "order_items[#{item.id}][quantity]",
-          item.quantity,
-          min: 1,
-          class: "form-control" %>
-    </div>
+<div style="width: 180px;">
+  <label class="form-label small">Cantidad</label>
+
+  <%= number_field_tag "order_items[#{item.id}][quantity]",
+      item.quantity,
+      min: 1,
+      class: "form-control mb-2" %>
+
+  <div class="form-check">
+    <%= check_box_tag "order_items[#{item.id}][remove]",
+        "1",
+        false,
+        class: "form-check-input" %>
+
+    <label class="form-check-label">
+      Eliminar
+    </label>
+  </div>
+</div>
 
     <div class="fw-bold">
       $<%= number_with_delimiter(item.line_revenue_cents / 100) %>

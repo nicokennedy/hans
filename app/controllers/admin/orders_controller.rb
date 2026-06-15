@@ -37,14 +37,19 @@ class Admin::OrdersController < ApplicationController
     )
   end
 
-  def update_order_items_quantities
-    return unless params[:order_items].present?
+def update_order_items_quantities
+  return unless params[:order_items].present?
 
-    params[:order_items].each do |id, item_params|
-      item = @order.order_items.find(id)
+  params[:order_items].each do |id, item_params|
+    item = @order.order_items.find(id)
+
+    if item_params[:remove] == "1"
+      item.destroy!
+    else
       item.update!(quantity: item_params[:quantity])
     end
   end
+end
 
   def require_admin!
     redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
