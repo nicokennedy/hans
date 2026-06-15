@@ -1,0 +1,51 @@
+<div class="container py-5">
+  <div class="d-flex gap-2 mb-4">
+    <%= link_to "← Volver al pedido", admin_order_path(@order), class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card">
+    <h1 class="fw-bold mb-2">Editar pedido <%= @order.number %></h1>
+    <div class="text-muted mb-4"><%= @order.customer.name %></div>
+
+    <%= form_with model: [:admin, @order], local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :delivery_date, "Fecha de entrega", class: "form-label" %>
+        <%= f.date_field :delivery_date, class: "form-control" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :status, "Estado", class: "form-label" %>
+        <%= f.select :status,
+          Order.statuses.keys.map { |status| [status.humanize, status] },
+          {},
+          class: "form-select" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :customer_comment, "Comentario", class: "form-label" %>
+        <%= f.text_area :customer_comment, rows: 3, class: "form-control" %>
+      </div>
+
+      <h4 class="mb-3">Productos del pedido</h4>
+
+      <% @order.order_items.each do |item| %>
+        <div class="d-flex justify-content-between border-bottom py-3">
+          <div>
+            <div class="fw-bold"><%= item.product_name_snapshot %></div>
+            <div class="text-muted">
+              Cantidad actual: <%= item.quantity %>
+            </div>
+          </div>
+
+          <div class="fw-bold">
+            $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="mt-4">
+        <%= f.submit "Guardar cambios", class: "btn btn-dark" %>
+      </div>
+    <% end %>
+  </div>
+</div>

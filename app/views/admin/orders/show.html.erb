@@ -1,5 +1,11 @@
 <div class="container py-5">
-  <%= link_to "← Volver", admin_orders_path, class: "btn btn-outline-dark mb-4" %>
+  <div class="d-flex gap-2 mb-4">
+    <%= link_to "← Volver", admin_orders_path, class: "btn btn-outline-dark" %>
+
+   <%= link_to "Editar pedido",
+       edit_admin_order_path(@order),
+       class: "btn btn-dark" %>
+  </div>
 
   <div class="product-card">
     <h1 class="fw-bold mb-2"><%= @order.number %></h1>
