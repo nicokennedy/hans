@@ -62,7 +62,24 @@
     </div>
   </div>
 <% end %>
+<div class="mt-4 p-3 border rounded">
+  <h5 class="mb-3">Agregar producto</h5>
 
+  <div class="row g-3 align-items-end">
+    <div class="col-md-8">
+      <label class="form-label">Producto</label>
+      <%= select_tag :new_product_id,
+          options_from_collection_for_select(@products, :id, :name),
+          include_blank: "Seleccionar producto",
+          class: "form-select" %>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Cantidad</label>
+      <%= number_field_tag :new_quantity, 1, min: 1, class: "form-control" %>
+    </div>
+  </div>
+</div>
       <div class="mt-4">
         <%= f.submit "Guardar cambios", class: "btn btn-dark" %>
       </div>
