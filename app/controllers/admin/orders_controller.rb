@@ -11,17 +11,20 @@ class Admin::OrdersController < ApplicationController
   end
 
   def edit
-    @order = Order.includes(order_items: :product).find(params[:id])
+    @order = Order.includes(:customer, order_items: :product).find(params[:id])
   end
 
   def update
-    @order = Order.find(params[:id])
+    @order = Order.includes(:order_items).find(params[:id])
 
-    if @order.update(order_params)
-      redirect_to admin_order_path(@order), notice: "Pedido actualizado correctamente."
-    else
-      render :edit, status: :unprocessable_entity
+    ActiveRecord::Base.transaction do
+      update_order_items_quantities
+      @order.update!(order_params)
     end
+
+    redirect_to admin_order_path(@order), notice: "Pedido actualizado correctamente."
+  rescue ActiveRecord::RecordInvalid
+    render :edit, status: :unprocessable_entity
   end
 
   private
@@ -32,6 +35,15 @@ class Admin::OrdersController < ApplicationController
       :status,
       :customer_comment
     )
+  end
+
+  def update_order_items_quantities
+    return unless params[:order_items].present?
+
+    params[:order_items].each do |id, item_params|
+      item = @order.order_items.find(id)
+      item.update!(quantity: item_params[:quantity])
+    end
   end
 
   def require_admin!

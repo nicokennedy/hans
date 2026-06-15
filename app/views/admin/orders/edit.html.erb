@@ -29,19 +29,27 @@
       <h4 class="mb-3">Productos del pedido</h4>
 
       <% @order.order_items.each do |item| %>
-        <div class="d-flex justify-content-between border-bottom py-3">
-          <div>
-            <div class="fw-bold"><%= item.product_name_snapshot %></div>
-            <div class="text-muted">
-              Cantidad actual: <%= item.quantity %>
-            </div>
-          </div>
+  <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+    <div>
+      <div class="fw-bold"><%= item.product_name_snapshot %></div>
+      <div class="text-muted">
+        $<%= number_with_delimiter(item.unit_price_cents_snapshot / 100) %> c/u
+      </div>
+    </div>
 
-          <div class="fw-bold">
-            $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
-          </div>
-        </div>
-      <% end %>
+    <div style="width: 120px;">
+      <label class="form-label small">Cantidad</label>
+      <%= number_field_tag "order_items[#{item.id}][quantity]",
+          item.quantity,
+          min: 1,
+          class: "form-control" %>
+    </div>
+
+    <div class="fw-bold">
+      $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
+    </div>
+  </div>
+<% end %>
 
       <div class="mt-4">
         <%= f.submit "Guardar cambios", class: "btn btn-dark" %>

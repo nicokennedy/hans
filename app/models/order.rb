@@ -28,7 +28,7 @@ class Order < ApplicationRecord
 
   validates :delivery_date, presence: true
   validates :status, :payment_status, presence: true
-  validate :delivery_date_must_be_available
+  validate :delivery_date_must_be_available, on: :create
 
   before_validation :set_defaults
   before_save :recalculate_total
