@@ -1,0 +1,97 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Previsualizar importación</h1>
+      <p class="text-muted mb-0">Revisá los cambios antes de aplicarlos.</p>
+    </div>
+
+    <%= link_to "← Volver", import_admin_products_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="product-card">
+        <div class="text-muted">Nuevos</div>
+        <div class="h3 mb-0"><%= @result.new_rows.count %></div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="product-card">
+        <div class="text-muted">Actualizados</div>
+        <div class="h3 mb-0"><%= @result.updated_rows.count %></div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="product-card">
+        <div class="text-muted">Sin cambios</div>
+        <div class="h3 mb-0"><%= @result.unchanged_rows.count %></div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="product-card">
+        <div class="text-muted">Errores</div>
+        <div class="h3 mb-0"><%= @result.error_rows.count %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card mb-4">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Fila</th>
+          <th>Estado</th>
+          <th>Nombre</th>
+          <th>Categoría cliente</th>
+          <th>Categoría interna</th>
+          <th>Precio</th>
+          <th>Costo</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @result.rows.each do |row| %>
+          <tr>
+            <td><%= row.line_number || "-" %></td>
+            <td>
+              <% case row.status %>
+              <% when :new %>
+                <span class="badge bg-primary">Nuevo</span>
+              <% when :updated %>
+                <span class="badge bg-warning text-dark">Actualizar</span>
+              <% when :unchanged %>
+                <span class="badge bg-secondary">Sin cambios</span>
+              <% else %>
+                <span class="badge bg-danger">Error</span>
+              <% end %>
+            </td>
+            <td class="fw-bold"><%= row.name.presence || "-" %></td>
+            <td><%= row.category_name.presence || "-" %></td>
+            <td><%= row.internal_category.presence || "-" %></td>
+            <td><%= row.price.present? ? "$#{row.price}" : "-" %></td>
+            <td><%= row.cost.present? ? "$#{row.cost}" : "-" %></td>
+            <td>
+              <% details = row.errors.presence || row.changes.presence || ["Sin cambios"] %>
+              <%= details.join(", ") %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= form_with url: confirm_import_admin_products_path, local: true, data: { turbo: false } do |f| %>
+      <%= hidden_field_tag :import_token, @import_token %>
+      <%= f.submit "Confirmar importación",
+        class: "btn btn-dark",
+        disabled: @result.error_rows.any? || (@result.new_rows.empty? && @result.updated_rows.empty?) %>
+    <% end %>
+
+    <%= link_to "Cancelar", admin_products_path, class: "btn btn-outline-dark" %>
+  </div>
+</div>

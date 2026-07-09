@@ -25,7 +25,13 @@ Rails.application.routes.draw do
     resources :production, only: [:index, :show] do
       get :print, on: :member
     end
-    resources :products
+    resources :products do
+      collection do
+        get :import
+        post :preview_import
+        post :confirm_import
+      end
+    end
     resources :categories
   end
 end

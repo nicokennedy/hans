@@ -1,0 +1,29 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Importar productos</h1>
+      <p class="text-muted mb-0">Subí un CSV con productos nuevos o cambios de precio, costo y categoría.</p>
+    </div>
+
+    <%= link_to "← Productos", admin_products_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card">
+    <%= form_with url: preview_import_admin_products_path, local: true, multipart: true, data: { turbo: false } do |f| %>
+      <div class="mb-3">
+        <%= f.label :file, "Archivo CSV", class: "form-label" %>
+        <%= f.file_field :file, class: "form-control", accept: ".csv,text/csv", required: true %>
+      </div>
+
+      <div class="mb-4">
+        <p class="text-muted mb-2">Columnas esperadas:</p>
+        <code>NOMBRE, COSTO X U, PRECIO MAY, Categoría</code>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Previsualizar", class: "btn btn-dark" %>
+        <%= link_to "Cancelar", admin_products_path, class: "btn btn-outline-dark" %>
+      </div>
+    <% end %>
+  </div>
+</div>
