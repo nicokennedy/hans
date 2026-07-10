@@ -1,0 +1,85 @@
+<% errors = customer.errors.full_messages + user.errors.full_messages %>
+<% if errors.any? %>
+  <div class="alert alert-danger">
+    <strong>No se pudo guardar el cliente:</strong>
+    <ul class="mb-0 mt-2">
+      <% errors.uniq.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with model: [:admin, customer] do |form| %>
+  <div class="product-card mb-4">
+    <h2 class="h4 mb-4">Datos del cliente</h2>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <%= form.label :name, "Nombre del negocio", class: "form-label" %>
+        <%= form.text_field :name, class: "form-control", required: true %>
+      </div>
+
+      <div class="col-md-6">
+        <%= form.label :contact_name, "Nombre de contacto", class: "form-label" %>
+        <%= form.text_field :contact_name, class: "form-control" %>
+      </div>
+
+      <div class="col-md-6">
+        <%= form.label :email, "Email comercial", class: "form-label" %>
+        <%= form.email_field :email, class: "form-control", required: true %>
+      </div>
+
+      <div class="col-md-6">
+        <%= form.label :phone, "Teléfono", class: "form-label" %>
+        <%= form.telephone_field :phone, class: "form-control" %>
+      </div>
+
+      <div class="col-12">
+        <%= form.label :address, "Dirección", class: "form-label" %>
+        <%= form.text_field :address, class: "form-control" %>
+      </div>
+
+      <div class="col-md-6">
+        <%= form.label :payment_terms, "Condiciones de pago", class: "form-label" %>
+        <%= form.text_field :payment_terms, class: "form-control" %>
+      </div>
+
+      <div class="col-12">
+        <%= form.label :internal_notes, "Notas internas", class: "form-label" %>
+        <%= form.text_area :internal_notes, rows: 4, class: "form-control" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card mb-4">
+    <h2 class="h4 mb-1">Acceso al portal</h2>
+    <% if customer.persisted? %>
+      <p class="text-muted mb-4">Dejar contraseña vacía para mantener la actual.</p>
+    <% end %>
+
+    <%= fields_for :user, user do |user_fields| %>
+      <div class="row g-3">
+        <div class="col-12">
+          <%= user_fields.label :email, "Email de acceso", class: "form-label" %>
+          <%= user_fields.email_field :email, class: "form-control", required: true %>
+        </div>
+
+        <div class="col-md-6">
+          <%= user_fields.label :password, "Contraseña", class: "form-label" %>
+          <%= user_fields.password_field :password, class: "form-control", required: customer.new_record?, autocomplete: "new-password" %>
+        </div>
+
+        <div class="col-md-6">
+          <%= user_fields.label :password_confirmation, "Confirmación de contraseña", class: "form-label" %>
+          <%= user_fields.password_field :password_confirmation, class: "form-control", required: customer.new_record?, autocomplete: "new-password" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= form.submit customer.new_record? ? "Crear cliente" : "Guardar cambios", class: "btn btn-dark" %>
+    <%= link_to "Cancelar", admin_customers_path, class: "btn btn-outline-dark" %>
+  </div>
+<% end %>

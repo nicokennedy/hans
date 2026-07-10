@@ -32,6 +32,9 @@ Rails.application.routes.draw do
         post :confirm_import
       end
     end
+    resources :customers, only: [:index, :new, :create, :edit, :update] do
+      patch :toggle_active, on: :member
+    end
     resources :categories
   end
 end

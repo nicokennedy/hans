@@ -26,11 +26,13 @@
     </div>
 
     <div class="col-md-4">
-      <div class="product-card h-100">
-        <div class="text-muted mb-2">Clientes</div>
-        <div class="fw-bold fs-2 mb-2"><%= Customer.count %></div>
-        <div class="small text-muted">Próximo módulo</div>
-      </div>
+      <%= link_to admin_customers_path, class: "text-decoration-none text-dark" do %>
+        <div class="product-card h-100">
+          <div class="text-muted mb-2">Clientes</div>
+          <div class="fw-bold fs-2 mb-2"><%= Customer.count %></div>
+          <div class="small text-muted">Ver y gestionar clientes</div>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>
