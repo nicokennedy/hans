@@ -1,4 +1,6 @@
 class DeliveryDateValidator
+  UNAVAILABLE_WEEKDAYS = [0].freeze
+
   def self.available?(date, now: Time.zone.now)
     new(date, now: now).available?
   end
@@ -7,9 +9,13 @@ class DeliveryDateValidator
     new(date, now: now).reason
   end
 
+  def self.unavailable_weekdays
+    UNAVAILABLE_WEEKDAYS
+  end
+
   def initialize(date, now: Time.zone.now)
     @date = date.to_date
-    @now = now
+    @now = now.in_time_zone
     @settings = DeliverySetting.current
   end
 
@@ -38,12 +44,7 @@ class DeliveryDateValidator
   end
 
   def cutoff_passed?
-    cutoff_time = (date - 1.day).in_time_zone.change(
-      hour: settings.cutoff_hour,
-      min: 0,
-      sec: 0
-    )
-
-    now > cutoff_time
+    cutoff_time = date.in_time_zone.beginning_of_day
+    now >= cutoff_time
   end
 end

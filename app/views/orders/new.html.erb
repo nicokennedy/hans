@@ -86,7 +86,7 @@
             <%= f.select :payment_method_selected,
               [
                 ["Efectivo contra entrega", "cash_on_delivery"],
-                ["Efectivo después", "cash_later"],
+                ["Cuenta Corriente", "cash_later"],
                 ["Transferencia", "bank_transfer"]
               ],
               {},
@@ -127,17 +127,9 @@ function initDeliveryDatePicker() {
   }
 
   const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
-  const cutoffHour = <%= DeliverySetting.current.cutoff_hour %>
   const hasErrors = <%= @order&.errors&.any? ? "true" : "false" %>
-
-  const now = new Date()
-  let minDate = new Date()
-
-  if (now.getHours() >= cutoffHour) {
-    minDate.setDate(now.getDate() + 2)
-  } else {
-    minDate.setDate(now.getDate() + 1)
-  }
+  const minDate = new Date()
+  minDate.setDate(minDate.getDate() + 1)
 
   const picker = flatpickr(input, {
     locale: "es",

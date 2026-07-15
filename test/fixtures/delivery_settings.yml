@@ -1,9 +1,11 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  cutoff_hour: 1
-  unavailable_weekdays: 
+  cutoff_hour: 0
+  unavailable_weekdays:
+    - 0
 
 two:
-  cutoff_hour: 1
-  unavailable_weekdays: 
+  cutoff_hour: 0
+  unavailable_weekdays:
+    - 0

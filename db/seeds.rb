@@ -18,8 +18,8 @@ User.find_or_create_by!(email: "cafe@demo.com") do |u|
 end
 
 DeliverySetting.current.update!(
-  cutoff_hour: 14,
-  unavailable_weekdays: [0, 2, 4]
+  cutoff_hour: 0,
+  unavailable_weekdays: DeliveryDateValidator.unavailable_weekdays
 )
 
 categories = [
