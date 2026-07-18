@@ -2,11 +2,18 @@ require "fileutils"
 
 class Admin::ProductsController < ApplicationController
   before_action :authenticate_user!
+  SORT_OPTIONS = {
+    "name" => "products.name", "category" => "categories.name",
+    "price" => "products.price_cents", "cost" => "products.cost_cents"
+  }.freeze
+  SORT_DIRECTIONS = %w[asc desc].freeze
+
   before_action :require_admin!
   before_action :set_product, only: [:edit, :update, :destroy]
 
   def index
-    @products = Product.includes(:category).ordered
+    @categories = Category.ordered
+    @products = filtered_products
   end
 
   def new
@@ -28,7 +35,7 @@ class Admin::ProductsController < ApplicationController
 
   def update
     if @product.update(product_params)
-      redirect_to admin_products_path, notice: "Producto actualizado correctamente."
+      redirect_to admin_products_path(product_index_params), notice: "Producto actualizado correctamente."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -36,7 +43,7 @@ class Admin::ProductsController < ApplicationController
 
   def destroy
     @product.destroy
-    redirect_to admin_products_path, notice: "Producto eliminado correctamente."
+    redirect_to admin_products_path(product_index_params), notice: "Producto eliminado correctamente."
   end
 
   def import
@@ -87,6 +94,26 @@ class Admin::ProductsController < ApplicationController
 
   private
 
+  def filtered_products
+    products = Product.includes(:category)
+    if params[:q].present?
+      query = Product.sanitize_sql_like(params[:q].strip)
+      products = products.where("products.name ILIKE ?", "%#{query}%")
+    end
+    products = products.where(category_id: params[:category_id]) if params[:category_id].present?
+    products = products.where(active: params[:status] == "active") if %w[active inactive].include?(params[:status])
+    sort_column = SORT_OPTIONS[params[:sort]]
+    sort_direction = params[:direction] if SORT_DIRECTIONS.include?(params[:direction])
+    if sort_column.present? && sort_direction.present?
+      products.left_joins(:category).reorder(Arel.sql("#{sort_column} #{sort_direction}"))
+    else
+      products.ordered
+    end
+  end
+
+  def product_index_params
+    params.permit(:q, :category_id, :status, :sort, :direction)
+  end
   def set_product
     @product = Product.find(params[:id])
   end

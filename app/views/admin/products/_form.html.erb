@@ -1,4 +1,7 @@
 <%= form_with model: [:admin, @product], local: true do |f| %>
+  <% params.permit(:q, :category_id, :status, :sort, :direction).each do |key, value| %>
+    <%= hidden_field_tag key, value %>
+  <% end %>
   <% if @product.errors.any? %>
     <div class="alert alert-danger">
       <%= @product.errors.full_messages.join(", ") %>
