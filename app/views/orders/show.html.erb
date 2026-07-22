@@ -11,13 +11,19 @@
         </div>
       </div>
 
-      <div class="badge bg-success fs-6">
-        <%= @order.status.humanize %>
+      <% payment_badge_class = case @order.payment_status
+         when "paid" then "bg-success"
+         when "partial" then "bg-warning text-dark"
+         else "bg-secondary"
+         end %>
+
+      <div class="badge <%= payment_badge_class %> fs-6">
+        <%= @order.payment_status_label %>
       </div>
     </div>
 
-    <div class="row mb-5">
-      <div class="col-md-4">
+    <div class="row mb-4">
+      <div class="col-md-3">
         <div class="text-muted small mb-1">
           Fecha de entrega
         </div>
@@ -27,23 +33,55 @@
         </div>
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-3">
+        <div class="text-muted small mb-1">
+          Estado
+        </div>
+
+        <div class="fw-bold">
+          <%= @order.status_label %>
+        </div>
+      </div>
+
+      <div class="col-md-3">
         <div class="text-muted small mb-1">
           Forma de pago
         </div>
 
         <div class="fw-bold">
-          <%= @order.payment_method_selected.humanize %>
+          <%= @order.payment_method_selected&.humanize || "Sin definir" %>
         </div>
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="text-muted small mb-1">
           Total
         </div>
 
         <div class="fw-bold">
           $<%= number_with_delimiter(@order.total_cents / 100) %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-5">
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">
+          Pagado
+        </div>
+
+        <div class="fw-bold">
+          $<%= number_with_delimiter(@order.amount_paid_cents / 100) %>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="text-muted small mb-1">
+          Saldo pendiente
+        </div>
+
+        <div class="fw-bold">
+          $<%= number_with_delimiter(@order.balance_due_cents / 100) %>
         </div>
       </div>
     </div>

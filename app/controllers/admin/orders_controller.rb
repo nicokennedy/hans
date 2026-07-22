@@ -7,7 +7,7 @@ class Admin::OrdersController < ApplicationController
   end
 
   def show
-    @order = Order.includes(:customer, order_items: :product).find(params[:id])
+    @order = Order.includes(:customer, :payments, order_items: :product).find(params[:id])
   end
 
   def new
@@ -76,7 +76,6 @@ class Admin::OrdersController < ApplicationController
       :customer_id,
       :delivery_date,
       :status,
-      :payment_status,
       :payment_method_selected,
       :customer_comment
     )

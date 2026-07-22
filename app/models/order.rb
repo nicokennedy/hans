@@ -3,6 +3,7 @@ class Order < ApplicationRecord
   belongs_to :customer
   has_many :order_items, dependent: :destroy
   has_many :order_events, dependent: :destroy
+  has_many :payments, dependent: :destroy
 
   enum :status, {
     received: "received",
@@ -26,13 +27,48 @@ class Order < ApplicationRecord
     bank_transfer: "bank_transfer"
   }
 
+  STATUS_LABELS = {
+    "received" => "Recibido",
+    "confirmed" => "Confirmado",
+    "in_production" => "En producción",
+    "ready" => "Listo",
+    "delivered" => "Entregado",
+    "canceled" => "Cancelado",
+    "needs_review" => "Necesita revisión"
+  }.freeze
+
+  PAYMENT_STATUS_LABELS = {
+    "pending" => "Pendiente",
+    "partial" => "Pago parcial",
+    "paid" => "Pagado"
+  }.freeze
+
   validates :delivery_date, presence: true
   validates :status, :payment_status, presence: true
   validate :delivery_date_must_be_available, on: :create, unless: :created_by_admin?
   validate :must_have_order_items, on: :update
 
+  scope :not_canceled, -> { where.not(status: "canceled") }
+
   before_validation :set_defaults
   before_save :recalculate_total
+
+  def status_label
+    STATUS_LABELS[status] || status
+  end
+
+  def payment_status_label
+    PAYMENT_STATUS_LABELS[payment_status] || payment_status
+  end
+
+  def balance_due_cents
+    total_cents.to_i - amount_paid_cents.to_i
+  end
+
+  def recalculate_payment_state!
+    paid = payments.sum(:amount_cents)
+    update_columns(amount_paid_cents: paid, payment_status: derive_payment_status(paid))
+  end
 
   private
 
@@ -48,6 +84,17 @@ class Order < ApplicationRecord
   def recalculate_total
     items = new_record? ? order_items : order_items.reload
     self.total_cents = items.sum { |item| item.line_revenue_cents.to_i }
+    self.payment_status = derive_payment_status(amount_paid_cents.to_i)
+  end
+
+  def derive_payment_status(paid_cents)
+    if paid_cents <= 0
+      "pending"
+    elsif paid_cents < total_cents.to_i
+      "partial"
+    else
+      "paid"
+    end
   end
 
   def must_have_order_items

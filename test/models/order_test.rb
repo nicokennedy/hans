@@ -41,4 +41,46 @@ class OrderTest < ActiveSupport::TestCase
 
     assert_raises(ActiveRecord::RecordInvalid) { order.update!(status: "confirmed") }
   end
+
+  test "recalculate_payment_state! derives pending, partial and paid from registered payments" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 2)
+    order.save! # total_cents = 600
+
+    assert_equal "pending", order.payment_status
+
+    order.payments.create!(amount_cents: 200, paid_at: Time.current, payment_method: "cash_on_delivery")
+    assert_equal "partial", order.reload.payment_status
+
+    order.payments.create!(amount_cents: 400, paid_at: Time.current, payment_method: "bank_transfer")
+    assert_equal "paid", order.reload.payment_status
+  end
+
+  test "editing order items after payments exist keeps payment_status consistent with the new total" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    item = order.order_items.build(product: @product, quantity: 2)
+    order.save! # total_cents = 600
+
+    order.payments.create!(amount_cents: 600, paid_at: Time.current, payment_method: "cash_on_delivery")
+    order.reload
+    assert_equal "paid", order.payment_status
+
+    item.update!(quantity: 4) # total_cents now 1200, only 600 paid
+    order.update!(status: "confirmed")
+
+    assert_equal "partial", order.reload.payment_status
+    assert_equal 600, order.balance_due_cents
+  end
+
+  test "not_canceled excludes canceled orders" do
+    kept = Order.create!(customer: @customer, delivery_date: Date.tomorrow, status: "confirmed")
+    kept.order_items.create!(product: @product, quantity: 1)
+
+    canceled = Order.create!(customer: @customer, delivery_date: Date.tomorrow, status: "canceled")
+    canceled.order_items.create!(product: @product, quantity: 1)
+
+    result = Order.where(id: [kept.id, canceled.id]).not_canceled
+    assert_includes result, kept
+    assert_not_includes result, canceled
+  end
 end

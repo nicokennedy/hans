@@ -21,7 +21,9 @@ Rails.application.routes.draw do
   namespace :admin do
     get 'production/index'
     root "dashboard#show"
-    resources :orders, only: [:index, :show, :new, :create, :edit, :update]
+    resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
+      resources :payments, only: [:create, :destroy]
+    end
     resources :production, only: [:index, :show] do
       get :print, on: :member
     end

@@ -10,8 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_05_09_210618) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_22_135226) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
 
   create_table "blocked_dates", force: :cascade do |t|
@@ -98,6 +99,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_09_210618) do
     t.index ["customer_id"], name: "index_orders_on_customer_id"
   end
 
+  create_table "payments", force: :cascade do |t|
+    t.bigint "order_id", null: false
+    t.integer "amount_cents", null: false
+    t.datetime "paid_at", null: false
+    t.string "payment_method", null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_payments_on_order_id"
+    t.index ["paid_at"], name: "index_payments_on_paid_at"
+  end
+
   create_table "products", force: :cascade do |t|
     t.string "name"
     t.text "description"
@@ -134,5 +147,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_09_210618) do
   add_foreign_key "order_items", "orders"
   add_foreign_key "order_items", "products"
   add_foreign_key "orders", "customers"
+  add_foreign_key "payments", "orders"
   add_foreign_key "products", "categories"
 end

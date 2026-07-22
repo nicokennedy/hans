@@ -42,14 +42,6 @@
       </div>
 
       <div class="mb-3">
-        <%= f.label :payment_status, "Estado de pago", class: "form-label" %>
-        <%= f.select :payment_status,
-          Order.payment_statuses.keys.map { |status| [status.humanize, status] },
-          {},
-          class: "form-select" %>
-      </div>
-
-      <div class="mb-3">
         <%= f.label :payment_method_selected, "Método de pago", class: "form-label" %>
         <%= f.select :payment_method_selected,
           Order.payment_method_selecteds.keys.map { |method| [method.humanize, method] },

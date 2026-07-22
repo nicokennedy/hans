@@ -11,6 +11,11 @@ class OrdersController < ApplicationController
     @orders = current_user.customer.orders
       .includes(:order_items)
       .order(created_at: :desc)
+
+    billable_orders = current_user.customer.orders.not_canceled
+    @total_invoiced_cents = billable_orders.sum(:total_cents)
+    @total_paid_cents = billable_orders.sum(:amount_paid_cents)
+    @balance_due_cents = @total_invoiced_cents - @total_paid_cents
   end
 
 
