@@ -26,6 +26,10 @@ Rails.application.routes.draw do
       get :print, on: :member
     end
     resources :products do
+      member do
+        get "inline/:field", action: :edit_inline, as: :edit_inline
+        patch "inline/:field", action: :update_inline, as: :update_inline
+      end
       collection do
         get :import
         post :preview_import

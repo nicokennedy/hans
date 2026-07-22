@@ -1,0 +1,26 @@
+<%= turbo_frame_tag "product_#{product.id}_#{field}" do %>
+  <% if editing %>
+    <%= form_with model: [:admin, product],
+        url: update_inline_admin_product_path(product, field: field),
+        method: :patch,
+        local: true,
+        html: { class: "d-flex align-items-center gap-1 flex-nowrap" } do |f| %>
+      <%= inline_field_input(f, field) %>
+      <%= f.submit "✓", class: "btn btn-sm btn-dark py-0 px-2" %>
+      <%= link_to "✕",
+          edit_inline_admin_product_path(product, field: field, cancel: "1"),
+          class: "btn btn-sm btn-outline-dark py-0 px-2" %>
+    <% end %>
+
+    <% if product.errors.any? %>
+      <div class="text-danger small"><%= product.errors.full_messages.join(", ") %></div>
+    <% end %>
+  <% else %>
+    <div class="d-flex align-items-center gap-2 flex-nowrap">
+      <span><%= inline_field_display(product, field) %></span>
+      <%= link_to "✏️",
+          edit_inline_admin_product_path(product, field: field),
+          class: "text-decoration-none" %>
+    </div>
+  <% end %>
+<% end %>

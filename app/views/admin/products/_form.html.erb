@@ -25,6 +25,11 @@
     </div>
 
     <div class="mb-3">
+      <%= f.label :internal_category, "Categoría interna", class: "form-label" %>
+      <%= f.text_field :internal_category, class: "form-control" %>
+    </div>
+
+    <div class="mb-3">
 			<%= f.label :price_amount, "Precio", class: "form-label" %>
 			<%= f.number_field :price_amount,
 				class: "form-control",

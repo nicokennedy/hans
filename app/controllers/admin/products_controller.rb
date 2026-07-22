@@ -8,8 +8,11 @@ class Admin::ProductsController < ApplicationController
   }.freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
 
+  INLINE_FIELDS = %w[name category_id internal_category price_amount cost_amount].freeze
+
   before_action :require_admin!
-  before_action :set_product, only: [:edit, :update, :destroy]
+  before_action :set_product, only: [:edit, :update, :destroy, :edit_inline, :update_inline]
+  before_action :set_inline_field, only: [:edit_inline, :update_inline]
 
   def index
     @categories = Category.ordered
@@ -44,6 +47,19 @@ class Admin::ProductsController < ApplicationController
   def destroy
     @product.destroy
     redirect_to admin_products_path(product_index_params), notice: "Producto eliminado correctamente."
+  end
+
+  def edit_inline
+    render partial: "inline_field", locals: { product: @product, field: @field, editing: params[:cancel] != "1" }
+  end
+
+  def update_inline
+    if @product.update(inline_field_params)
+      render partial: "inline_field", locals: { product: @product, field: @field, editing: false }
+    else
+      render partial: "inline_field", locals: { product: @product, field: @field, editing: true },
+        status: :unprocessable_entity
+    end
   end
 
   def import
@@ -125,9 +141,19 @@ class Admin::ProductsController < ApplicationController
       :price_amount,
     	:cost_amount,
       :category_id,
+      :internal_category,
       :position,
       :active
     )
+  end
+
+  def set_inline_field
+    @field = params[:field]
+    head :not_found unless INLINE_FIELDS.include?(@field)
+  end
+
+  def inline_field_params
+    params.require(:product).permit(@field)
   end
 
   def require_admin!
