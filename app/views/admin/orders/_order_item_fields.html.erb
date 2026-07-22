@@ -1,0 +1,26 @@
+<div class="d-flex justify-content-between align-items-center border-bottom py-3">
+  <div style="width: 220px;">
+    <label class="form-label small">Producto</label>
+    <%= select_tag "order_items[][product_id]",
+        options_from_collection_for_select(products, :id, :name, item.product_id),
+        include_blank: "Seleccionar producto",
+        class: "form-select form-select-sm" %>
+  </div>
+
+  <div style="width: 140px;">
+    <label class="form-label small">Cantidad</label>
+    <%= number_field_tag "order_items[][quantity]",
+        item.quantity || 1,
+        min: 1,
+        class: "form-control" %>
+  </div>
+
+  <div style="width: 140px;">
+    <label class="form-label small">Precio unitario</label>
+    <%= number_field_tag "order_items[][unit_price_amount]",
+        item.unit_price_cents_snapshot ? item.unit_price_amount : nil,
+        min: 0,
+        class: "form-control",
+        placeholder: "Precio de lista" %>
+  </div>
+</div>

@@ -28,7 +28,8 @@ class Order < ApplicationRecord
 
   validates :delivery_date, presence: true
   validates :status, :payment_status, presence: true
-  validate :delivery_date_must_be_available, on: :create
+  validate :delivery_date_must_be_available, on: :create, unless: :created_by_admin?
+  validate :must_have_order_items, on: :update
 
   before_validation :set_defaults
   before_save :recalculate_total
@@ -45,7 +46,12 @@ class Order < ApplicationRecord
   end
 
   def recalculate_total
-    self.total_cents = order_items.sum { |item| item.line_revenue_cents.to_i }
+    items = new_record? ? order_items : order_items.reload
+    self.total_cents = items.sum { |item| item.line_revenue_cents.to_i }
+  end
+
+  def must_have_order_items
+    errors.add(:base, "El pedido debe tener al menos un producto.") if order_items.reload.empty?
   end
 
   def delivery_date_must_be_available

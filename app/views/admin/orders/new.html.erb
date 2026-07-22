@@ -1,0 +1,85 @@
+<div class="container py-5">
+  <div class="d-flex gap-2 mb-4">
+    <%= link_to "← Volver", admin_orders_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card">
+    <h1 class="fw-bold mb-2">Nuevo pedido</h1>
+
+    <% if @order.errors.any? %>
+      <div class="alert alert-danger">
+        <%= @order.errors.full_messages.join(", ") %>
+        <% @order.order_items.each_with_index do |item, index| %>
+          <% if item.errors.any? %>
+            <div>Línea <%= index + 1 %>: <%= item.errors.full_messages.join(", ") %></div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= form_with model: [:admin, @order], local: true, data: { controller: "order-items" } do |f| %>
+      <div class="mb-3">
+        <%= f.label :customer_id, "Cliente", class: "form-label" %>
+        <%= f.collection_select :customer_id,
+          @customers,
+          :id,
+          :name,
+          { prompt: "Seleccionar cliente" },
+          class: "form-select", required: true %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :delivery_date, "Fecha de entrega", class: "form-label" %>
+        <%= f.date_field :delivery_date, class: "form-control", required: true %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :status, "Estado", class: "form-label" %>
+        <%= f.select :status,
+          Order.statuses.keys.map { |status| [status.humanize, status] },
+          {},
+          class: "form-select" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :payment_status, "Estado de pago", class: "form-label" %>
+        <%= f.select :payment_status,
+          Order.payment_statuses.keys.map { |status| [status.humanize, status] },
+          {},
+          class: "form-select" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :payment_method_selected, "Método de pago", class: "form-label" %>
+        <%= f.select :payment_method_selected,
+          Order.payment_method_selecteds.keys.map { |method| [method.humanize, method] },
+          { include_blank: "Sin definir" },
+          class: "form-select" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :customer_comment, "Comentario", class: "form-label" %>
+        <%= f.text_area :customer_comment, rows: 3, class: "form-control" %>
+      </div>
+
+      <h4 class="mb-3">Productos del pedido</h4>
+
+      <div data-order-items-target="list">
+        <% @order.order_items.each do |item| %>
+          <%= render "order_item_fields", item: item, products: @products %>
+        <% end %>
+      </div>
+
+      <template data-order-items-target="template">
+        <%= render "order_item_fields", item: OrderItem.new, products: @products %>
+      </template>
+
+      <div class="form-text mb-3">Dejá el producto sin seleccionar para descartar una línea.</div>
+
+      <div class="mt-3 d-flex gap-2">
+        <button type="button" class="btn btn-outline-dark" data-action="order-items#add">Agregar otra línea</button>
+        <%= f.submit "Crear pedido", class: "btn btn-dark" %>
+      </div>
+    <% end %>
+  </div>
+</div>

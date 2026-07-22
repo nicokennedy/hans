@@ -7,6 +7,12 @@
     <h1 class="fw-bold mb-2">Editar pedido <%= @order.number %></h1>
     <div class="text-muted mb-4"><%= @order.customer.name %></div>
 
+    <% if @order.errors.any? %>
+      <div class="alert alert-danger">
+        <%= @order.errors.full_messages.join(", ") %>
+      </div>
+    <% end %>
+
     <%= form_with model: [:admin, @order], local: true do |f| %>
       <div class="mb-3">
         <%= f.label :delivery_date, "Fecha de entrega", class: "form-label" %>
@@ -28,16 +34,17 @@
 
       <h4 class="mb-3">Productos del pedido</h4>
 
+      <% only_item = @order.order_items.size <= 1 %>
       <% @order.order_items.each do |item| %>
   <div class="d-flex justify-content-between align-items-center border-bottom py-3">
-    <div>
-      <div class="fw-bold"><%= item.product_name_snapshot %></div>
-      <div class="text-muted">
-        $<%= number_with_delimiter(item.unit_price_cents_snapshot / 100) %> c/u
-      </div>
+    <div style="width: 220px;">
+      <label class="form-label small">Producto</label>
+      <%= select_tag "order_items[#{item.id}][product_id]",
+          order_item_product_options(item, @products),
+          class: "form-select form-select-sm" %>
     </div>
 
-<div style="width: 180px;">
+<div style="width: 140px;">
   <label class="form-label small">Cantidad</label>
 
   <%= number_field_tag "order_items[#{item.id}][quantity]",
@@ -49,13 +56,25 @@
     <%= check_box_tag "order_items[#{item.id}][remove]",
         "1",
         false,
-        class: "form-check-input" %>
+        class: "form-check-input",
+        disabled: only_item %>
 
     <label class="form-check-label">
       Eliminar
     </label>
+    <% if only_item %>
+      <div class="form-text">No se puede eliminar el último producto.</div>
+    <% end %>
   </div>
 </div>
+
+    <div style="width: 140px;">
+      <label class="form-label small">Precio unitario</label>
+      <%= number_field_tag "order_items[#{item.id}][unit_price_amount]",
+          item.unit_price_amount,
+          min: 0,
+          class: "form-control" %>
+    </div>
 
     <div class="fw-bold">
       $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
@@ -66,7 +85,7 @@
   <h5 class="mb-3">Agregar producto</h5>
 
   <div class="row g-3 align-items-end">
-    <div class="col-md-8">
+    <div class="col-md-6">
       <label class="form-label">Producto</label>
       <%= select_tag :new_product_id,
           options_from_collection_for_select(@products, :id, :name),
@@ -77,6 +96,11 @@
     <div class="col-md-2">
       <label class="form-label">Cantidad</label>
       <%= number_field_tag :new_quantity, 1, min: 1, class: "form-control" %>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label">Precio (opcional)</label>
+      <%= number_field_tag :new_unit_price, nil, min: 0, class: "form-control", placeholder: "Precio de lista" %>
     </div>
   </div>
 </div>
