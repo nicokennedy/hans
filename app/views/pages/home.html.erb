@@ -12,67 +12,10 @@
         </p>
 
         <div class="mt-4">
-          <%= link_to "Ingresar a la tienda",
-            new_user_session_path,
+          <%= link_to home_cta_text,
+            home_cta_path,
             class: "btn btn-hans" %>
         </div>
-      </div>
-
-      <div class="col-lg-6 mt-5 mt-lg-0">
-        <div class="product-card">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="fs-4 fw-bold mb-0">Catálogo mayorista</h2>
-            <span class="text-muted small"><%= Product.active.count %> productos</span>
-          </div>
-
-          <div class="row g-2">
-            <% Category.active.ordered.includes(:products).each do |category| %>
-              <% count = category.products.active.count %>
-              <% next if count.zero? %>
-
-              <div class="col-6">
-                <div class="border rounded-4 p-3 h-100">
-                  <div class="fw-bold text-hans">
-                    <%= category.name %>
-                  </div>
-
-                  <div class="text-muted small">
-                    <%= count %> productos
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="mt-5">
-      <div class="d-flex justify-content-between align-items-end mb-3">
-        <div>
-          <h2 class="fs-3 fw-bold mb-1">Productos destacados</h2>
-          <p class="text-muted mb-0">Una muestra del catálogo disponible para clientes mayoristas.</p>
-        </div>
-      </div>
-
-      <div class="row g-3">
-        <% Product.active.includes(:category).ordered.limit(8).each do |product| %>
-          <div class="col-md-3 col-6">
-            <div class="product-card h-100">
-              <div class="product-title">
-                <%= product.name %>
-              </div>
-
-              <div class="text-muted small mb-2">
-                <%= product.category.name %>
-              </div>
-
-              <div class="product-price">
-                $<%= number_with_delimiter(product.price_cents / 100) %>
-              </div>
-            </div>
-          </div>
-        <% end %>
       </div>
     </div>
   </div>
