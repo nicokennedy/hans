@@ -6,7 +6,7 @@ class Payment < ApplicationRecord
 
   PAYMENT_METHOD_LABELS = {
     "cash_on_delivery" => "Efectivo contra entrega",
-    "cash_later" => "Efectivo a pagar después",
+    "cash_later" => "Cuenta corriente",
     "bank_transfer" => "Transferencia bancaria"
   }.freeze
 
