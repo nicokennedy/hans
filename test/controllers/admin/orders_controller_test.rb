@@ -383,6 +383,52 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select ".alert-danger", text: /ya no existe/
   end
 
+  test "index shows a payment status badge and the pending balance on each card" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 2) # total 600
+    order.save!
+    order.payments.create!(amount_cents: 200, paid_at: Time.current, payment_method: "cash_on_delivery")
+
+    get admin_orders_path
+
+    assert_response :success
+    assert_select ".badge", text: "Pago parcial"
+    assert_match "Saldo: $4", response.body
+  end
+
+  test "the payment status filter shows only orders matching the selected status" do
+    paid_order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    paid_order.order_items.build(product: @product, quantity: 1) # total 300
+    paid_order.save!
+    paid_order.payments.create!(amount_cents: 300, paid_at: Time.current, payment_method: "cash_on_delivery")
+
+    pending_order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    pending_order.order_items.build(product: @product, quantity: 1)
+    pending_order.save!
+
+    get admin_orders_path, params: { payment_status_filter: "paid" }
+
+    assert_response :success
+    assert_match paid_order.number, response.body
+    assert_no_match pending_order.number, response.body
+  end
+
+  test "the payment status filter persists across requests, including after visiting an order" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    get admin_orders_path, params: { payment_status_filter: "pending" }
+    assert_response :success
+
+    get admin_order_path(@order) # simulate navigating away
+    assert_response :success
+
+    get admin_orders_path
+    assert_response :success
+    assert_match order.number, response.body
+  end
+
   private
 
   def next_sunday

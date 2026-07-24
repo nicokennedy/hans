@@ -2,8 +2,18 @@ class Admin::OrdersController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
 
+  PAYMENT_STATUS_FILTERS = %w[all pending partial paid].freeze
+
   def index
+    if params[:payment_status_filter].present?
+      session[:orders_payment_status_filter] = params[:payment_status_filter]
+    end
+
+    @payment_status_filter = session[:orders_payment_status_filter].presence || "all"
+    @payment_status_filter = "all" unless PAYMENT_STATUS_FILTERS.include?(@payment_status_filter)
+
     @orders = Order.includes(:customer).order(created_at: :desc)
+    @orders = @orders.where(payment_status: @payment_status_filter) unless @payment_status_filter == "all"
   end
 
   def show

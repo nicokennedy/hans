@@ -1,11 +1,31 @@
 class Admin::CustomersController < ApplicationController
+  include CollectionsPeriodFilterable
+
   before_action :authenticate_user!
   before_action :require_admin!
-  before_action :set_customer, only: [:edit, :update, :toggle_active]
+  before_action :set_customer, only: [:show, :edit, :update, :toggle_active]
   before_action :set_user, only: [:edit, :update]
 
   def index
     @customers = Customer.includes(:users).order(:name)
+
+    range = @collections_period.from..@collections_period.to
+    @invoiced_by_customer = Order.not_canceled.where(delivery_date: range).group(:customer_id).sum(:total_cents)
+    @paid_by_customer = Order.not_canceled.where(delivery_date: range).group(:customer_id).sum(:amount_paid_cents)
+
+    @total_invoiced_cents = @invoiced_by_customer.values.sum
+    @total_paid_cents = @paid_by_customer.values.sum
+  end
+
+  def show
+    @orders = @customer.orders
+      .not_canceled
+      .where(delivery_date: @collections_period.from..@collections_period.to)
+      .order(delivery_date: :desc)
+      .to_a
+
+    @invoiced_cents = @orders.sum(&:total_cents)
+    @paid_cents = @orders.sum(&:amount_paid_cents)
   end
 
   def new

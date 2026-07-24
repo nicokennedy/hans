@@ -4,7 +4,39 @@
     <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
   </div>
 
+  <div class="product-card mb-4">
+    <%= form_with url: admin_orders_path, method: :get, local: true do %>
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label">Estado de pago</label>
+          <%= select_tag :payment_status_filter,
+              options_for_select(
+                [["Todos", "all"], ["Pendientes", "pending"], ["Parciales", "partial"], ["Pagados", "paid"]],
+                @payment_status_filter
+              ),
+              class: "form-select" %>
+        </div>
+
+        <div class="col-12 col-md-2">
+          <%= submit_tag "Aplicar", class: "btn btn-dark w-100" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @orders.empty? %>
+    <div class="product-card">
+      No hay pedidos que coincidan con el filtro seleccionado.
+    </div>
+  <% end %>
+
   <% @orders.each do |order| %>
+    <% payment_badge_class = case order.payment_status
+       when "paid" then "bg-success"
+       when "partial" then "bg-warning text-dark"
+       else "bg-secondary"
+       end %>
+
     <%= link_to admin_order_path(order), class: "text-decoration-none text-dark" do %>
       <div class="product-card mb-3">
         <div class="d-flex justify-content-between">
@@ -16,7 +48,9 @@
 
           <div class="text-end">
             <div class="fw-bold">$<%= number_with_delimiter(order.total_cents / 100) %></div>
+            <div class="small text-muted mb-1">Saldo: $<%= number_with_delimiter(order.balance_due_cents / 100) %></div>
             <div class="badge bg-secondary"><%= order.status.humanize %></div>
+            <div class="badge <%= payment_badge_class %>"><%= order.payment_status_label %></div>
           </div>
         </div>
       </div>
