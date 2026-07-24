@@ -14,11 +14,18 @@
     <div class="d-flex gap-2">
       <% print_url = public_production_print_url(@selected_date) %>
       <% whatsapp_text = "Hola! Te paso la plantilla de producción del #{l(@selected_date, format: "%d/%m")} para imprimir: #{print_url}" %>
+      <% whatsapp_url = whatsapp_link_url(whatsapp_text) %>
 
-      <%= link_to "Enviar por WhatsApp",
-        "https://wa.me/5492914168790?text=#{ERB::Util.url_encode(whatsapp_text)}",
-        target: "_blank",
-        class: "btn btn-success" %>
+      <% if whatsapp_url %>
+        <%= link_to "Enviar por WhatsApp",
+          whatsapp_url,
+          target: "_blank",
+          class: "btn btn-success" %>
+      <% else %>
+        <span class="text-muted small" title="Configurá WHATSAPP_OBRADOR_NUMBER para habilitar este botón">
+          Enviar por WhatsApp no disponible
+        </span>
+      <% end %>
 
       <%= link_to "← Semana",
         admin_production_index_path,

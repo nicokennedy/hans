@@ -5,6 +5,18 @@
    <%= link_to "Editar pedido",
        edit_admin_order_path(@order),
        class: "btn btn-dark" %>
+
+    <% whatsapp_url = whatsapp_order_link_url(@order) %>
+    <% if whatsapp_url %>
+      <%= link_to "Enviar pedido por WhatsApp",
+          whatsapp_url,
+          target: "_blank",
+          class: "btn btn-success" %>
+    <% else %>
+      <span class="text-muted small align-self-center" title="Configurá WHATSAPP_OBRADOR_NUMBER para habilitar este botón">
+        Enviar por WhatsApp no disponible
+      </span>
+    <% end %>
   </div>
 
   <div class="product-card">

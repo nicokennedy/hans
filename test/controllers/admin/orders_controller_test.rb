@@ -429,11 +429,41 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_match order.number, response.body
   end
 
+  test "show displays a WhatsApp button pointing to the configured number with the full order message" do
+    with_whatsapp_number("5492235275412") do
+      get admin_order_path(@order)
+
+      assert_response :success
+      assert_select "a", text: "Enviar pedido por WhatsApp"
+      assert_match "wa.me/5492235275412", response.body
+      assert_no_match "5492914168790", response.body
+      assert_match ERB::Util.url_encode("Cliente: #{@customer.name}"), response.body
+    end
+  end
+
+  test "show hides the WhatsApp button when WHATSAPP_OBRADOR_NUMBER is not configured" do
+    with_whatsapp_number(nil) do
+      get admin_order_path(@order)
+
+      assert_response :success
+      assert_select "a", text: "Enviar pedido por WhatsApp", count: 0
+      assert_match "no disponible", response.body
+    end
+  end
+
   private
 
   def next_sunday
     date = Date.tomorrow
     date += 1 until date.wday == 0
     date
+  end
+
+  def with_whatsapp_number(value)
+    original = ENV["WHATSAPP_OBRADOR_NUMBER"]
+    ENV["WHATSAPP_OBRADOR_NUMBER"] = value
+    yield
+  ensure
+    ENV["WHATSAPP_OBRADOR_NUMBER"] = original
   end
 end
