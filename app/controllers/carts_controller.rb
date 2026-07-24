@@ -16,14 +16,24 @@ class CartsController < ApplicationController
     end
   end
 
+  VALID_QUANTITY = /\A\d+\z/
+
   def update_item
     @product = Product.find(params[:product_id])
-    quantity = params[:quantity].to_i
+    raw_quantity = params[:quantity].to_s.strip
 
-    if quantity <= 0
-      current_cart.delete(@product.id.to_s)
-    else
-      current_cart[@product.id.to_s] = quantity
+    # Solo enteros no negativos (sin signo, sin decimales). Cualquier otro
+    # valor (negativo, decimal, texto) se ignora — el carrito queda como
+    # estaba, protegiendo el servidor aunque el input del cliente se
+    # manipule fuera del rango permitido por el HTML.
+    if raw_quantity.match?(VALID_QUANTITY)
+      quantity = raw_quantity.to_i
+
+      if quantity <= 0
+        current_cart.delete(@product.id.to_s)
+      else
+        current_cart[@product.id.to_s] = quantity
+      end
     end
 
     respond_to do |format|

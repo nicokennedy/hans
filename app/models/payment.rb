@@ -4,11 +4,9 @@ class Payment < ApplicationRecord
 
   enum :payment_method, Order.payment_method_selecteds
 
-  PAYMENT_METHOD_LABELS = {
-    "cash_on_delivery" => "Efectivo contra entrega",
-    "cash_later" => "Cuenta corriente",
-    "bank_transfer" => "Transferencia bancaria"
-  }.freeze
+  # Misma fuente que Order::PAYMENT_METHOD_LABELS — un solo lugar para no
+  # duplicar ni desincronizar las etiquetas de método de pago.
+  PAYMENT_METHOD_LABELS = Order::PAYMENT_METHOD_LABELS
 
   validates :amount_cents, numericality: { greater_than: 0 }
   validates :paid_at, presence: true

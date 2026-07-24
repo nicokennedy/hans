@@ -451,6 +451,62 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the receipt block shows order number, customer, order date, delivery date, quantity, unit price, subtotal and total" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 2)
+    order.save! # total_cents = 600 (price_cents 300 * 2)
+
+    get admin_order_path(order)
+
+    assert_response :success
+    assert_match order.number, response.body
+    assert_match @customer.name, response.body
+    assert_match order.created_at.strftime("%d/%m/%Y"), response.body
+    assert_match order.delivery_date.strftime("%d/%m/%Y"), response.body
+    assert_select ".hans-receipt-col-unit", text: /\$3/
+    assert_select ".hans-receipt-total-amount", text: "$6"
+  end
+
+  test "the administrative section is visually separate from the receipt block and stays out of it" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+    order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_on_delivery")
+
+    get admin_order_path(order)
+
+    assert_response :success
+    assert_match "Información administrativa", response.body
+
+    receipt_node = css_select(".hans-receipt").first
+    assert_not_nil receipt_node, "expected a .hans-receipt block in the response"
+    receipt_html = receipt_node.to_html
+
+    assert_no_match "Registrar pago", receipt_html
+    assert_no_match "Pagos registrados", receipt_html
+    assert_no_match "Eliminar", receipt_html
+    assert_no_match "Editar pedido", receipt_html
+  end
+
+  test "no raw 'Cash on delivery' English text leaks in the admin view either" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "cash_on_delivery")
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    get admin_order_path(order)
+
+    assert_response :success
+    assert_no_match(/cash on delivery/i, response.body)
+  end
+
+  test "the admin new-order payment method select never offers two identical-looking options" do
+    get new_admin_order_path
+
+    assert_response :success
+    options = css_select("select#order_payment_method_selected option").map(&:text)
+    assert_equal options.uniq, options
+  end
+
   private
 
   def next_sunday

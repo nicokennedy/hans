@@ -28,12 +28,12 @@
               </div>
 
               <div class="text-muted small">
-                x<%= item[:quantity] %>
+                x<%= item[:quantity] %> · <%= format_money(item[:product].price_cents) %> c/u
               </div>
             </div>
 
             <div class="fw-bold">
-              $<%= number_with_delimiter(item[:subtotal_cents] / 100) %>
+              <%= format_money(item[:subtotal_cents]) %>
             </div>
           </div>
         <% end %>
@@ -42,7 +42,7 @@
           <strong>Total</strong>
 
           <strong class="fs-5">
-            $<%= number_with_delimiter(total_cents / 100) %>
+            <%= format_money(total_cents) %>
           </strong>
         </div>
       </div>
@@ -84,11 +84,7 @@
               class: "form-label fw-bold" %>
 
             <%= f.select :payment_method_selected,
-              [
-                ["Efectivo contra entrega", "cash_on_delivery"],
-                ["Cuenta corriente", "cash_later"],
-                ["Transferencia", "bank_transfer"]
-              ],
+              Order.payment_method_options_for_select,
               {},
               class: "form-select hans-input" %>
           </div>

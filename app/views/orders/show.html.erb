@@ -1,6 +1,6 @@
 <div class="container py-5">
-  <div class="product-card">
-    <div class="d-flex justify-content-between align-items-start mb-5">
+  <div class="product-card mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
       <div>
         <h1 class="fw-bold mb-2">
           Pedido confirmado
@@ -22,18 +22,8 @@
       </div>
     </div>
 
-    <div class="row mb-4">
-      <div class="col-md-3">
-        <div class="text-muted small mb-1">
-          Fecha de entrega
-        </div>
-
-        <div class="fw-bold">
-          <%= @order.delivery_date.strftime("%d/%m/%Y") %>
-        </div>
-      </div>
-
-      <div class="col-md-3">
+    <div class="row">
+      <div class="col-6 col-md-3">
         <div class="text-muted small mb-1">
           Estado
         </div>
@@ -43,81 +33,37 @@
         </div>
       </div>
 
-      <div class="col-md-3">
+      <div class="col-6 col-md-3">
         <div class="text-muted small mb-1">
           Forma de pago
         </div>
 
         <div class="fw-bold">
-          <%= @order.payment_method_selected&.humanize || "Sin definir" %>
+          <%= @order.payment_method_selected_label || "Sin definir" %>
         </div>
       </div>
 
-      <div class="col-md-3">
-        <div class="text-muted small mb-1">
-          Total
-        </div>
-
-        <div class="fw-bold">
-          $<%= number_with_delimiter(@order.total_cents / 100) %>
-        </div>
-      </div>
-    </div>
-
-    <div class="row mb-5">
-      <div class="col-md-6">
+      <div class="col-6 col-md-3">
         <div class="text-muted small mb-1">
           Pagado
         </div>
 
         <div class="fw-bold">
-          $<%= number_with_delimiter(@order.amount_paid_cents / 100) %>
+          <%= format_money(@order.amount_paid_cents) %>
         </div>
       </div>
 
-      <div class="col-md-6">
+      <div class="col-6 col-md-3">
         <div class="text-muted small mb-1">
           Saldo pendiente
         </div>
 
         <div class="fw-bold">
-          $<%= number_with_delimiter(@order.balance_due_cents / 100) %>
+          <%= format_money(@order.balance_due_cents) %>
         </div>
       </div>
     </div>
-
-    <h4 class="mb-4">
-      Productos
-    </h4>
-
-    <% @order.order_items.each do |item| %>
-      <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-        <div>
-          <div class="fw-bold">
-            <%= item.product_name_snapshot %>
-          </div>
-
-          <div class="text-muted">
-            x<%= item.quantity %>
-          </div>
-        </div>
-
-        <div class="fw-bold">
-          $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
-        </div>
-      </div>
-    <% end %>
-
-    <% if @order.customer_comment.present? %>
-      <div class="mt-5">
-        <div class="text-muted small mb-2">
-          Comentario
-        </div>
-
-        <div>
-          <%= @order.customer_comment %>
-        </div>
-      </div>
-    <% end %>
   </div>
+
+  <%= render "orders/receipt", order: @order %>
 </div>

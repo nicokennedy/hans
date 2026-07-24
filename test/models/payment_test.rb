@@ -88,4 +88,16 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal 600, @order.amount_paid_cents
     assert_equal "partial", @order.payment_status
   end
+
+  test "cash_on_delivery and cash_later payments both show the Cuenta corriente label" do
+    cash_on_delivery = @order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_on_delivery")
+    cash_later = @order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_later")
+
+    assert_equal "Cuenta corriente", cash_on_delivery.payment_method_label
+    assert_equal "Cuenta corriente", cash_later.payment_method_label
+  end
+
+  test "Payment::PAYMENT_METHOD_LABELS reuses Order's labels instead of duplicating them" do
+    assert_equal Order::PAYMENT_METHOD_LABELS, Payment::PAYMENT_METHOD_LABELS
+  end
 end

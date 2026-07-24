@@ -44,7 +44,7 @@
       <div class="mb-3">
         <%= f.label :payment_method_selected, "Método de pago", class: "form-label" %>
         <%= f.select :payment_method_selected,
-          Order.payment_method_selecteds.keys.map { |method| [method.humanize, method] },
+          Order.payment_method_options_for_select,
           { include_blank: "Sin definir" },
           class: "form-select" %>
       </div>

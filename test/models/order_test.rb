@@ -83,4 +83,31 @@ class OrderTest < ActiveSupport::TestCase
     assert_includes result, kept
     assert_not_includes result, canceled
   end
+
+  test "cash_on_delivery and cash_later both show the Cuenta corriente label, without changing the stored value" do
+    cash_on_delivery_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "cash_on_delivery")
+    cash_later_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "cash_later")
+
+    assert_equal "Cuenta corriente", cash_on_delivery_order.payment_method_selected_label
+    assert_equal "Cuenta corriente", cash_later_order.payment_method_selected_label
+    assert_equal "cash_on_delivery", cash_on_delivery_order.payment_method_selected
+    assert_equal "cash_later", cash_later_order.payment_method_selected
+  end
+
+  test "bank_transfer shows Transferencia bancaria, and a blank payment method returns nil" do
+    order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "bank_transfer")
+    blank_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+
+    assert_equal "Transferencia bancaria", order.payment_method_selected_label
+    assert_nil blank_order.payment_method_selected_label
+  end
+
+  test "payment_method_options_for_select never offers two indistinguishable options with the same label" do
+    options = Order.payment_method_options_for_select
+    labels = options.map(&:first)
+
+    assert_equal labels.uniq, labels
+    assert_includes labels, "Cuenta corriente"
+    assert_includes labels, "Transferencia bancaria"
+  end
 end

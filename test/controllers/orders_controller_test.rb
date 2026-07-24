@@ -82,4 +82,64 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to dashboard_path
   end
+
+  test "a customer cannot view another customer's order" do
+    other_customer = Customer.create!(name: "Otro Cliente", active: true)
+    other_order = other_customer.orders.new(delivery_date: Date.tomorrow)
+    other_order.order_items.build(product: @product, quantity: 1)
+    other_order.save!
+
+    sign_in @user
+    get order_path(other_order)
+
+    assert_response :not_found
+  end
+
+  test "the receipt block shows order number, customer, order date, delivery date, quantity, unit price, subtotal and total" do
+    sign_in @user
+    get order_path(@order)
+
+    assert_response :success
+    assert_match @order.number, response.body
+    assert_match @customer.name, response.body
+    assert_match @order.created_at.strftime("%d/%m/%Y"), response.body
+    assert_match @order.delivery_date.strftime("%d/%m/%Y"), response.body
+    assert_match "2", response.body # quantity
+    assert_match "Alfajor Clásico", response.body
+    assert_select ".hans-receipt-col-unit", text: /\$5/ # unit price ($500/100 quantized as pesos... see setup: price_cents 500)
+    assert_select ".hans-receipt-total-amount", text: "$10"
+  end
+
+  test "the customer detail page never exposes cost_cents or internal cost figures" do
+    sign_in @user
+    get order_path(@order)
+
+    assert_response :success
+    assert_no_match(/cost_cents/, response.body)
+    assert_no_match(/costo interno/i, response.body)
+  end
+
+  test "the customer order page shows no administrative section (no register-payment form, no delete-payment button)" do
+    @order.payments.create!(amount_cents: 400, paid_at: Time.current, payment_method: "cash_on_delivery")
+    sign_in @user
+
+    get order_path(@order)
+
+    assert_response :success
+    assert_no_match "Registrar pago", response.body
+    assert_no_match "Información administrativa", response.body
+    assert_select "button", text: "Eliminar", count: 0
+    assert_select "a", text: "Editar pedido", count: 0
+  end
+
+  test "no raw 'Cash on delivery' English text ever leaks to the customer" do
+    @order.update!(payment_method_selected: "cash_on_delivery")
+    sign_in @user
+
+    get order_path(@order)
+
+    assert_response :success
+    assert_no_match(/cash on delivery/i, response.body)
+    assert_match "Cuenta corriente", response.body
+  end
 end

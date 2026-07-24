@@ -19,45 +19,34 @@
     <% end %>
   </div>
 
-  <div class="product-card">
-    <h1 class="fw-bold mb-2"><%= @order.number %></h1>
-    <div class="text-muted mb-4"><%= @order.customer.name %></div>
+  <%= render "orders/receipt", order: @order %>
+
+  <div class="product-card mt-4">
+    <h4 class="mb-4">Información administrativa</h4>
 
     <div class="row mb-4">
-      <div class="col-md-4">
-        <div class="text-muted small">Entrega</div>
-        <div class="fw-bold"><%= @order.delivery_date.strftime("%d/%m/%Y") %></div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="text-muted small">Estado</div>
-        <div class="fw-bold"><%= @order.status_label %></div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="text-muted small">Total</div>
-        <div class="fw-bold">$<%= number_with_delimiter(@order.total_cents / 100) %></div>
-      </div>
-    </div>
-
-    <div class="row mb-5">
-      <div class="col-md-4">
-        <div class="text-muted small">Pagado</div>
-        <div class="fw-bold">$<%= number_with_delimiter(@order.amount_paid_cents / 100) %></div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="text-muted small">Saldo pendiente</div>
-        <div class="fw-bold">$<%= number_with_delimiter(@order.balance_due_cents / 100) %></div>
-      </div>
-
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="text-muted small">Estado de pago</div>
         <div class="fw-bold"><%= @order.payment_status_label %></div>
       </div>
+
+      <div class="col-md-3">
+        <div class="text-muted small">Total del pedido</div>
+        <div class="fw-bold"><%= format_money(@order.total_cents) %></div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="text-muted small">Total pagado</div>
+        <div class="fw-bold"><%= format_money(@order.amount_paid_cents) %></div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="text-muted small">Saldo pendiente</div>
+        <div class="fw-bold"><%= format_money(@order.balance_due_cents) %></div>
+      </div>
     </div>
 
-    <h4 class="mb-3">Pagos registrados</h4>
+    <h5 class="mb-3">Pagos registrados</h5>
 
     <% if @order.payments.empty? %>
       <div class="text-muted mb-4">Todavía no se registraron pagos para este pedido.</div>
@@ -65,7 +54,7 @@
       <% @order.payments.sort_by(&:paid_at).reverse_each do |payment| %>
         <div class="d-flex justify-content-between align-items-center border-bottom py-3">
           <div>
-            <div class="fw-bold">$<%= number_with_delimiter(payment.amount_cents / 100) %></div>
+            <div class="fw-bold"><%= format_money(payment.amount_cents) %></div>
             <div class="text-muted small">
               <%= payment.paid_at.strftime("%d/%m/%Y") %> · <%= payment.payment_method_label %>
             </div>
@@ -102,7 +91,7 @@
           <div class="col-md-3">
             <%= f.label :payment_method, "Forma de pago", class: "form-label" %>
             <%= f.select :payment_method,
-                Payment::PAYMENT_METHOD_LABELS.map { |value, label| [label, value] },
+                Order.payment_method_options_for_select,
                 { prompt: "Seleccionar" },
                 class: "form-select", required: true %>
           </div>
@@ -118,27 +107,5 @@
         </div>
       <% end %>
     </div>
-
-    <h4 class="mb-3 mt-5">Productos</h4>
-
-    <% @order.order_items.each do |item| %>
-      <div class="d-flex justify-content-between border-bottom py-3">
-        <div>
-          <div class="fw-bold"><%= item.product_name_snapshot %></div>
-          <div class="text-muted">x<%= item.quantity %></div>
-        </div>
-
-        <div class="fw-bold">
-          $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
-        </div>
-      </div>
-    <% end %>
-
-    <% if @order.customer_comment.present? %>
-      <div class="mt-4">
-        <div class="text-muted small">Comentario cliente</div>
-        <div><%= @order.customer_comment %></div>
-      </div>
-    <% end %>
   </div>
 </div>

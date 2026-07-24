@@ -1,0 +1,69 @@
+<div class="hans-receipt">
+  <div class="hans-receipt-header">
+    <div class="hans-receipt-brand">HANS</div>
+
+    <div class="hans-receipt-title">
+      <div class="hans-receipt-label">Remito / Pedido HANS</div>
+      <div class="hans-receipt-number"><%= order.number %></div>
+    </div>
+  </div>
+
+  <div class="hans-receipt-meta row">
+    <div class="col-6 col-md-4">
+      <div class="text-muted small">Cliente</div>
+      <div class="fw-bold"><%= order.customer.name %></div>
+    </div>
+
+    <div class="col-6 col-md-4">
+      <div class="text-muted small">Fecha del pedido</div>
+      <div class="fw-bold"><%= order.created_at.strftime("%d/%m/%Y") %></div>
+    </div>
+
+    <div class="col-6 col-md-4">
+      <div class="text-muted small">Fecha de entrega</div>
+      <div class="fw-bold"><%= order.delivery_date.strftime("%d/%m/%Y") %></div>
+    </div>
+  </div>
+
+  <div class="hans-receipt-items">
+    <div class="hans-receipt-items-head d-none d-md-flex">
+      <div class="hans-receipt-col-product">Producto</div>
+      <div class="hans-receipt-col-qty">Cant.</div>
+      <div class="hans-receipt-col-unit">Unitario</div>
+      <div class="hans-receipt-col-subtotal">Subtotal</div>
+    </div>
+
+    <% order.order_items.each do |item| %>
+      <div class="hans-receipt-item">
+        <div class="hans-receipt-col-product"><%= item.product_name_snapshot %></div>
+
+        <div class="hans-receipt-col-qty">
+          <span class="hans-receipt-col-label d-md-none">Cantidad</span>
+          <%= item.quantity %>
+        </div>
+
+        <div class="hans-receipt-col-unit">
+          <span class="hans-receipt-col-label d-md-none">Unitario</span>
+          <%= format_money(item.unit_price_cents_snapshot) %>
+        </div>
+
+        <div class="hans-receipt-col-subtotal">
+          <span class="hans-receipt-col-label d-md-none">Subtotal</span>
+          <%= format_money(item.line_revenue_cents) %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="hans-receipt-total">
+    <span>Total</span>
+    <span class="hans-receipt-total-amount"><%= format_money(order.total_cents) %></span>
+  </div>
+
+  <% if order.customer_comment.present? %>
+    <div class="hans-receipt-comment">
+      <div class="text-muted small">Comentario</div>
+      <div><%= order.customer_comment %></div>
+    </div>
+  <% end %>
+</div>

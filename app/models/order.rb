@@ -43,6 +43,15 @@ class Order < ApplicationRecord
     "paid" => "Pagado"
   }.freeze
 
+  # Etiqueta única para todos los métodos de pago mostrados al usuario.
+  # cash_on_delivery y cash_later comparten hoy la misma etiqueta visible
+  # ("Cuenta corriente") sin fusionar ni cambiar sus valores internos.
+  PAYMENT_METHOD_LABELS = {
+    "cash_on_delivery" => "Cuenta corriente",
+    "cash_later" => "Cuenta corriente",
+    "bank_transfer" => "Transferencia bancaria"
+  }.freeze
+
   validates :delivery_date, presence: true
   validates :status, :payment_status, presence: true
   validate :delivery_date_must_be_available, on: :create, unless: :created_by_admin?
@@ -59,6 +68,25 @@ class Order < ApplicationRecord
 
   def payment_status_label
     PAYMENT_STATUS_LABELS[payment_status] || payment_status
+  end
+
+  def payment_method_selected_label
+    return nil if payment_method_selected.blank?
+
+    PAYMENT_METHOD_LABELS[payment_method_selected] || payment_method_selected
+  end
+
+  # Deduplicado por etiqueta: si dos valores internos comparten la misma
+  # etiqueta visible (hoy cash_on_delivery y cash_later, ambos "Cuenta
+  # corriente"), un <select> no debe ofrecer dos opciones idénticas e
+  # indistinguibles — se conserva el primero de cada etiqueta. Los pedidos
+  # ya guardados con el valor descartado siguen mostrando su etiqueta
+  # correctamente en cualquier otra pantalla; esto solo afecta qué se puede
+  # elegir en formularios nuevos.
+  def self.payment_method_options_for_select
+    payment_method_selecteds.keys
+      .map { |key| [PAYMENT_METHOD_LABELS[key] || key.humanize, key] }
+      .uniq { |label, _key| label }
   end
 
   def balance_due_cents

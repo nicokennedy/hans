@@ -8,9 +8,19 @@
       form: { data: { turbo_frame: "product_#{product.id}_quantity" } },
       class: "quantity-btn quantity-btn-light" %>
 
-    <div class="quantity-number">
-      <%= quantity %>
-    </div>
+    <%= form_with url: update_item_cart_path(product_id: product.id),
+        method: :patch,
+        local: true,
+        data: { turbo_frame: "product_#{product.id}_quantity", controller: "quantity-input" } do |f| %>
+      <%= f.number_field :quantity,
+          value: quantity,
+          min: 0,
+          step: 1,
+          inputmode: "numeric",
+          "aria-label": "Cantidad",
+          class: "quantity-number-input",
+          data: { action: "change->quantity-input#submit" } %>
+    <% end %>
 
     <%= button_to "+",
       add_cart_path(product_id: product.id),

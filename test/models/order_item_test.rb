@@ -50,6 +50,22 @@ class OrderItemTest < ActiveSupport::TestCase
     assert item.errors[:unit_price_cents_snapshot].present?
   end
 
+  test "changing Product#price_cents after the order exists does not alter the order item's historical snapshot or total" do
+    item = @order.order_items.create!(product: @product, quantity: 3)
+    original_unit_price = item.unit_price_cents_snapshot
+    original_line_revenue = item.line_revenue_cents
+    original_total = @order.reload.total_cents
+
+    @product.update!(price_cents: 999_999)
+
+    item.reload
+    assert_equal original_unit_price, item.unit_price_cents_snapshot
+    assert_equal 300, item.unit_price_cents_snapshot
+    assert_equal original_line_revenue, item.line_revenue_cents
+    assert_equal original_total, @order.reload.total_cents
+    assert_not_equal @product.price_cents, item.unit_price_cents_snapshot
+  end
+
   test "assign_product updates name, category and cost snapshots but leaves the price untouched" do
     item = @order.order_items.create!(product: @product, quantity: 2)
     original_price = item.unit_price_cents_snapshot
