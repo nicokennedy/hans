@@ -4,28 +4,7 @@
   <% normalized_search_query = search_query.downcase %>
   <% selected_category_id = params[:category_id].presence %>
 
-  <%
-    visible_category_names = [
-      "Muffins",
-      "Chipa",
-      "Alfajorcitos",
-      "Cookies",
-      "Alfajores",
-      "Macarons",
-      "Postres",
-      "Budines",
-      "Otros",
-      "Mini tartas",
-      "Mini tortas",
-      "Cuadrados"
-    ]
-
-    categories = Category
-      .active
-      .ordered
-      .includes(:products)
-      .select { |category| visible_category_names.include?(category.name) }
-  %>
+  <% categories = Category.active.ordered.includes(:products) %>
 
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-start gap-3">
