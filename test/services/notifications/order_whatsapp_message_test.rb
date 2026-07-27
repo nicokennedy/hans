@@ -13,22 +13,32 @@ class Notifications::OrderWhatsappMessageTest < ActiveSupport::TestCase
     @order.save!
   end
 
-  test "includes the banner, order number, customer, delivery date, products with quantities, total and order link" do
-    admin_url = "https://hans.example.com/admin/orders/#{@order.id}"
-    message = Notifications::OrderWhatsappMessage.new(@order, admin_url).to_s
+  test "matches the exact required format: customer, order, delivery date, blank line, then products" do
+    message = Notifications::OrderWhatsappMessage.new(@order).to_s
 
-    assert_includes message, "🟢 Nuevo pedido recibido"
-    assert_includes message, "Pedido: #{@order.number}"
-    assert_includes message, "Cliente: Café Central"
-    assert_includes message, "Entrega: 25/07/2026"
-    assert_includes message, "• Medialunas x24"
-    assert_includes message, "• Pan de molde x6"
-    assert_includes message, "Total: $#{ActionController::Base.helpers.number_with_delimiter(@order.total_cents / 100)}"
-    assert_includes message, "Ver pedido: #{admin_url}"
+    expected = [
+      "Cliente: Café Central",
+      "Pedido: #{@order.number}",
+      "Entrega: 25/07/2026",
+      "",
+      "• Medialunas x24",
+      "• Pan de molde x6"
+    ].join("\n")
+
+    assert_equal expected, message
+  end
+
+  test "never includes the old banner, total or order link" do
+    message = Notifications::OrderWhatsappMessage.new(@order).to_s
+
+    assert_no_match(/Nuevo pedido recibido/, message)
+    assert_no_match(/Total/, message)
+    assert_no_match(/Ver pedido/, message)
+    assert_no_match(%r{https?://}, message)
   end
 
   test "lists every product line, not just the first one" do
-    message = Notifications::OrderWhatsappMessage.new(@order, "https://example.com").to_s
+    message = Notifications::OrderWhatsappMessage.new(@order).to_s
 
     product_lines = message.lines.select { |line| line.start_with?("•") }
     assert_equal 2, product_lines.size

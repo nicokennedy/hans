@@ -234,6 +234,7 @@ body {
   border-top: 4px solid #2b2b2b;
   border-radius: 18px;
   padding: 24px;
+  overflow-x: hidden;
 }
 
 .hans-receipt-header {
@@ -340,7 +341,7 @@ body {
 
 @media (max-width: 576px) {
   .hans-receipt {
-    padding: 18px;
+    padding: 14px;
   }
 
   .hans-receipt-header {
