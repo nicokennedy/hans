@@ -699,14 +699,14 @@ h1, h2, h3,
 
 .production-table th,
 .production-table td {
-  border: 1px solid #d7d7d7;
+  border: 1px solid #c7c7c7;
   padding: 10px 12px;
-  font-size: 15px;
 }
 
 .production-table thead th {
   background: #f1f1f1;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
   vertical-align: bottom;
 }
 
@@ -717,47 +717,43 @@ h1, h2, h3,
   text-align: left;
 }
 
-.production-table th:nth-child(2),
-.production-table td:nth-child(2) {
-  width: 120px;
-  min-width: 120px;
-  text-align: left;
-  font-weight: 800;
+.production-table td:first-child {
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.production-table th:nth-child(3),
-.production-table td:nth-child(3) {
+.production-table th:nth-child(2),
+.production-table td:nth-child(2) {
   width: 70px;
   min-width: 70px;
   text-align: center;
-  font-weight: 800;
 }
 
-.vertical-column {
-  width: 60px;
-  min-width: 60px;
-  max-width: 60px;
+.production-table td:nth-child(2) {
+  font-size: 15px;
+  font-weight: 700;
 }
-
 
 .production-table tbody tr:nth-child(even) {
   background: #fafafa;
 }
 
-.vertical-column {
+.production-table th.vertical-column {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   white-space: nowrap;
   width: 80px;
   min-width: 80px;
   max-width: 80px;
-  height: 120px;
+  padding: 12px 8px;
   text-align: center;
+  vertical-align: middle;
 }
 
-.production-table tbody td:not(:first-child) {
+.production-table tbody td:not(:first-child):not(:nth-child(2)) {
   text-align: center;
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 @media (max-width: 767px) {

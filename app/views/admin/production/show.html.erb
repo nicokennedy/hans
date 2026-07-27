@@ -50,13 +50,9 @@
             <tr>
               <th>Producto</th>
 
-							<th class="text-center">
-							Categoría
-							</th>
-
-							<th class="text-center">
-							TOTAL
-							</th>
+              <th class="text-center">
+                TOTAL
+              </th>
 
               <% @customers.each do |customer| %>
                 <th class="text-center vertical-column">
@@ -72,20 +68,16 @@
 
               <tr>
                 <td class="fw-bold">
-									<%= row[:product_name] %>
-								</td>
+                  <%= row[:product_name] %>
+                </td>
 
-								<td class="text-center fw-bold">
-									<%= Product.find_by(name: row[:product_name])&.category&.name %>
-								</td>
-
-								<td class="text-center fw-bold">
-									<%= row[:total] %>
-								</td>
+                <td class="text-center fw-bold">
+                  <%= row[:total] %>
+                </td>
 
                 <% @customers.each do |customer| %>
                   <td class="text-center">
-                    <%= row[:quantities_by_customer][customer.name].presence || "" %>
+                    <%= row[:quantities_by_customer][customer.name].nonzero? %>
                   </td>
                 <% end %>
 

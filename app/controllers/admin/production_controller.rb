@@ -60,13 +60,16 @@ class Admin::ProductionController < ApplicationController
       end
     end
 
+    internal_categories_by_product_name = Product.where(name: grouped.keys).pluck(:name, :internal_category).to_h
+
     @rows = grouped.map do |product_name, quantities_by_customer|
       {
         product_name: product_name,
         total: quantities_by_customer.values.sum,
-        quantities_by_customer: quantities_by_customer
+        quantities_by_customer: quantities_by_customer,
+        internal_category: internal_categories_by_product_name[product_name]
       }
-    end.sort_by { |row| row[:product_name] }
+    end.sort_by { |row| [ row[:internal_category].to_s.downcase, row[:product_name].to_s.downcase ] }
   end
 
   def print

@@ -63,17 +63,11 @@
       min-width: 210px;
     }
 
-    .category-col {
-      width: 34px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 11px;
-    }
-
     .total-col {
       width: 55px;
       text-align: center;
       font-weight: bold;
+      font-size: 15px;
     }
 
     .customer-col {
@@ -83,15 +77,16 @@
     }
 
     .customer-header {
-      height: 90px;
-      vertical-align: bottom;
+      vertical-align: middle;
       writing-mode: vertical-rl;
       transform: rotate(180deg);
       white-space: nowrap;
+      padding: 10px 6px;
     }
 
     .number-cell {
       text-align: center;
+      font-size: 15px;
     }
 
     @media print {
@@ -136,7 +131,6 @@
     <table>
       <thead>
         <tr>
-          <th class="category-col"></th>
           <th class="product-col"></th>
           <th class="total-col">TOTAL</th>
 
@@ -150,13 +144,7 @@
 
       <tbody>
         <% @rows.each do |row| %>
-          <% product = Product.find_by(name: row[:product_name]) %>
-
           <tr>
-            <td class="category-col">
-              <%= product&.category&.name.to_s.first(2).upcase %>
-            </td>
-
             <td class="product-col">
               <%= row[:product_name] %>
             </td>
@@ -167,7 +155,7 @@
 
             <% @customers.each do |customer| %>
               <td class="number-cell">
-                <%= row[:quantities_by_customer][customer.name].presence || "" %>
+                <%= row[:quantities_by_customer][customer.name].nonzero? %>
               </td>
             <% end %>
           </tr>
