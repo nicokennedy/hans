@@ -36,9 +36,11 @@
     }
 
     table {
-      width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-family: Arial, sans-serif;
+      width: max-content;
+      min-width: 0;
+      table-layout: auto;
     }
 
     th,
@@ -50,6 +52,7 @@
     thead th {
       background: #bfbfbf;
       font-weight: bold;
+      font-size: 12px;
       text-align: center;
     }
 
@@ -60,18 +63,27 @@
     .product-col {
       text-align: left;
       font-weight: bold;
-      min-width: 210px;
+      font-size: 12px;
+      width: 1%;
+      white-space: nowrap;
     }
 
     .total-col {
-      width: 55px;
+      width: 74px;
+      min-width: 74px;
+      max-width: 74px;
       text-align: center;
       font-weight: bold;
+    }
+
+    td.total-col {
       font-size: 15px;
     }
 
     .customer-col {
-      width: 70px;
+      width: 74px;
+      min-width: 74px;
+      max-width: 74px;
       text-align: center;
       font-weight: bold;
     }
@@ -87,6 +99,7 @@
     .number-cell {
       text-align: center;
       font-size: 15px;
+      font-weight: normal;
     }
 
     @media print {
@@ -101,10 +114,6 @@
 
       body {
         padding: 0;
-      }
-
-      table {
-        font-size: 11px;
       }
 
       th,

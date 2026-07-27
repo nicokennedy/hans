@@ -692,9 +692,12 @@ h1, h2, h3,
 }
 
 .production-table {
-  min-width: 760px;
   background: white;
   border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  width: max-content;
+  min-width: 0;
+  table-layout: auto;
 }
 
 .production-table th,
@@ -712,8 +715,8 @@ h1, h2, h3,
 
 .production-table th:first-child,
 .production-table td:first-child {
-  width: 34%;
-  min-width: 260px;
+  width: 1%;
+  white-space: nowrap;
   text-align: left;
 }
 
@@ -724,8 +727,9 @@ h1, h2, h3,
 
 .production-table th:nth-child(2),
 .production-table td:nth-child(2) {
-  width: 70px;
-  min-width: 70px;
+  width: 74px;
+  min-width: 74px;
+  max-width: 74px;
   text-align: center;
 }
 
@@ -742,9 +746,9 @@ h1, h2, h3,
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   white-space: nowrap;
-  width: 80px;
-  min-width: 80px;
-  max-width: 80px;
+  width: 74px;
+  min-width: 74px;
+  max-width: 74px;
   padding: 12px 8px;
   text-align: center;
   vertical-align: middle;
