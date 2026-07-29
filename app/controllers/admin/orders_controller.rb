@@ -1,6 +1,7 @@
 class Admin::OrdersController < ApplicationController
   before_action :authenticate_user!
-  before_action :require_admin!
+  before_action :require_admin_or_production!, only: [:index, :show]
+  before_action :require_admin!, only: [:new, :create, :edit, :update]
 
   PAYMENT_STATUS_FILTERS = %w[all pending partial paid].freeze
 
@@ -184,7 +185,4 @@ class Admin::OrdersController < ApplicationController
     end
   end
 
-  def require_admin!
-    redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
-  end
 end

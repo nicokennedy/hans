@@ -1,6 +1,6 @@
 class Admin::ProductionController < ApplicationController
   before_action :authenticate_user!, except: [:public_print]
-  before_action :require_admin!, except: [:public_print]
+  before_action :require_admin_or_production!, except: [:public_print]
 
   def index
     today = Date.current
@@ -82,9 +82,4 @@ class Admin::ProductionController < ApplicationController
     render :print, layout: false
   end
 
-  private
-
-  def require_admin!
-    redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
-  end
 end

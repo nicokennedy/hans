@@ -156,10 +156,6 @@ class Admin::ProductsController < ApplicationController
     params.require(:product).permit(@field)
   end
 
-  def require_admin!
-    redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
-  end
-
   def store_import_file(upload)
     token = SecureRandom.hex(16)
     FileUtils.mkdir_p(imports_directory)

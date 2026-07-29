@@ -27,8 +27,4 @@ class Admin::PaymentsController < ApplicationController
   def payment_params
     params.require(:payment).permit(:amount, :paid_at, :payment_method, :note)
   end
-
-  def require_admin!
-    redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
-  end
 end

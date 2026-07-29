@@ -1,28 +1,32 @@
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="fw-bold mb-0">Pedidos recibidos</h1>
-    <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
-  </div>
-
-  <div class="product-card mb-4">
-    <%= form_with url: admin_orders_path, method: :get, local: true do %>
-      <div class="row g-3 align-items-end">
-        <div class="col-12 col-md-4">
-          <label class="form-label">Estado de pago</label>
-          <%= select_tag :payment_status_filter,
-              options_for_select(
-                [["Todos", "all"], ["Pendientes", "pending"], ["Parciales", "partial"], ["Pagados", "paid"]],
-                @payment_status_filter
-              ),
-              class: "form-select" %>
-        </div>
-
-        <div class="col-12 col-md-2">
-          <%= submit_tag "Aplicar", class: "btn btn-dark w-100" %>
-        </div>
-      </div>
+    <% if current_user.admin? %>
+      <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
     <% end %>
   </div>
+
+  <% if current_user.admin? %>
+    <div class="product-card mb-4">
+      <%= form_with url: admin_orders_path, method: :get, local: true do %>
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label">Estado de pago</label>
+            <%= select_tag :payment_status_filter,
+                options_for_select(
+                  [["Todos", "all"], ["Pendientes", "pending"], ["Parciales", "partial"], ["Pagados", "paid"]],
+                  @payment_status_filter
+                ),
+                class: "form-select" %>
+          </div>
+
+          <div class="col-12 col-md-2">
+            <%= submit_tag "Aplicar", class: "btn btn-dark w-100" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <% if @orders.empty? %>
     <div class="product-card">
@@ -46,12 +50,18 @@
             <div class="small">Entrega: <%= order.delivery_date.strftime("%d/%m/%Y") %></div>
           </div>
 
-          <div class="text-end">
-            <div class="fw-bold">$<%= number_with_delimiter(order.total_cents / 100) %></div>
-            <div class="small text-muted mb-1">Saldo: $<%= number_with_delimiter(order.balance_due_cents / 100) %></div>
-            <div class="badge bg-secondary"><%= order.status.humanize %></div>
-            <div class="badge <%= payment_badge_class %>"><%= order.payment_status_label %></div>
-          </div>
+          <% if current_user.admin? %>
+            <div class="text-end">
+              <div class="fw-bold">$<%= number_with_delimiter(order.total_cents / 100) %></div>
+              <div class="small text-muted mb-1">Saldo: $<%= number_with_delimiter(order.balance_due_cents / 100) %></div>
+              <div class="badge bg-secondary"><%= order.status.humanize %></div>
+              <div class="badge <%= payment_badge_class %>"><%= order.payment_status_label %></div>
+            </div>
+          <% else %>
+            <div class="text-end">
+              <div class="badge bg-secondary"><%= order.status.humanize %></div>
+            </div>
+          <% end %>
         </div>
       </div>
     <% end %>

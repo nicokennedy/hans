@@ -91,7 +91,4 @@ class OrdersController < ApplicationController
     end.compact
   end
 
-  def require_customer!
-    redirect_to admin_root_path if current_user.admin?
-  end
 end

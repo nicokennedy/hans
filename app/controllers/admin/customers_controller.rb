@@ -73,10 +73,6 @@ class Admin::CustomersController < ApplicationController
 
   private
 
-  def require_admin!
-    redirect_to dashboard_path, alert: "No tenés permisos para acceder." unless current_user.admin?
-  end
-
   def set_customer
     @customer = Customer.find(params[:id])
   end
