@@ -43,11 +43,13 @@ class Order < ApplicationRecord
     "paid" => "Pagado"
   }.freeze
 
-  # Etiqueta única para todos los métodos de pago mostrados al usuario.
-  # cash_on_delivery y cash_later comparten hoy la misma etiqueta visible
-  # ("Cuenta corriente") sin fusionar ni cambiar sus valores internos.
+  # Etiqueta visible para cada método de pago. cash_on_delivery y cash_later
+  # son valores internos distintos con etiquetas distintas — nunca deben
+  # compartir la misma etiqueta, porque el <select> deduplica por etiqueta
+  # (ver payment_method_options_for_select) y una etiqueta compartida oculta
+  # una de las dos opciones del formulario.
   PAYMENT_METHOD_LABELS = {
-    "cash_on_delivery" => "Cuenta corriente",
+    "cash_on_delivery" => "Efectivo contraentrega",
     "cash_later" => "Cuenta corriente",
     "bank_transfer" => "Transferencia bancaria"
   }.freeze
@@ -76,13 +78,11 @@ class Order < ApplicationRecord
     PAYMENT_METHOD_LABELS[payment_method_selected] || payment_method_selected
   end
 
-  # Deduplicado por etiqueta: si dos valores internos comparten la misma
-  # etiqueta visible (hoy cash_on_delivery y cash_later, ambos "Cuenta
-  # corriente"), un <select> no debe ofrecer dos opciones idénticas e
-  # indistinguibles — se conserva el primero de cada etiqueta. Los pedidos
-  # ya guardados con el valor descartado siguen mostrando su etiqueta
-  # correctamente en cualquier otra pantalla; esto solo afecta qué se puede
-  # elegir en formularios nuevos.
+  # Deduplicado defensivo por etiqueta: si en el futuro dos valores internos
+  # comparten la misma etiqueta visible, un <select> no debe ofrecer dos
+  # opciones idénticas e indistinguibles. Hoy cada valor tiene su propia
+  # etiqueta (ver PAYMENT_METHOD_LABELS), así que este método devuelve las
+  # tres opciones sin descartar ninguna.
   def self.payment_method_options_for_select
     payment_method_selecteds.keys
       .map { |key| [PAYMENT_METHOD_LABELS[key] || key.humanize, key] }

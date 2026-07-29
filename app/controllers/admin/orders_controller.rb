@@ -60,7 +60,7 @@ class Admin::OrdersController < ApplicationController
 
     ActiveRecord::Base.transaction do
       update_order_items
-      add_new_order_item
+      add_new_order_items
       @order.update!(order_params)
     end
 
@@ -78,6 +78,7 @@ class Admin::OrdersController < ApplicationController
     params.require(:order).permit(
       :delivery_date,
       :status,
+      :payment_method_selected,
       :customer_comment
     )
   end
@@ -169,19 +170,28 @@ class Admin::OrdersController < ApplicationController
     item.save!
   end
 
-  def add_new_order_item
-    return if params[:new_product_id].blank?
-    return if params[:new_quantity].to_i <= 0
+  # Agrega una o más líneas nuevas a un pedido existente (vía "Agregar otra
+  # línea" en /edit). Si un producto ya está en el pedido — en una línea
+  # existente o en una línea nueva agregada antes en esta misma request —
+  # se suma la cantidad ahí en vez de crear una línea duplicada, igual que
+  # ya hacía update_order_items al reasignar el producto de una línea.
+  def add_new_order_items
+    Array(params[:new_order_items]).each do |item_params|
+      next if item_params[:product_id].blank?
 
-    product = Product.find(params[:new_product_id])
-    existing_item = @order.order_items.find_by(product_id: product.id)
+      quantity = item_params[:quantity].to_i
+      next if quantity <= 0
 
-    if existing_item
-      existing_item.update!(quantity: existing_item.quantity + params[:new_quantity].to_i)
-    else
-      attributes = { product: product, quantity: params[:new_quantity].to_i }
-      attributes[:unit_price_amount] = params[:new_unit_price] if params[:new_unit_price].present?
-      @order.order_items.create!(attributes)
+      product = Product.find(item_params[:product_id])
+      existing_item = @order.order_items.find_by(product_id: product.id)
+
+      if existing_item
+        existing_item.update!(quantity: existing_item.quantity + quantity)
+      else
+        attributes = { product: product, quantity: quantity }
+        attributes[:unit_price_amount] = item_params[:unit_price_amount] if item_params[:unit_price_amount].present?
+        @order.order_items.create!(attributes)
+      end
     end
   end
 

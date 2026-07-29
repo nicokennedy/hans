@@ -89,11 +89,11 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "partial", @order.payment_status
   end
 
-  test "cash_on_delivery and cash_later payments both show the Cuenta corriente label" do
+  test "cash_on_delivery shows Efectivo contraentrega and cash_later shows Cuenta corriente" do
     cash_on_delivery = @order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_on_delivery")
     cash_later = @order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_later")
 
-    assert_equal "Cuenta corriente", cash_on_delivery.payment_method_label
+    assert_equal "Efectivo contraentrega", cash_on_delivery.payment_method_label
     assert_equal "Cuenta corriente", cash_later.payment_method_label
   end
 

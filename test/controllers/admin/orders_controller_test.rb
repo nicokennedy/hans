@@ -69,8 +69,7 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   test "adds a new product line using the catalog price when none is given" do
     patch admin_order_path(@order), params: {
       order: { delivery_date: @order.delivery_date, status: @order.status },
-      new_product_id: @other_product.id,
-      new_quantity: "3"
+      new_order_items: [ { product_id: @other_product.id, quantity: "3" } ]
     }
 
     assert_redirected_to admin_order_path(@order)
@@ -82,9 +81,7 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   test "adds a new product line with a custom price when one is given" do
     patch admin_order_path(@order), params: {
       order: { delivery_date: @order.delivery_date, status: @order.status },
-      new_product_id: @other_product.id,
-      new_quantity: "2",
-      new_unit_price: "800"
+      new_order_items: [ { product_id: @other_product.id, quantity: "2", unit_price_amount: "800" } ]
     }
 
     assert_redirected_to admin_order_path(@order)
@@ -95,14 +92,91 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   test "merges a duplicated product into the existing line instead of creating a new one" do
     patch admin_order_path(@order), params: {
       order: { delivery_date: @order.delivery_date, status: @order.status },
-      new_product_id: @product.id,
-      new_quantity: "4"
+      new_order_items: [ { product_id: @product.id, quantity: "4" } ]
     }
 
     assert_redirected_to admin_order_path(@order)
     @order.reload
     assert_equal 1, @order.order_items.where(product_id: @product.id).count
     assert_equal 6, @order.order_items.find_by(product_id: @product.id).quantity
+  end
+
+  test "adds several new product lines in the same edit, each one persisted correctly" do
+    third_product = Product.create!(name: "Cookie Chispas", category: @category, price_cents: 250, cost_cents: 90, active: true, position: 3)
+
+    patch admin_order_path(@order), params: {
+      order: { delivery_date: @order.delivery_date, status: @order.status },
+      new_order_items: [
+        { product_id: @other_product.id, quantity: "2" },
+        { product_id: third_product.id, quantity: "5", unit_price_amount: "300" }
+      ]
+    }
+
+    assert_redirected_to admin_order_path(@order)
+    @order.reload
+    other_item = @order.order_items.find_by(product_id: @other_product.id)
+    third_item = @order.order_items.find_by(product_id: third_product.id)
+
+    assert_equal 2, other_item.quantity
+    assert_equal @other_product.price_cents, other_item.unit_price_cents_snapshot
+    assert_equal 5, third_item.quantity
+    assert_equal 30_000, third_item.unit_price_cents_snapshot
+  end
+
+  test "adding several new lines merges any that repeat a product already in the order or among themselves" do
+    patch admin_order_path(@order), params: {
+      order: { delivery_date: @order.delivery_date, status: @order.status },
+      new_order_items: [
+        { product_id: @product.id, quantity: "1" }, # repeats @item's product (already in the order)
+        { product_id: @other_product.id, quantity: "2" },
+        { product_id: @other_product.id, quantity: "3" } # repeats the new line above
+      ]
+    }
+
+    assert_redirected_to admin_order_path(@order)
+    @order.reload
+
+    assert_equal 1, @order.order_items.where(product_id: @product.id).count
+    assert_equal 3, @order.order_items.find_by(product_id: @product.id).quantity # 2 (original) + 1
+
+    assert_equal 1, @order.order_items.where(product_id: @other_product.id).count
+    assert_equal 5, @order.order_items.find_by(product_id: @other_product.id).quantity # 2 + 3
+  end
+
+  test "existing lines are left untouched (historical price preserved) when only adding new lines" do
+    original_snapshot = @item.unit_price_cents_snapshot
+
+    patch admin_order_path(@order), params: {
+      order: { delivery_date: @order.delivery_date, status: @order.status },
+      new_order_items: [ { product_id: @other_product.id, quantity: "1" } ]
+    }
+
+    assert_redirected_to admin_order_path(@order)
+    assert_equal original_snapshot, @item.reload.unit_price_cents_snapshot
+    assert_equal 2, @item.quantity
+  end
+
+  test "the total is recalculated correctly after adding new lines while editing" do
+    patch admin_order_path(@order), params: {
+      order: { delivery_date: @order.delivery_date, status: @order.status },
+      new_order_items: [ { product_id: @other_product.id, quantity: "2" } ]
+    }
+
+    assert_redirected_to admin_order_path(@order)
+    @order.reload
+    # @item: 2 x 300 = 600 ; new line: 2 x 900 = 1800
+    assert_equal 2400, @order.total_cents
+  end
+
+  test "a blank new-line row (no product selected) is silently discarded, not an error" do
+    assert_no_difference "OrderItem.count" do
+      patch admin_order_path(@order), params: {
+        order: { delivery_date: @order.delivery_date, status: @order.status },
+        new_order_items: [ { product_id: "", quantity: "1" } ]
+      }
+    end
+
+    assert_redirected_to admin_order_path(@order)
   end
 
   test "removes a line item" do
@@ -205,6 +279,37 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   test "should get new" do
     get new_admin_order_path
     assert_response :success
+  end
+
+  test "new-order form preloads each product's list price as a data attribute for the JS auto-fill" do
+    get new_admin_order_path
+
+    assert_response :success
+    assert_select "select.form-select-sm option[value=?]", @product.id.to_s do |options|
+      assert_equal @product.price_amount.to_s, options.first["data-price-amount"]
+    end
+    assert_select "select.form-select-sm option[value=?]", @other_product.id.to_s do |options|
+      assert_equal @other_product.price_amount.to_s, options.first["data-price-amount"]
+    end
+  end
+
+  test "new-order form offers Efectivo contraentrega as a payment method" do
+    get new_admin_order_path
+
+    assert_response :success
+    assert_select "select#order_payment_method_selected option", text: "Efectivo contraentrega"
+  end
+
+  test "edit form offers Agregar otra línea, price auto-fill data, and Efectivo contraentrega" do
+    get edit_admin_order_path(@order)
+
+    assert_response :success
+    assert_select "button[data-action=?]", "order-items#add", text: "Agregar otra línea"
+    assert_select "template" # holds the new-line partial for the Stimulus controller to clone
+    assert_select "select#order_payment_method_selected option", text: "Efectivo contraentrega"
+    assert_select "select.form-select-sm option[value=?]", @other_product.id.to_s do |options|
+      assert_equal @other_product.price_amount.to_s, options.first["data-price-amount"]
+    end
   end
 
   test "index shows the Nuevo pedido button" do

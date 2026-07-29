@@ -132,7 +132,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "Editar pedido", count: 0
   end
 
-  test "no raw 'Cash on delivery' English text ever leaks to the customer" do
+  test "no raw 'Cash on delivery' English text ever leaks to the customer, and it shows the Spanish label" do
     @order.update!(payment_method_selected: "cash_on_delivery")
     sign_in @user
 
@@ -140,6 +140,16 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_no_match(/cash on delivery/i, response.body)
-    assert_match "Cuenta corriente", response.body
+    assert_match "Efectivo contraentrega", response.body
+  end
+
+  test "checkout offers Efectivo contraentrega as a payment method option" do
+    sign_in @user
+    post add_cart_path, params: { product_id: @product.id }
+
+    get new_order_path
+
+    assert_response :success
+    assert_select "select#order_payment_method_selected option", text: "Efectivo contraentrega"
   end
 end

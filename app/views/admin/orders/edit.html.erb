@@ -13,7 +13,7 @@
       </div>
     <% end %>
 
-    <%= form_with model: [:admin, @order], local: true do |f| %>
+    <%= form_with model: [:admin, @order], local: true, data: { controller: "order-items" } do |f| %>
       <div class="mb-3">
         <%= f.label :delivery_date, "Fecha de entrega", class: "form-label" %>
         <%= f.date_field :delivery_date, class: "form-control" %>
@@ -27,6 +27,14 @@
           class: "form-select" %>
       </div>
 
+      <div class="mb-3">
+        <%= f.label :payment_method_selected, "Método de pago", class: "form-label" %>
+        <%= f.select :payment_method_selected,
+          Order.payment_method_options_for_select,
+          { include_blank: "Sin definir" },
+          class: "form-select" %>
+      </div>
+
       <div class="mb-4">
         <%= f.label :customer_comment, "Comentario", class: "form-label" %>
         <%= f.text_area :customer_comment, rows: 3, class: "form-control" %>
@@ -36,74 +44,64 @@
 
       <% only_item = @order.order_items.size <= 1 %>
       <% @order.order_items.each do |item| %>
-  <div class="d-flex justify-content-between align-items-center border-bottom py-3">
-    <div style="width: 220px;">
-      <label class="form-label small">Producto</label>
-      <%= select_tag "order_items[#{item.id}][product_id]",
-          order_item_product_options(item, @products),
-          class: "form-select form-select-sm" %>
-    </div>
+        <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+          <div style="width: 220px;">
+            <label class="form-label small">Producto</label>
+            <%= select_tag "order_items[#{item.id}][product_id]",
+                order_item_product_options(item, @products),
+                class: "form-select form-select-sm" %>
+          </div>
 
-<div style="width: 140px;">
-  <label class="form-label small">Cantidad</label>
+          <div style="width: 140px;">
+            <label class="form-label small">Cantidad</label>
 
-  <%= number_field_tag "order_items[#{item.id}][quantity]",
-      item.quantity,
-      min: 1,
-      class: "form-control mb-2" %>
+            <%= number_field_tag "order_items[#{item.id}][quantity]",
+                item.quantity,
+                min: 1,
+                class: "form-control mb-2" %>
 
-  <div class="form-check">
-    <%= check_box_tag "order_items[#{item.id}][remove]",
-        "1",
-        false,
-        class: "form-check-input",
-        disabled: only_item %>
+            <div class="form-check">
+              <%= check_box_tag "order_items[#{item.id}][remove]",
+                  "1",
+                  false,
+                  class: "form-check-input",
+                  disabled: only_item %>
 
-    <label class="form-check-label">
-      Eliminar
-    </label>
-    <% if only_item %>
-      <div class="form-text">No se puede eliminar el último producto.</div>
-    <% end %>
-  </div>
-</div>
+              <label class="form-check-label">
+                Eliminar
+              </label>
+              <% if only_item %>
+                <div class="form-text">No se puede eliminar el último producto.</div>
+              <% end %>
+            </div>
+          </div>
 
-    <div style="width: 140px;">
-      <label class="form-label small">Precio unitario</label>
-      <%= number_field_tag "order_items[#{item.id}][unit_price_amount]",
-          item.unit_price_amount,
-          min: 0,
-          class: "form-control" %>
-    </div>
+          <div style="width: 140px;">
+            <label class="form-label small">Precio unitario</label>
+            <%= number_field_tag "order_items[#{item.id}][unit_price_amount]",
+                item.unit_price_amount,
+                min: 0,
+                class: "form-control" %>
+          </div>
 
-    <div class="fw-bold">
-      $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
-    </div>
-  </div>
-<% end %>
-<div class="mt-4 p-3 border rounded">
-  <h5 class="mb-3">Agregar producto</h5>
+          <div class="fw-bold">
+            $<%= number_with_delimiter(item.line_revenue_cents / 100) %>
+          </div>
+        </div>
+      <% end %>
 
-  <div class="row g-3 align-items-end">
-    <div class="col-md-6">
-      <label class="form-label">Producto</label>
-      <%= select_tag :new_product_id,
-          options_from_collection_for_select(@products, :id, :name),
-          include_blank: "Seleccionar producto",
-          class: "form-select" %>
-    </div>
+      <div data-order-items-target="list"></div>
 
-    <div class="col-md-2">
-      <label class="form-label">Cantidad</label>
-      <%= number_field_tag :new_quantity, 1, min: 1, class: "form-control" %>
-    </div>
+      <template data-order-items-target="template">
+        <%= render "order_item_fields", item: OrderItem.new, products: @products, field_prefix: "new_order_items" %>
+      </template>
 
-    <div class="col-md-2">
-      <label class="form-label">Precio (opcional)</label>
-      <%= number_field_tag :new_unit_price, nil, min: 0, class: "form-control", placeholder: "Precio de lista" %>
-    </div>
-  </div>
-</div>
+      <div class="form-text mb-3">Las líneas nuevas se agregan al guardar. Si un producto agregado ya está en el pedido, se suma la cantidad a la línea existente en vez de duplicarla.</div>
+
+      <div class="mt-3 mb-4 d-flex gap-2">
+        <button type="button" class="btn btn-outline-dark" data-action="order-items#add">Agregar otra línea</button>
+      </div>
+
       <div class="mt-4">
         <%= f.submit "Guardar cambios", class: "btn btn-dark" %>
       </div>
