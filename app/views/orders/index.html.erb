@@ -64,7 +64,7 @@
               <%= order.status_label %>
             </div>
 
-            <div class="badge bg-light text-dark border mb-3">
+            <div class="badge <%= payment_status_badge_class(order.payment_status) %> mb-3">
               <%= order.payment_status_label %>
             </div>
 

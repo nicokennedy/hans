@@ -62,6 +62,71 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select ".badge", text: "Pagado"
   end
 
+  test "index renders the Pagado badge in green (bg-success)" do
+    @order.payments.create!(amount_cents: 1_000, paid_at: Time.current, payment_method: "bank_transfer")
+    assert_equal "paid", @order.reload.payment_status
+
+    sign_in @user
+    get orders_path
+
+    assert_response :success
+    assert_select ".badge.bg-success", text: "Pagado"
+  end
+
+  test "index renders the Pago parcial badge in orange/amber (bg-warning)" do
+    @order.payments.create!(amount_cents: 400, paid_at: Time.current, payment_method: "cash_on_delivery")
+    assert_equal "partial", @order.reload.payment_status
+
+    sign_in @user
+    get orders_path
+
+    assert_response :success
+    assert_select ".badge.bg-warning", text: "Pago parcial"
+  end
+
+  test "index renders the Pendiente badge in yellow (bg-warning-subtle), never bg-secondary or a red/danger class" do
+    assert_equal "pending", @order.payment_status
+
+    sign_in @user
+    get orders_path
+
+    assert_response :success
+    assert_select ".badge.bg-warning-subtle", text: "Pendiente"
+    assert_select ".badge.bg-secondary", text: "Pendiente", count: 0
+    assert_select ".badge.bg-danger", text: "Pendiente", count: 0
+  end
+
+  test "show (order detail) uses the same colored badge classes as the index, unified via the shared helper" do
+    sign_in @user
+    get order_path(@order)
+
+    assert_response :success
+    assert_select ".badge.bg-warning-subtle", text: "Pendiente"
+  end
+
+  test "payment status labels stay in Spanish exactly as before (Pendiente/Pago parcial/Pagado), unchanged by the badge color change" do
+    sign_in @user
+
+    get orders_path
+    assert_select ".badge", text: "Pendiente"
+
+    @order.payments.create!(amount_cents: 400, paid_at: Time.current, payment_method: "cash_on_delivery")
+    get orders_path
+    assert_select ".badge", text: "Pago parcial"
+
+    @order.payments.create!(amount_cents: 600, paid_at: Time.current, payment_method: "bank_transfer")
+    get orders_path
+    assert_select ".badge", text: "Pagado"
+  end
+
+  test "the payment_status calculation logic itself is untouched: it still derives from registered payments, not from the badge helper" do
+    assert_equal "pending", @order.payment_status
+    @order.payments.create!(amount_cents: 400, paid_at: Time.current, payment_method: "cash_on_delivery")
+    assert_equal "partial", @order.reload.payment_status
+    @order.payments.create!(amount_cents: 600, paid_at: Time.current, payment_method: "bank_transfer")
+    assert_equal "paid", @order.reload.payment_status
+  end
+
   test "a customer cannot register a payment through the admin route" do
     sign_in @user
 

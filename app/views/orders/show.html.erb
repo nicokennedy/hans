@@ -11,13 +11,7 @@
         </div>
       </div>
 
-      <% payment_badge_class = case @order.payment_status
-         when "paid" then "bg-success"
-         when "partial" then "bg-warning text-dark"
-         else "bg-secondary"
-         end %>
-
-      <div class="badge <%= payment_badge_class %> fs-6">
+      <div class="badge <%= payment_status_badge_class(@order.payment_status) %> fs-6">
         <%= @order.payment_status_label %>
       </div>
     </div>
