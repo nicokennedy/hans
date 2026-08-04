@@ -33,7 +33,7 @@ gem "flatpickr"
 # because Heroku can scale to multiple web dynos, and only Redis pub/sub lets
 # a broadcast triggered on one dyno reach a websocket connection held open on
 # another. Development/test keep the async/test adapters (no Redis needed).
-gem "redis", ">= 4.0.1"
+gem "redis", ">= 4", "< 6"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
