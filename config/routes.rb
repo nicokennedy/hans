@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
   devise_for :users
 
+  mount ActionCable.server => "/cable"
+
   root "pages#home"
 
   resource :dashboard, only: [:show]
@@ -42,5 +44,10 @@ Rails.application.routes.draw do
       patch :toggle_active, on: :member
     end
     resources :categories
+
+    resource :push_settings, only: [:show]
+    resources :push_subscriptions, only: [:create, :destroy] do
+      post :test, on: :member
+    end
   end
 end

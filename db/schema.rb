@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_22_135226) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_04_123511) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -127,6 +127,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_22_135226) do
     t.index ["category_id"], name: "index_products_on_category_id"
   end
 
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "endpoint", null: false
+    t.string "p256dh_key", null: false
+    t.string "auth_key", null: false
+    t.string "device_label"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -149,4 +161,5 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_22_135226) do
   add_foreign_key "orders", "customers"
   add_foreign_key "payments", "orders"
   add_foreign_key "products", "categories"
+  add_foreign_key "push_subscriptions", "users"
 end

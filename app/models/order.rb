@@ -64,6 +64,15 @@ class Order < ApplicationRecord
   before_validation :set_defaults
   before_save :recalculate_total
 
+  # Dispara la notificación (Action Cable + Web Push) una sola vez, después
+  # de que la creación del pedido esté realmente confirmada en la base de
+  # datos. after_create_commit corre solo en el INSERT inicial — nunca en un
+  # update posterior (editar, cambiar estado, registrar un pago) — así que
+  # cubre automáticamente tanto el checkout del cliente como el alta desde
+  # admin (los dos únicos puntos donde se crea un Order) sin duplicar lógica
+  # ni arriesgar notificar antes de que la transacción haya confirmado.
+  after_create_commit :notify_order_created
+
   def status_label
     STATUS_LABELS[status] || status
   end
@@ -99,6 +108,10 @@ class Order < ApplicationRecord
   end
 
   private
+
+  def notify_order_created
+    Notifications::OrderCreatedBroadcaster.call(self)
+  end
 
   def set_defaults
     self.status ||= "received"

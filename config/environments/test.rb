@@ -37,6 +37,12 @@ Rails.application.configure do
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
+  # Sin esto, ActiveJob::TestHelper (assert_enqueued_with, perform_enqueued_jobs,
+  # etc.) no funciona: sin un adapter de test explícito, ActiveJob usa :async
+  # también en test, que no expone enqueued_jobs. Necesario para verificar que
+  # PushNotificationJob se encola correctamente al crear un pedido.
+  config.active_job.queue_adapter = :test
+
   config.action_mailer.perform_caching = false
 
   # Tell Action Mailer not to deliver emails to the real world.

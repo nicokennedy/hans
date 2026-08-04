@@ -1,0 +1,87 @@
+<div class="container py-5">
+  <div class="d-flex gap-2 mb-4">
+    <%= link_to "← Volver", admin_orders_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card"
+       data-controller="push-settings"
+       data-push-settings-vapid-public-key-value="<%= @vapid_public_key %>"
+       data-push-settings-server-configured-value="<%= @server_configured %>"
+       data-push-settings-create-url-value="<%= admin_push_subscriptions_path %>"
+       data-push-settings-destroy-url-template-value="<%= admin_push_subscription_path(":id") %>"
+       data-push-settings-test-url-template-value="<%= test_admin_push_subscription_path(":id") %>">
+    <h1 class="fw-bold mb-2">Notificaciones de pedidos</h1>
+    <p class="text-muted mb-4">
+      Recibí un aviso en este dispositivo apenas entra un pedido nuevo, incluso con HANS cerrada o la pantalla bloqueada.
+    </p>
+
+    <div class="form-check form-switch mb-4">
+      <input class="form-check-input" type="checkbox" role="switch" id="hans-sound-toggle"
+             data-action="push-settings#toggleSound" data-push-settings-target="soundToggle">
+      <label class="form-check-label" for="hans-sound-toggle">
+        Reproducir sonido cuando entra un pedido nuevo (mientras HANS está abierta)
+      </label>
+    </div>
+
+    <div role="status" aria-live="polite">
+      <div data-push-settings-target="stateChecking">
+        <div class="text-muted">Comprobando compatibilidad del dispositivo…</div>
+      </div>
+
+      <div data-push-settings-target="stateUnsupported" class="d-none">
+        <div class="badge bg-secondary mb-2">No compatible</div>
+        <p>Este navegador o dispositivo no soporta notificaciones push. Probá desde Chrome, Edge o Safari en un dispositivo compatible.</p>
+      </div>
+
+      <div data-push-settings-target="stateNeedsInstall" class="d-none">
+        <div class="badge bg-warning text-dark mb-2">HANS debe agregarse a la pantalla de inicio</div>
+        <p>En iPhone/iPad, Safari solo permite notificaciones si HANS está agregada como aplicación. Pasos:</p>
+        <ol>
+          <li>Abrí HANS en Safari (no en Chrome ni otro navegador).</li>
+          <li>Tocá el botón "Compartir" (el cuadrado con una flecha hacia arriba).</li>
+          <li>Elegí "Agregar a pantalla de inicio".</li>
+          <li>Abrí HANS desde el nuevo ícono que aparece en tu pantalla de inicio.</li>
+          <li>Volvé a esta pantalla y tocá "Activar notificaciones".</li>
+          <li>Aceptá el permiso que te pida el sistema.</li>
+        </ol>
+      </div>
+
+      <div data-push-settings-target="statePermissionDenied" class="d-none">
+        <div class="badge bg-danger mb-2">Notificaciones bloqueadas</div>
+        <p>Bloqueaste las notificaciones para HANS desde el navegador o el sistema. Para reactivarlas, habilitalas manualmente desde la configuración de notificaciones del sitio en tu navegador o sistema operativo.</p>
+      </div>
+
+      <div data-push-settings-target="stateServerError" class="d-none">
+        <div class="badge bg-danger mb-2">Error de configuración del servidor</div>
+        <p>El servidor todavía no tiene configuradas las claves necesarias para enviar notificaciones. Avisá a quien administra HANS.</p>
+      </div>
+
+      <div data-push-settings-target="stateReadyToEnable" class="d-none">
+        <div class="badge bg-secondary mb-2">Permiso todavía no solicitado</div>
+        <p>Activá las notificaciones para recibir un aviso apenas entra un pedido nuevo.</p>
+        <button type="button" class="btn btn-dark" data-action="push-settings#enable" data-push-settings-target="enableButton">
+          Activar notificaciones
+        </button>
+      </div>
+
+      <div data-push-settings-target="stateEnabled" class="d-none">
+        <div class="badge bg-success mb-2">Notificaciones activadas</div>
+        <p>Este dispositivo va a recibir un aviso cuando entre un pedido nuevo.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-dark" data-action="push-settings#sendTest" data-push-settings-target="testButton">
+            Enviar notificación de prueba
+          </button>
+          <button type="button" class="btn btn-outline-danger" data-action="push-settings#disable">
+            Desactivar notificaciones
+          </button>
+        </div>
+        <div class="form-text mt-2" data-push-settings-target="testResult"></div>
+      </div>
+
+      <div data-push-settings-target="stateError" class="d-none">
+        <div class="badge bg-danger mb-2">Ocurrió un error</div>
+        <p data-push-settings-target="errorMessage">No se pudo completar la operación.</p>
+      </div>
+    </div>
+  </div>
+</div>

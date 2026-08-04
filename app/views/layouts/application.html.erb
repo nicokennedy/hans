@@ -7,6 +7,13 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2b2b2b">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="HANS">
+
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -44,9 +51,11 @@
                 <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
                 <%= link_to "Clientes", admin_customers_path, class: "btn btn-sm btn-outline-dark" %>
                 <%= link_to "Productos", admin_products_path, class: "btn btn-sm btn-outline-dark" %>
+                <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
               <% elsif current_user.production? %>
                 <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>
                 <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
+                <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
               <% else %>
                 <%= link_to "Mi portal", dashboard_path, class: "btn btn-sm btn-dark" %>
 
@@ -86,6 +95,37 @@
       <% end %>
     </div>
 
+    <% if user_signed_in? && current_user.admin_or_production? %>
+      <div data-controller="order-notifications" data-order-notifications-current-url-value="<%= request.original_url %>">
+        <div data-order-notifications-target="container" aria-live="polite"></div>
+
+        <template data-order-notifications-target="template">
+          <div class="order-notification-banner" role="status">
+            <div class="order-notification-banner-title">Nuevo pedido recibido</div>
+            <div class="order-notification-banner-body">
+              <span data-order-notifications-target="customerName"></span> ·
+              Pedido <span data-order-notifications-target="orderNumber"></span>
+            </div>
+            <div class="order-notification-banner-actions">
+              <a href="#" class="btn btn-sm btn-dark" data-order-notifications-target="viewLink">Ver pedido</a>
+              <button type="button" class="btn btn-sm btn-outline-dark" data-action="order-notifications#refresh">Actualizar</button>
+              <button type="button" class="btn-close-banner" data-action="order-notifications#dismiss" aria-label="Cerrar aviso">×</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    <% end %>
+
     <%= yield %>
+
+    <% if user_signed_in? && current_user.admin_or_production? %>
+      <script>
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("/service-worker.js").catch(function (error) {
+            console.error("No se pudo registrar el service worker de HANS:", error)
+          })
+        }
+      </script>
+    <% end %>
   </body>
 </html>

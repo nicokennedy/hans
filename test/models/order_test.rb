@@ -1,6 +1,8 @@
 require "test_helper"
 
 class OrderTest < ActiveSupport::TestCase
+  include ActionCable::TestHelper
+
   setup do
     @category = Category.create!(name: "Alfajores", position: 1, active: true)
     @product = Product.create!(name: "Alfajor Clásico", category: @category, price_cents: 300, cost_cents: 100, active: true, position: 1)
@@ -118,5 +120,81 @@ class OrderTest < ActiveSupport::TestCase
     assert_includes options, [ "Efectivo contraentrega", "cash_on_delivery" ]
     assert_includes options, [ "Cuenta corriente", "cash_later" ]
     assert_includes options, [ "Transferencia bancaria", "bank_transfer" ]
+  end
+
+  test "creating an order broadcasts exactly one order_created event and enqueues exactly one push job" do
+    assert_broadcast_on("orders_channel", type: "order_created") do
+      assert_enqueued_with(job: PushNotificationJob) do
+        order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+        order.order_items.build(product: @product, quantity: 1)
+        order.save!
+        @created_order_for_cleanup = order
+      end
+    end
+  ensure
+    @created_order_for_cleanup&.order_items&.destroy_all
+    @created_order_for_cleanup&.destroy
+  end
+
+  test "the push job is enqueued with the order's id, not a serialized record" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+
+    assert_enqueued_with(job: PushNotificationJob) { order.save! }
+
+    enqueued = enqueued_jobs.find { |j| j["job_class"] == "PushNotificationJob" || j[:job] == PushNotificationJob }
+    args = enqueued[:args] || enqueued["arguments"]
+    assert_equal order.id, args.first
+  ensure
+    order.order_items.destroy_all
+    order.destroy
+  end
+
+  test "editing an existing order (delivery date) does not broadcast a new order_created event" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    assert_no_broadcasts("orders_channel") do
+      order.update!(delivery_date: Date.tomorrow + 1.day)
+    end
+  ensure
+    order.order_items.destroy_all
+    order.destroy
+  end
+
+  test "changing status does not broadcast a new order_created event" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    assert_no_broadcasts("orders_channel") do
+      order.update!(status: "confirmed")
+    end
+  ensure
+    order.order_items.destroy_all
+    order.destroy
+  end
+
+  test "registering a payment does not broadcast a new order_created event" do
+    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    assert_no_broadcasts("orders_channel") do
+      order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_on_delivery")
+    end
+  ensure
+    order.payments.destroy_all
+    order.order_items.destroy_all
+    order.destroy
+  end
+
+  test "a failed order creation (invalid record) never broadcasts" do
+    assert_no_broadcasts("orders_channel") do
+      order = Order.new(customer: @customer, delivery_date: nil) # invalid: delivery_date required
+      order.order_items.build(product: @product, quantity: 1)
+      assert_not order.save
+    end
   end
 end

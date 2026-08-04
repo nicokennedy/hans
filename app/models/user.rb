@@ -1,6 +1,7 @@
 # app/models/user.rb
 class User < ApplicationRecord
   belongs_to :customer, optional: true
+  has_many :push_subscriptions, dependent: :destroy
 
   devise :database_authenticatable, :recoverable, :rememberable, :validatable
 

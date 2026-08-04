@@ -46,3 +46,13 @@ Things you may want to cover:
   tiene que abrir el link y apretar enviar. El envío automático real (vía una
   API de WhatsApp como Twilio o Meta Cloud API) queda para un sprint aparte,
   una vez que se elija y configure un proveedor.
+
+* `WEB_PUSH_VAPID_PUBLIC_KEY`, `WEB_PUSH_VAPID_PRIVATE_KEY`,
+  `WEB_PUSH_VAPID_SUBJECT` — claves VAPID para las notificaciones push de
+  pedidos nuevos (admin/producción). Ver documentación completa, generación
+  de claves, configuración en Heroku y troubleshooting en
+  [`docs/NOTIFICATIONS.md`](docs/NOTIFICATIONS.md).
+
+* `REDIS_URL` — usada por Action Cable en producción (notificaciones en
+  tiempo real dentro de HANS). En Heroku, la configura automáticamente el
+  addon `heroku-redis`. Detalle en [`docs/NOTIFICATIONS.md`](docs/NOTIFICATIONS.md).

@@ -27,11 +27,20 @@ gem "stimulus-rails"
 gem "jbuilder"
 gem "flatpickr"
 
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+# Use Redis adapter to run Action Cable in production — config/cable.yml
+# already declares the redis adapter for production, but the gem itself was
+# never added, so broadcasting would crash the first time it runs. Needed
+# because Heroku can scale to multiple web dynos, and only Redis pub/sub lets
+# a broadcast triggered on one dyno reach a websocket connection held open on
+# another. Development/test keep the async/test adapters (no Redis needed).
+gem "redis", ">= 4.0.1"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
+
+# Sends Web Push notifications (VAPID) — actively maintained, pure Ruby,
+# no native extensions, works with Ruby 3.3 / Rails 7.1 out of the box.
+gem "web-push"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
