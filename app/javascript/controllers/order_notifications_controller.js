@@ -2,11 +2,13 @@ import { Controller } from "@hotwired/stimulus"
 import { createConsumer } from "@rails/actioncable"
 
 const SOUND_PREFERENCE_KEY = "hans-order-sound-enabled"
+const CHIME_SRC = "/sounds/order-chime.wav"
+const CHIME_GAP_MS = 300
 
 // Aviso en tiempo real de pedidos nuevos para admin/producción: se suscribe
-// a OrdersChannel, muestra un banner accesible por pedido, y reproduce un
-// sonido corto (generado con Web Audio, sin archivo externo) respetando la
-// preferencia guardada en localStorage. Montado una sola vez en el layout.
+// a OrdersChannel, muestra un banner accesible por pedido, y reproduce dos
+// campanadas (archivo .wav, volumen máximo) respetando la preferencia
+// guardada en localStorage. Montado una sola vez en el layout.
 export default class extends Controller {
   static targets = ["container", "template"]
   static values = { currentUrl: String }
@@ -78,28 +80,26 @@ export default class extends Controller {
     if (localStorage.getItem(SOUND_PREFERENCE_KEY) === "false") return
     if (this.soundAlreadyPlayedElsewhere(orderId)) return
 
+    this.playChime()
+    setTimeout(() => this.playChime(), CHIME_GAP_MS)
+  }
+
+  // Dos instancias de Audio independientes (no una sola reiniciada) para
+  // que la cola de la primera campanada pueda seguir sonando mientras
+  // arranca la segunda, como una campana real de comercio golpeada dos
+  // veces. Si el navegador bloquea el autoplay, falla en silencio — el
+  // banner visual ya se mostró, así que el aviso no se pierde.
+  playChime() {
     try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext
-      if (!AudioContextClass) return
-
-      const context = new AudioContextClass()
-      const oscillator = context.createOscillator()
-      const gain = context.createGain()
-
-      oscillator.type = "sine"
-      oscillator.frequency.value = 880
-      gain.gain.value = 0.15
-
-      oscillator.connect(gain)
-      gain.connect(context.destination)
-
-      oscillator.start()
-      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.25)
-      oscillator.stop(context.currentTime + 0.25)
+      const audio = new Audio(CHIME_SRC)
+      audio.volume = 1.0
+      const playPromise = audio.play()
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {})
+      }
     } catch (error) {
-      // El navegador bloqueó el audio (restricciones de autoplay) o no lo
-      // soporta — el banner visual ya se mostró, así que no hace falta
-      // hacer nada más acá.
+      // Restricciones de autoplay u otro problema de audio — sin sonido,
+      // pero sin romper nada más.
     }
   }
 }
