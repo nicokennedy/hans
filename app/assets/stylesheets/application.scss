@@ -365,6 +365,53 @@ body {
   }
 }
 
+// Usada SOLO en el clon temporal para exportar el remito a PNG (ver
+// app/javascript/receipt_png.js). Las media queries de arriba evalúan el
+// ancho de la ventana real, no el del elemento — así que un clon más ancho
+// no alcanza por sí solo para "salir" del layout mobile si la captura se
+// dispara desde un celular. Cada regla de acá usa más especificidad que su
+// equivalente responsive (dos clases contra una) para ganarle sin
+// depender de si la media query está activa o no; las utilidades de
+// Bootstrap (d-none, d-md-flex, d-md-none) sí llevan !important, así que
+// esas puntualmente se anulan con !important también.
+.receipt-export-render.hans-receipt {
+  width: 1100px;
+  max-width: none;
+  padding: 24px;
+}
+
+.receipt-export-render .hans-receipt-header {
+  flex-direction: row;
+}
+
+.receipt-export-render .hans-receipt-title {
+  text-align: right;
+}
+
+.receipt-export-render .hans-receipt-meta > [class*="col-"] {
+  width: 33.3333%;
+}
+
+.receipt-export-render .hans-receipt-items-head {
+  display: flex !important;
+}
+
+.receipt-export-render .hans-receipt-col-product {
+  flex: 1 1 40%;
+  margin-bottom: 0;
+}
+
+.receipt-export-render .hans-receipt-col-qty,
+.receipt-export-render .hans-receipt-col-unit,
+.receipt-export-render .hans-receipt-col-subtotal {
+  flex: 1 1 18%;
+  text-align: right;
+}
+
+.receipt-export-render .hans-receipt-col-label {
+  display: none !important;
+}
+
 html {
   scroll-behavior: auto !important;
 }

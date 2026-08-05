@@ -35,24 +35,67 @@ function captureScale() {
   return Math.max(window.devicePixelRatio || 1, 2)
 }
 
+// Ancho de referencia del remito "correcto" generado desde escritorio
+// (dentro del rango 1000-1200px pedido). El remito vive en un
+// .container de Bootstrap sin un ancho propio más angosto, así que en un
+// monitor de escritorio típico termina rondando este ancho.
+const EXPORT_WIDTH = 1100
+
+// Clona el remito y lo renderiza fuera de la pantalla visible, con la
+// clase .receipt-export-render (ver application.scss) que fuerza el
+// layout de escritorio sin importar el viewport real. Es necesario un
+// clon aparte porque las media queries que arman el layout mobile
+// evalúan el ancho de la ventana, no el ancho del elemento — así que
+// ensanchar el elemento original (o solo pasarle windowWidth a
+// html2canvas) no alcanza si el navegador real es angosto.
+function buildExportClone(sourceElement) {
+  const clone = sourceElement.cloneNode(true)
+  clone.removeAttribute("id") // evitar un id duplicado en el documento
+  clone.classList.add("receipt-export-render")
+
+  const wrapper = document.createElement("div")
+  wrapper.setAttribute("aria-hidden", "true")
+  Object.assign(wrapper.style, {
+    position: "fixed",
+    top: "0",
+    left: "-10000px",
+    pointerEvents: "none",
+    zIndex: "-1"
+  })
+
+  wrapper.appendChild(clone)
+  document.body.appendChild(wrapper)
+
+  return { wrapper, clone }
+}
+
 export async function captureElementAsPng(element) {
   const { default: html2canvas } = await import("html2canvas")
 
-  const canvas = await html2canvas(element, {
-    backgroundColor: "#ffffff",
-    scale: captureScale(),
-    useCORS: true
-  })
+  const { wrapper, clone } = buildExportClone(element)
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob)
-      } else {
-        reject(new Error("No se pudo generar la imagen."))
-      }
-    }, "image/png")
-  })
+  try {
+    const canvas = await html2canvas(clone, {
+      backgroundColor: "#ffffff",
+      scale: captureScale(),
+      useCORS: true,
+      windowWidth: EXPORT_WIDTH + 100
+    })
+
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error("No se pudo generar la imagen."))
+        }
+      }, "image/png")
+    })
+  } finally {
+    // Se ejecuta también si html2canvas tira una excepción — nunca debe
+    // quedar el clon colgado en el DOM real.
+    wrapper.remove()
+  }
 }
 
 // Descarga el blob directamente en la mayoría de los navegadores. En
