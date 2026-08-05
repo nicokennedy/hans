@@ -19,6 +19,15 @@
         Enviar por WhatsApp no disponible
       </span>
     <% end %>
+
+    <button type="button"
+        class="btn btn-outline-dark"
+        data-controller="receipt-export"
+        data-action="receipt-export#download"
+        data-receipt-export-target-id-value="order-receipt"
+        data-receipt-export-filename-value="<%= @order.receipt_filename %>">
+      Descargar PNG
+    </button>
   </div>
 
   <%= render "orders/receipt", order: @order %>

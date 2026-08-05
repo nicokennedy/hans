@@ -175,6 +175,14 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select ".hans-receipt-total-amount", text: "$10"
   end
 
+  test "the customer order page does not show the admin/production Descargar PNG button (not expanding client permissions)" do
+    sign_in @user
+    get order_path(@order)
+
+    assert_response :success
+    assert_no_match "Descargar PNG", response.body
+  end
+
   test "the customer detail page never exposes cost_cents or internal cost figures" do
     sign_in @user
     get order_path(@order)

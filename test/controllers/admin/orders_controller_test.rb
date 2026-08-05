@@ -556,6 +556,29 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "show displays a Descargar PNG button wired to the stable #order-receipt id" do
+    get admin_order_path(@order)
+
+    assert_response :success
+    assert_select "#order-receipt", count: 1
+    assert_select "button[data-action=?]", "receipt-export#download", text: "Descargar PNG"
+    assert_select "button[data-receipt-export-target-id-value=?]", "order-receipt"
+    assert_select "button[data-receipt-export-filename-value=?]", @order.receipt_filename
+  end
+
+  test "production (read-only) also sees the Descargar PNG button" do
+    sign_out @admin
+    production_user = User.create!(email: "orders-production-png@example.com", password: "password123", role: "production")
+    sign_in production_user
+
+    get admin_order_path(@order)
+
+    assert_response :success
+    assert_select "button", text: "Descargar PNG"
+  ensure
+    production_user&.destroy
+  end
+
   test "the receipt block shows order number, customer, order date, delivery date, quantity, unit price, subtotal and total" do
     order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
     order.order_items.build(product: @product, quantity: 2)

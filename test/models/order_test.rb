@@ -197,4 +197,18 @@ class OrderTest < ActiveSupport::TestCase
       assert_not order.save
     end
   end
+
+  test "receipt_filename sanitizes the customer name and includes the order number" do
+    weird_customer = Customer.create!(name: "Café Ñandú & Cía. S.A.", active: true)
+    order = Order.new(customer: weird_customer, delivery_date: Date.tomorrow)
+    order.order_items.build(product: @product, quantity: 1)
+    order.save!
+
+    assert_equal "remito-#{order.number}-cafe-nandu-cia-s-a.png", order.receipt_filename
+    assert_match(/\A[a-z0-9\-\.]+\z/, order.receipt_filename)
+  ensure
+    order.order_items.destroy_all
+    order.destroy
+    weird_customer.destroy
+  end
 end

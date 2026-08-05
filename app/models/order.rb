@@ -102,6 +102,13 @@ class Order < ApplicationRecord
     total_cents.to_i - amount_paid_cents.to_i
   end
 
+  # Nombre de archivo para el PNG del remito — reutilizado por el botón
+  # "Descargar PNG" y pensado para los próximos sprints de compartir/lote
+  # (4B/4C), así no se reimplementa la sanitización del nombre en cada uno.
+  def receipt_filename
+    "remito-#{number}-#{customer.name.to_s.parameterize}.png"
+  end
+
   def recalculate_payment_state!
     paid = payments.sum(:amount_cents)
     update_columns(amount_paid_cents: paid, payment_status: derive_payment_status(paid))
