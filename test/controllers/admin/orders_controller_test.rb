@@ -561,9 +561,10 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#order-receipt", count: 1
+    assert_select "[data-controller=?][data-receipt-export-target-id-value=?][data-receipt-export-filename-value=?]",
+      "receipt-export", "order-receipt", @order.receipt_filename
     assert_select "button[data-action=?]", "receipt-export#download", text: "Descargar PNG"
-    assert_select "button[data-receipt-export-target-id-value=?]", "order-receipt"
-    assert_select "button[data-receipt-export-filename-value=?]", @order.receipt_filename
+    assert_select "[data-receipt-export-target=?]", "status"
   end
 
   test "production (read-only) also sees the Descargar PNG button" do

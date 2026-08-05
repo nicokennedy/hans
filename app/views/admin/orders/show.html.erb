@@ -20,14 +20,18 @@
       </span>
     <% end %>
 
-    <button type="button"
-        class="btn btn-outline-dark"
-        data-controller="receipt-export"
-        data-action="receipt-export#download"
+    <div data-controller="receipt-export"
         data-receipt-export-target-id-value="order-receipt"
-        data-receipt-export-filename-value="<%= @order.receipt_filename %>">
-      Descargar PNG
-    </button>
+        data-receipt-export-filename-value="<%= @order.receipt_filename %>"
+        class="d-flex flex-column">
+      <button type="button"
+          class="btn btn-outline-dark"
+          data-action="receipt-export#download">
+        Descargar PNG
+      </button>
+
+      <div data-receipt-export-target="status" class="small mt-1" aria-live="polite"></div>
+    </div>
   </div>
 
   <%= render "orders/receipt", order: @order %>
