@@ -4,8 +4,12 @@ one:
   cutoff_hour: 0
   unavailable_weekdays:
     - 0
+    - 2
+    - 4
 
 two:
   cutoff_hour: 0
   unavailable_weekdays:
     - 0
+    - 2
+    - 4

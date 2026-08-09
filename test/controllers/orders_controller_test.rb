@@ -225,4 +225,53 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "select#order_payment_method_selected option", text: "Efectivo contraentrega"
   end
+
+  test "a customer cannot create an order for Tuesday" do
+    assert_blocked_for_customer(next_weekday(2))
+  end
+
+  test "a customer cannot create an order for Thursday" do
+    assert_blocked_for_customer(next_weekday(4))
+  end
+
+  test "a customer cannot create an order for Sunday" do
+    assert_blocked_for_customer(next_weekday(0))
+  end
+
+  test "a customer can create an order for an allowed day" do
+    allowed_date = next_weekday(1) # lunes
+
+    sign_in @user
+    post add_cart_path, params: { product_id: @product.id }
+
+    assert_difference "Order.count", 1 do
+      post orders_path, params: { order: { delivery_date: allowed_date, payment_method_selected: "cash_on_delivery" } }
+    end
+
+    order = @customer.orders.order(:id).last
+    assert_redirected_to order_path(order)
+    assert_equal allowed_date, order.delivery_date
+  end
+
+  private
+
+  def assert_blocked_for_customer(blocked_date)
+    assert DeliveryDateValidator.reason(blocked_date).present?, "test setup expects #{blocked_date} to be blocked"
+
+    sign_in @user
+    post add_cart_path, params: { product_id: @product.id }
+
+    assert_no_difference "Order.count" do
+      post orders_path, params: { order: { delivery_date: blocked_date, payment_method_selected: "cash_on_delivery" } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "No realizamos entregas los martes, jueves ni domingos", response.body
+  end
+
+  def next_weekday(wday)
+    date = Date.tomorrow
+    date += 1 until date.wday == wday
+    date
+  end
 end

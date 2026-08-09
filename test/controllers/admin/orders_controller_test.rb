@@ -424,6 +424,41 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_equal blocked_date, order.delivery_date
   end
 
+  test "allows creating orders for Tuesday and Thursday, both blocked for a regular customer" do
+    [ next_weekday(2), next_weekday(4) ].each do |blocked_date|
+      assert DeliveryDateValidator.reason(blocked_date).present?, "test setup expects #{blocked_date} to be blocked for customers"
+
+      assert_difference "Order.count", 1 do
+        post admin_orders_path, params: {
+          order: {
+            customer_id: @customer.id,
+            delivery_date: blocked_date,
+            status: "received",
+            payment_status: "pending"
+          },
+          order_items: [
+            { product_id: @product.id, quantity: "1", unit_price_amount: "3" }
+          ]
+        }
+      end
+
+      order = Order.order(:id).last
+      assert_redirected_to admin_order_path(order)
+      assert_equal blocked_date, order.delivery_date
+    end
+  end
+
+  test "allows editing an existing order to move its delivery date to Tuesday, Thursday or Sunday" do
+    [ next_weekday(2), next_weekday(4), next_weekday(0) ].each do |blocked_date|
+      patch admin_order_path(@order), params: {
+        order: { delivery_date: blocked_date, status: @order.status }
+      }
+
+      assert_redirected_to admin_order_path(@order)
+      assert_equal blocked_date, @order.reload.delivery_date
+    end
+  end
+
   test "a non-admin user cannot access new or create" do
     other_customer = Customer.create!(name: "Otro Cliente", active: true)
     regular_user = User.create!(email: "regular-user@example.com", password: "password123", role: "customer", customer: other_customer)
@@ -639,8 +674,12 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   private
 
   def next_sunday
+    next_weekday(0)
+  end
+
+  def next_weekday(wday)
     date = Date.tomorrow
-    date += 1 until date.wday == 0
+    date += 1 until date.wday == wday
     date
   end
 
