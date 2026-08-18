@@ -51,11 +51,13 @@ class Admin::OrdersController < ApplicationController
 
   def edit
     @order = Order.includes(:customer, order_items: :product).find(params[:id])
+    @customers = Customer.active.order(:name)
     @products = Product.active.ordered.includes(:category)
   end
 
   def update
     @order = Order.includes(order_items: :product).find(params[:id])
+    @customers = Customer.active.order(:name)
     @products = Product.active.ordered.includes(:category)
 
     ActiveRecord::Base.transaction do
@@ -68,6 +70,7 @@ class Admin::OrdersController < ApplicationController
   rescue ActiveRecord::RecordInvalid => e
     @order = Order.includes(order_items: :product).find(params[:id])
     e.record.errors.full_messages.each { |message| @order.errors.add(:base, message) }
+    @customers = Customer.active.order(:name)
     @products = Product.active.ordered.includes(:category)
     render :edit, status: :unprocessable_entity
   end
@@ -76,6 +79,7 @@ class Admin::OrdersController < ApplicationController
 
   def order_params
     params.require(:order).permit(
+      :customer_id,
       :delivery_date,
       :status,
       :payment_method_selected,

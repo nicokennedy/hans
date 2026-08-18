@@ -15,6 +15,22 @@
 
     <%= form_with model: [:admin, @order], local: true, data: { controller: "order-items" } do |f| %>
       <div class="mb-3">
+        <%= f.label :customer_id, "Cliente", class: "form-label" %>
+        <%= f.collection_select :customer_id,
+          @customers,
+          :id,
+          :name,
+          { prompt: "Seleccionar cliente" },
+          class: "form-select", required: true %>
+      </div>
+
+      <% if @order.payments.any? %>
+        <div class="alert alert-warning">
+          Este pedido ya tiene pagos registrados. Al cambiar el cliente, sus pagos y su saldo pendiente pasarán al nuevo cliente.
+        </div>
+      <% end %>
+
+      <div class="mb-3">
         <%= f.label :delivery_date, "Fecha de entrega", class: "form-label" %>
         <%= f.date_field :delivery_date, class: "form-control" %>
       </div>

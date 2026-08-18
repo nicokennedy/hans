@@ -670,6 +670,51 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     options = css_select("select#order_payment_method_selected option").map(&:text)
     assert_equal options.uniq, options
   end
+  test "an admin can reassign an existing order without changing its payments or payment state" do
+    new_customer = Customer.create!(name: "Nuevo Cliente", active: true)
+    payment = @order.payments.create!(amount_cents: 300, paid_at: Time.current, payment_method: "cash_on_delivery")
+    original_total = @order.reload.total_cents
+
+    patch admin_order_path(@order), params: {
+      order: { customer_id: new_customer.id, delivery_date: @order.delivery_date, status: @order.status }
+    }
+
+    assert_redirected_to admin_order_path(@order)
+    @order.reload
+    assert_equal new_customer, @order.customer
+    assert_equal original_total, @order.total_cents
+    assert_equal 300, @order.amount_paid_cents
+    assert_equal "partial", @order.payment_status
+    assert_equal @order.id, payment.reload.order_id
+    assert_equal 0, @customer.orders.not_canceled.sum(:total_cents)
+    assert_equal 0, @customer.orders.not_canceled.sum(:amount_paid_cents)
+    assert_equal original_total, new_customer.orders.not_canceled.sum(:total_cents)
+    assert_equal 300, new_customer.orders.not_canceled.sum(:amount_paid_cents)
+  end
+
+  test "edit shows active customers, selects the current customer, and warns when payments exist" do
+    other_customer = Customer.create!(name: "Otro Cliente", active: true)
+    inactive_customer = Customer.create!(name: "Cliente Inactivo", active: false)
+    @order.payments.create!(amount_cents: 100, paid_at: Time.current, payment_method: "cash_on_delivery")
+
+    get edit_admin_order_path(@order)
+
+    assert_response :success
+    assert_select "select#order_customer_id option[value=?][selected]", @customer.id.to_s
+    assert_select "select#order_customer_id option[value=?]", other_customer.id.to_s
+    assert_select "select#order_customer_id option[value=?]", inactive_customer.id.to_s, count: 0
+    assert_select ".alert-warning", text: /pagos registrados.*saldo pendiente.*nuevo cliente/
+  end
+
+  test "an invalid update re-renders the edit form with the customer selector" do
+    patch admin_order_path(@order), params: {
+      order: { customer_id: "", delivery_date: @order.delivery_date, status: @order.status }
+    }
+
+    assert_response :unprocessable_entity
+    assert_select "select#order_customer_id option[value=?]", @customer.id.to_s
+  end
+
 
   private
 
@@ -688,6 +733,5 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     ENV["WHATSAPP_OBRADOR_NUMBER"] = value
     yield
   ensure
-    ENV["WHATSAPP_OBRADOR_NUMBER"] = original
   end
 end
