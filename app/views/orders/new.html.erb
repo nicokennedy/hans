@@ -123,6 +123,10 @@ function initDeliveryDatePicker() {
   }
 
   const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
+  // Excepciones puntuales de horario límite (ver DeliveryDateValidator::SPECIAL_CUTOFFS
+  // en el backend, que sigue siendo la validación definitiva). Se lee directamente de
+  // esa misma constante para no duplicar la fecha/hora acá.
+  const specialCutoffs = <%= DeliveryDateValidator::SPECIAL_CUTOFFS.transform_keys(&:iso8601).transform_values(&:iso8601).to_json.html_safe %>
   const hasErrors = <%= @order&.errors&.any? ? "true" : "false" %>
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
@@ -136,7 +140,13 @@ function initDeliveryDatePicker() {
 
     disable: [
       function(date) {
-        return disabledDays.includes(date.getDay())
+        if (disabledDays.includes(date.getDay())) return true
+
+        const iso = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0")
+        const cutoff = specialCutoffs[iso]
+        if (cutoff && new Date() >= new Date(cutoff)) return true
+
+        return false
       }
     ],
 
