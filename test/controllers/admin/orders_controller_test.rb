@@ -459,6 +459,39 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "allows creating and editing an order for 05/09/2026 after the special customer cutoff (04/09/2026 14:00 -03)" do
+    special_date = Date.new(2026, 9, 5)
+
+    travel_to Time.zone.local(2026, 9, 4, 14, 0, 0) do
+      assert DeliveryDateValidator.reason(special_date).present?,
+        "test setup expects 05/09/2026 to already be closed for customers at this time"
+
+      assert_difference "Order.count", 1 do
+        post admin_orders_path, params: {
+          order: {
+            customer_id: @customer.id,
+            delivery_date: special_date,
+            status: "received",
+            payment_status: "pending"
+          },
+          order_items: [
+            { product_id: @product.id, quantity: "1", unit_price_amount: "3" }
+          ]
+        }
+      end
+
+      order = Order.order(:id).last
+      assert_redirected_to admin_order_path(order)
+      assert_equal special_date, order.delivery_date
+
+      patch admin_order_path(@order), params: {
+        order: { delivery_date: special_date, status: @order.status }
+      }
+      assert_redirected_to admin_order_path(@order)
+      assert_equal special_date, @order.reload.delivery_date
+    end
+  end
+
   test "a non-admin user cannot access new or create" do
     other_customer = Customer.create!(name: "Otro Cliente", active: true)
     regular_user = User.create!(email: "regular-user@example.com", password: "password123", role: "customer", customer: other_customer)

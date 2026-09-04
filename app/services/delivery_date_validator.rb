@@ -1,6 +1,17 @@
 class DeliveryDateValidator
   UNAVAILABLE_WEEKDAYS = [0, 2, 4].freeze # domingo, martes, jueves
 
+  # Excepción puntual pedida por el negocio: la entrega del 05/09/2026 acepta
+  # pedidos hasta el 04/09/2026 13:00 hora Argentina, en vez del corte habitual
+  # (medianoche del propio día de entrega). No afecta ninguna otra fecha, y
+  # deja de tener efecto por sí sola en cuanto pasa ese horario: a partir de
+  # ahí "now" siempre es mayor al cutoff, así que la entrega queda cerrada para
+  # siempre como cualquier fecha pasada. Se puede borrar esta entrada (y el uso
+  # en cutoff_time) una vez que el 05/09/2026 haya quedado atrás.
+  SPECIAL_CUTOFFS = {
+    Date.new(2026, 9, 5) => ActiveSupport::TimeZone["America/Argentina/Buenos_Aires"].local(2026, 9, 4, 13, 0, 0)
+  }.freeze
+
   # Nombres en plural para el mensaje de error, en el orden habitual de la
   # semana (lunes a domingo) — no el orden numérico de wday (que arranca en
   # domingo=0), para que el mensaje se lea "martes, jueves ni domingos" y
@@ -77,7 +88,7 @@ class DeliveryDateValidator
   end
 
   def cutoff_passed?
-    cutoff_time = date.in_time_zone.beginning_of_day
+    cutoff_time = SPECIAL_CUTOFFS[date] || date.in_time_zone.beginning_of_day
     now >= cutoff_time
   end
 end

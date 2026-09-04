@@ -75,4 +75,32 @@ class DeliveryDateValidatorTest < ActiveSupport::TestCase
 
     refute DeliveryDateValidator.available?(delivery_date, now: now)
   end
+
+  test "special exception: Saturday 05/09/2026 delivery is available until 04/09/2026 12:59:59 Argentina time" do
+    saturday_0905 = Date.new(2026, 9, 5)
+    now = Time.zone.local(2026, 9, 4, 12, 59, 59)
+
+    assert DeliveryDateValidator.available?(saturday_0905, now: now)
+  end
+
+  test "special exception: Saturday 05/09/2026 delivery closes exactly at 04/09/2026 13:00:00 Argentina time" do
+    saturday_0905 = Date.new(2026, 9, 5)
+    now = Time.zone.local(2026, 9, 4, 13, 0, 0)
+
+    refute DeliveryDateValidator.available?(saturday_0905, now: now)
+  end
+
+  test "special exception does not change the normal cutoff for any other date" do
+    friday_0904 = Date.new(2026, 9, 4)
+
+    # A regular date still follows the usual rule: open through the day
+    # before at 23:59:59, closed exactly at its own midnight — unaffected by
+    # the one-off exception carved out only for 05/09/2026.
+    assert DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 3, 23, 59, 59))
+    refute DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 4, 0, 0, 0))
+
+    # And, in particular, 04/09/2026 13:00 (the special cutoff instant for
+    # 05/09) has no effect whatsoever on 04/09 itself as a delivery date.
+    refute DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 4, 13, 0, 0))
+  end
 end
