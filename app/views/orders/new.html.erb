@@ -123,10 +123,10 @@ function initDeliveryDatePicker() {
   }
 
   const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
-  // Excepciones puntuales de horario límite (ver DeliveryDateValidator::SPECIAL_CUTOFFS
-  // en el backend, que sigue siendo la validación definitiva). Se lee directamente de
-  // esa misma constante para no duplicar la fecha/hora acá.
-  const specialCutoffs = <%= DeliveryDateValidator::SPECIAL_CUTOFFS.transform_keys(&:iso8601).transform_values(&:iso8601).to_json.html_safe %>
+  // Corte recurrente de sábado (ver DeliveryDateValidator::SATURDAY_CUTOFF_HOUR
+  // en el backend, que sigue siendo la validación definitiva): se lee la hora
+  // directamente de esa constante para no duplicar el número acá.
+  const saturdayCutoffHour = <%= DeliveryDateValidator::SATURDAY_CUTOFF_HOUR %>
   const hasErrors = <%= @order&.errors&.any? ? "true" : "false" %>
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
@@ -142,9 +142,16 @@ function initDeliveryDatePicker() {
       function(date) {
         if (disabledDays.includes(date.getDay())) return true
 
-        const iso = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0")
-        const cutoff = specialCutoffs[iso]
-        if (cutoff && new Date() >= new Date(cutoff)) return true
+        if (date.getDay() === 6) { // sábado: corte el viernes anterior a las saturdayCutoffHour, hora Argentina
+          const friday = new Date(date)
+          friday.setDate(friday.getDate() - 1)
+          const y = friday.getFullYear()
+          const m = String(friday.getMonth() + 1).padStart(2, "0")
+          const d = String(friday.getDate()).padStart(2, "0")
+          const hh = String(saturdayCutoffHour).padStart(2, "0")
+          const cutoff = new Date(y + "-" + m + "-" + d + "T" + hh + ":00:00-03:00")
+          if (new Date() >= cutoff) return true
+        }
 
         return false
       }

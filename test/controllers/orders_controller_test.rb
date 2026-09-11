@@ -238,6 +238,41 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_blocked_for_customer(next_weekday(0))
   end
 
+  test "a customer cannot create an order for Saturday once the Friday 14:00 cutoff has passed" do
+    saturday_date = Date.new(2026, 9, 12)
+
+    travel_to Time.zone.local(2026, 9, 11, 14, 0, 0) do
+      assert DeliveryDateValidator.reason(saturday_date).present?, "test setup expects this Saturday to already be closed"
+
+      sign_in @user
+      post add_cart_path, params: { product_id: @product.id }
+
+      assert_no_difference "Order.count" do
+        post orders_path, params: { order: { delivery_date: saturday_date, payment_method_selected: "cash_on_delivery" } }
+      end
+
+      assert_response :unprocessable_entity
+      assert_match "Cerró el horario de pedidos para esta fecha", response.body
+    end
+  end
+
+  test "a customer can still create an order for Saturday before the Friday 14:00 cutoff" do
+    saturday_date = Date.new(2026, 9, 12)
+
+    travel_to Time.zone.local(2026, 9, 11, 13, 59, 59) do
+      sign_in @user
+      post add_cart_path, params: { product_id: @product.id }
+
+      assert_difference "Order.count", 1 do
+        post orders_path, params: { order: { delivery_date: saturday_date, payment_method_selected: "cash_on_delivery" } }
+      end
+
+      order = @customer.orders.order(:id).last
+      assert_redirected_to order_path(order)
+      assert_equal saturday_date, order.delivery_date
+    end
+  end
+
   test "a customer can create an order for an allowed day" do
     allowed_date = next_weekday(1) # lunes
 

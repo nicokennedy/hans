@@ -76,31 +76,63 @@ class DeliveryDateValidatorTest < ActiveSupport::TestCase
     refute DeliveryDateValidator.available?(delivery_date, now: now)
   end
 
-  test "special exception: Saturday 05/09/2026 delivery is available until 04/09/2026 12:59:59 Argentina time" do
-    saturday_0905 = Date.new(2026, 9, 5)
-    now = Time.zone.local(2026, 9, 4, 12, 59, 59)
+  test "Friday delivery is available through Thursday at 23:59:59" do
+    now = Time.zone.local(2026, 7, 16, 23, 59, 59) # Thursday
 
-    assert DeliveryDateValidator.available?(saturday_0905, now: now)
+    assert DeliveryDateValidator.available?(Date.new(2026, 7, 17), now: now) # Friday
   end
 
-  test "special exception: Saturday 05/09/2026 delivery closes exactly at 04/09/2026 13:00:00 Argentina time" do
-    saturday_0905 = Date.new(2026, 9, 5)
-    now = Time.zone.local(2026, 9, 4, 13, 0, 0)
+  test "Friday delivery closes exactly at Friday midnight" do
+    now = Time.zone.local(2026, 7, 17, 0, 0, 0)
 
-    refute DeliveryDateValidator.available?(saturday_0905, now: now)
+    refute DeliveryDateValidator.available?(Date.new(2026, 7, 17), now: now)
   end
 
-  test "special exception does not change the normal cutoff for any other date" do
-    friday_0904 = Date.new(2026, 9, 4)
+  test "recurring rule: Saturday delivery is available through the previous Friday at 13:59:59 Argentina time" do
+    friday = Date.new(2026, 7, 17)
+    saturday = Date.new(2026, 7, 18)
 
-    # A regular date still follows the usual rule: open through the day
-    # before at 23:59:59, closed exactly at its own midnight — unaffected by
-    # the one-off exception carved out only for 05/09/2026.
-    assert DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 3, 23, 59, 59))
-    refute DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 4, 0, 0, 0))
+    assert DeliveryDateValidator.available?(saturday, now: Time.zone.local(friday.year, friday.month, friday.day, 13, 59, 59))
+  end
 
-    # And, in particular, 04/09/2026 13:00 (the special cutoff instant for
-    # 05/09) has no effect whatsoever on 04/09 itself as a delivery date.
-    refute DeliveryDateValidator.available?(friday_0904, now: Time.zone.local(2026, 9, 4, 13, 0, 0))
+  test "recurring rule: Saturday delivery closes exactly at the previous Friday 14:00:00 Argentina time" do
+    friday = Date.new(2026, 7, 17)
+    saturday = Date.new(2026, 7, 18)
+
+    refute DeliveryDateValidator.available?(saturday, now: Time.zone.local(friday.year, friday.month, friday.day, 14, 0, 0))
+  end
+
+  test "the Saturday-specific cutoff hour does not affect any other weekday" do
+    friday = Date.new(2026, 7, 17)
+    monday = Date.new(2026, 7, 20)
+
+    # 14:00 on Friday is exactly the Saturday cutoff instant, but it has no
+    # special meaning for Friday itself (already closed since midnight) or
+    # for a following Monday (still governed by its own midnight rule).
+    refute DeliveryDateValidator.available?(friday, now: Time.zone.local(2026, 7, 17, 14, 0, 0))
+    assert DeliveryDateValidator.available?(monday, now: Time.zone.local(2026, 7, 17, 14, 0, 0))
+  end
+
+  test "from Friday 14:00 onward, Monday is the next available delivery date" do
+    now = Time.zone.local(2026, 7, 17, 14, 0, 1)
+
+    refute DeliveryDateValidator.available?(Date.new(2026, 7, 18), now: now) # Saturday: closed
+    refute DeliveryDateValidator.available?(Date.new(2026, 7, 19), now: now) # Sunday: never a delivery day
+    assert DeliveryDateValidator.available?(Date.new(2026, 7, 20), now: now) # Monday: available
+  end
+
+  test "on Saturday, that same Saturday is closed and the next available delivery is Monday" do
+    saturday = Date.new(2026, 7, 18)
+    monday = Date.new(2026, 7, 20)
+    now = Time.zone.local(2026, 7, 18, 12, 0, 0)
+
+    refute DeliveryDateValidator.available?(saturday, now: now)
+    assert DeliveryDateValidator.available?(monday, now: now)
+  end
+
+  test "concrete example: Friday 11/09/2026 13:59:59 vs 14:00:00 for Saturday 12/09/2026 delivery, next available Monday 14/09/2026" do
+    assert DeliveryDateValidator.available?(Date.new(2026, 9, 12), now: Time.zone.local(2026, 9, 11, 13, 59, 59))
+    refute DeliveryDateValidator.available?(Date.new(2026, 9, 12), now: Time.zone.local(2026, 9, 11, 14, 0, 0))
+    assert DeliveryDateValidator.available?(Date.new(2026, 9, 14), now: Time.zone.local(2026, 9, 11, 14, 0, 0))
   end
 end
