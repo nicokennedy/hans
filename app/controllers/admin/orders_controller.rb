@@ -1,7 +1,7 @@
 class Admin::OrdersController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin_or_production!, only: [:index, :show]
-  before_action :require_admin!, only: [:new, :create, :edit, :update]
+  before_action :require_admin!, only: [:new, :create, :edit, :update, :export]
 
   PAYMENT_STATUS_FILTERS = %w[all pending partial paid].freeze
 
@@ -10,11 +10,24 @@ class Admin::OrdersController < ApplicationController
       session[:orders_payment_status_filter] = params[:payment_status_filter]
     end
 
-    @payment_status_filter = session[:orders_payment_status_filter].presence || "all"
-    @payment_status_filter = "all" unless PAYMENT_STATUS_FILTERS.include?(@payment_status_filter)
+    @payment_status_filter = current_payment_status_filter
+    @orders = filtered_orders(includes: :customer)
+  end
 
-    @orders = Order.includes(:customer).order(created_at: :desc)
-    @orders = @orders.where(payment_status: @payment_status_filter) unless @payment_status_filter == "all"
+  # El costo (unit_cost_cents_snapshot) que trae el CSV es información
+  # interna, así que esta acción exige :require_admin! arriba — a
+  # diferencia de index/show, production no puede acceder ni al botón ni
+  # entrando directo a la URL.
+  def export
+    @payment_status_filter = current_payment_status_filter
+    orders = filtered_orders(includes: [ :customer, :order_items ])
+
+    csv = Orders::CsvExporter.new(orders).call
+
+    send_data csv,
+      filename: "pedidos-#{Date.current.iso8601}.csv",
+      type: "text/csv; charset=utf-8",
+      disposition: "attachment"
   end
 
   def show
@@ -76,6 +89,22 @@ class Admin::OrdersController < ApplicationController
   end
 
   private
+
+  # Misma resolución session/params que ya usaba index, extraída para que
+  # export lea exactamente el filtro vigente sin duplicar la condición y sin
+  # reescribirlo a partir de sus propios params (export no acepta
+  # payment_status_filter propio: siempre respeta lo que ya está aplicado).
+  def current_payment_status_filter
+    filter = session[:orders_payment_status_filter].presence || "all"
+    PAYMENT_STATUS_FILTERS.include?(filter) ? filter : "all"
+  end
+
+  def filtered_orders(includes:)
+    orders = Order.includes(includes).order(created_at: :desc)
+    return orders if @payment_status_filter == "all"
+
+    orders.where(payment_status: @payment_status_filter)
+  end
 
   def order_params
     params.require(:order).permit(

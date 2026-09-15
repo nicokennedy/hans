@@ -1,4 +1,5 @@
 require "test_helper"
+require "csv"
 
 class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
@@ -748,6 +749,104 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "select#order_customer_id option[value=?]", @customer.id.to_s
   end
 
+  test "admin can download the CSV export" do
+    get export_admin_orders_path
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_match(/attachment/, response.headers["Content-Disposition"])
+    assert_match(/\Apedidos-\d{4}-\d{2}-\d{2}\.csv\z/, response.headers["Content-Disposition"][/filename="([^"]+)"/, 1])
+  end
+
+  test "production cannot access the CSV export, server-side, even via a direct URL" do
+    sign_out @admin
+    production_user = User.create!(email: "orders-export-production@example.com", password: "password123", role: "production")
+    sign_in production_user
+
+    get export_admin_orders_path
+
+    assert_redirected_to admin_production_index_path
+    assert_not_equal "text/csv", response.media_type
+  end
+
+  test "exports one CSV row per OrderItem, not one row per Order" do
+    customer = Customer.create!(name: "Cliente Multi Item", active: true)
+    category = Category.create!(name: "CategoriaMultiItem", position: 51, active: true)
+    product_a = Product.create!(name: "Producto A", category: category, price_cents: 500, cost_cents: 200, active: true, position: 1)
+    product_b = Product.create!(name: "Producto B", category: category, price_cents: 700, cost_cents: 300, active: true, position: 2)
+
+    order = Order.new(customer: customer, delivery_date: Date.tomorrow, created_by_admin: true)
+    order.order_items.build(product: product_a, quantity: 1)
+    order.order_items.build(product: product_b, quantity: 2)
+    order.save!
+
+    get export_admin_orders_path
+
+    rows = CSV.parse(response.body.delete_prefix("﻿"), headers: true)
+    order_rows = rows.select { |r| r["Número de pedido"] == order.number }
+
+    assert_equal 2, order_rows.size
+    assert_equal [ "Producto A", "Producto B" ], order_rows.map { |r| r["Producto"] }.sort
+  end
+
+  test "CSV columns hold customer, dates, product, quantity, historical price/cost, line total, order total, paid and balance — never the product's current price/cost" do
+    customer = Customer.create!(name: "Panadería Ñandú", active: true)
+    category = Category.create!(name: "CategoriaExportHist", position: 52, active: true)
+    product = Product.create!(name: "Producto Histórico", category: category, price_cents: 1000, cost_cents: 400, active: true, position: 1)
+
+    order = Order.new(customer: customer, delivery_date: Date.new(2026, 9, 20), created_by_admin: true)
+    order.order_items.build(product: product, quantity: 3)
+    order.save!
+    order.payments.create!(amount_cents: 1000, paid_at: Time.current, payment_method: "cash_on_delivery")
+
+    # Cambiamos el producto DESPUÉS de crear el pedido: el export tiene que
+    # seguir mostrando los valores históricos (snapshot), no estos nuevos.
+    product.update!(price_cents: 999_999, cost_cents: 888_888)
+
+    get export_admin_orders_path
+
+    rows = CSV.parse(response.body.delete_prefix("﻿"), headers: true)
+    row = rows.find { |r| r["Número de pedido"] == order.number }
+
+    assert row, "no se encontró la fila del pedido exportado"
+    assert_equal order.created_at.strftime("%d/%m/%Y"), row["Fecha del pedido"]
+    assert_equal "Panadería Ñandú", row["Cliente"]
+    assert_equal "20/09/2026", row["Fecha de entrega"]
+    assert_equal "Producto Histórico", row["Producto"]
+    assert_equal "3", row["Cantidad"]
+    assert_equal "4.00", row["Costo unitario"]     # histórico (400 cents), no el 888888 actual
+    assert_equal "10.00", row["Precio unitario"]   # histórico (1000 cents), no el 999999 actual
+    assert_equal "30.00", row["Total producto"]
+    assert_equal "30.00", row["Total pedido"]
+    assert_equal "10.00", row["Pagado"]
+    assert_equal "20.00", row["Pendiente"]
+  end
+
+  test "export respects the currently applied payment_status filter, same as index" do
+    customer = Customer.create!(name: "Cliente Filtro Export", active: true)
+
+    paid_order = Order.new(customer: customer, delivery_date: Date.tomorrow, created_by_admin: true)
+    paid_order.order_items.build(product: @product, quantity: 1) # 300 cents
+    paid_order.save!
+    paid_order.payments.create!(amount_cents: 300, paid_at: Time.current, payment_method: "cash_on_delivery")
+    assert_equal "paid", paid_order.reload.payment_status
+
+    pending_order = Order.new(customer: customer, delivery_date: Date.tomorrow, created_by_admin: true)
+    pending_order.order_items.build(product: @product, quantity: 1)
+    pending_order.save!
+    assert_equal "pending", pending_order.payment_status
+
+    # Aplica el filtro igual que el form de index (queda guardado en session).
+    get admin_orders_path, params: { payment_status_filter: "paid" }
+
+    get export_admin_orders_path
+
+    rows = CSV.parse(response.body.delete_prefix("﻿"), headers: true)
+    numbers = rows.map { |r| r["Número de pedido"] }
+
+    assert_includes numbers, paid_order.number
+    assert_not_includes numbers, pending_order.number
+  end
 
   private
 

@@ -2,7 +2,10 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="fw-bold mb-0">Pedidos recibidos</h1>
     <% if current_user.admin? %>
-      <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
+      <div class="d-flex gap-2">
+        <%= link_to "Exportar CSV", export_admin_orders_path, class: "btn btn-outline-dark" %>
+        <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
+      </div>
     <% end %>
   </div>
 

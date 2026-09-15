@@ -25,6 +25,7 @@ Rails.application.routes.draw do
     root "dashboard#show"
     resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
       resources :payments, only: [:create, :destroy]
+      get :export, on: :collection
     end
     resources :production, only: [:index, :show] do
       get :print, on: :member
