@@ -66,6 +66,23 @@ class OrderItemTest < ActiveSupport::TestCase
     assert_not_equal @product.price_cents, item.unit_price_cents_snapshot
   end
 
+  test "snapshotting cost_cents at order creation is unaffected by Product#cost_source (Fase 1: cost_source doesn't change any order/snapshot behavior yet)" do
+    assert @product.manual?, "setup product is expected to default to cost_source manual"
+
+    manual_item = @order.order_items.create!(product: @product, quantity: 1)
+    assert_equal 100, manual_item.unit_cost_cents_snapshot
+
+    recipe_flagged_product = Product.create!(
+      name: "Producto con receta (Fase 1, sin motor de recetas todavía)",
+      category: @category, price_cents: 700, cost_cents: 250, cost_source: "recipe", active: true, position: 3
+    )
+    recipe_item = @order.order_items.create!(product: recipe_flagged_product, quantity: 1)
+
+    # En esta fase, cost_source es solo un dato: OrderItem sigue leyendo
+    # product.cost_cents tal cual, sin importar el origen del costo.
+    assert_equal 250, recipe_item.unit_cost_cents_snapshot
+  end
+
   test "assign_product updates name, category and cost snapshots but leaves the price untouched" do
     item = @order.order_items.create!(product: @product, quantity: 2)
     original_price = item.unit_price_cents_snapshot

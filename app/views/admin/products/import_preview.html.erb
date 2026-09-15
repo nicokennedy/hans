@@ -75,7 +75,11 @@
             <td><%= row.price.present? ? "$#{row.price}" : "-" %></td>
             <td><%= row.cost.present? ? "$#{row.cost}" : "-" %></td>
             <td>
-              <% details = row.errors.presence || row.changes.presence || ["Sin cambios"] %>
+              <%
+                details = row.errors.presence
+                details ||= (Array(row.changes) + Array(row.notices)).presence
+                details ||= ["Sin cambios"]
+              %>
               <%= details.join(", ") %>
             </td>
           </tr>

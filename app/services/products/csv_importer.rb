@@ -48,19 +48,26 @@ module Products
       new_record = product.new_record?
       category = Category.find_or_create_by!(name: category_name)
 
-      product.assign_attributes(
+      attributes = {
         name: name,
         category: category,
         internal_category: blank_to_nil(row["internal_category"]),
         public_category: blank_to_nil(row["public_category"]),
         price_cents: money_to_cents(row["price"]),
-        cost_cents: money_to_cents(row["cost"]),
         active: boolean_value(row["active"]),
         position: integer_value(row["position"]),
         unit: blank_to_nil(row["unit"]),
         description: blank_to_nil(row["description"])
-      )
+      }
 
+      # Protección server-side equivalente a Products::AdminCsvImporter:
+      # cost_cents solo entra al hash si el producto está en modo manual, así
+      # un producto recipe nunca ve su costo pisado por este importador
+      # tampoco. Un producto nuevo ya nace manual por el default de Fase 1,
+      # así que toma el costo del CSV con normalidad.
+      attributes[:cost_cents] = money_to_cents(row["cost"]) if product.manual?
+
+      product.assign_attributes(attributes)
       product.save!
 
       if new_record

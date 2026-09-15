@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_04_123511) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_15_153009) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -124,6 +124,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_123511) do
     t.datetime "updated_at", null: false
     t.string "internal_category"
     t.string "public_category"
+    t.string "cost_source", default: "manual", null: false
     t.index ["category_id"], name: "index_products_on_category_id"
   end
 

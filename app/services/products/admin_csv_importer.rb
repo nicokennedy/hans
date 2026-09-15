@@ -25,6 +25,7 @@ module Products
       :category_name,
       :internal_category,
       :changes,
+      :notices,
       :errors,
       keyword_init: true
     )
@@ -206,6 +207,7 @@ module Products
         category_name: category_name,
         internal_category: internal_category,
         changes: changes,
+        notices: notices_for(product, cost_cents),
         errors: []
       )
     end
@@ -217,7 +219,11 @@ module Products
         changes << "Precio: #{format_money(product.price_cents)} -> #{format_money(price_cents)}"
       end
 
-      if product.cost_cents != cost_cents
+      # Un producto con cost_source: recipe nunca reporta el costo del CSV
+      # como un cambio real — ese costo lo gobierna la receta, no este
+      # importador. Así, una fila donde el costo es la única diferencia
+      # queda correctamente en :unchanged, no en :updated.
+      if product.manual? && product.cost_cents != cost_cents
         changes << "Costo: #{format_money(product.cost_cents)} -> #{format_money(cost_cents)}"
       end
 
@@ -232,16 +238,31 @@ module Products
       changes
     end
 
+    # Aviso informativo, separado de `changes` a propósito: no debe influir
+    # en si la fila se considera :updated o :unchanged, solo explicar por
+    # qué el costo del CSV no se va a aplicar.
+    def notices_for(product, cost_cents)
+      return [] unless product.recipe? && cost_cents.present?
+
+      [ "Costo ignorado: producto con costo calculado por receta" ]
+    end
+
     def apply_row(row, product, price_cents, cost_cents)
       category = Category.find_or_create_by!(name: row.category_name)
-      product ||= Product.new(name: row.name, active: true)
+      product ||= Product.new(name: row.name, active: true) # nace cost_source: manual por el default de Fase 1
 
-      product.update!(
+      attributes = {
         price_cents: price_cents,
-        cost_cents: cost_cents,
         category: category,
         internal_category: row.internal_category
-      )
+      }
+
+      # Protección server-side: cost_cents solo entra al hash si el producto
+      # está en modo manual. Un producto recipe nunca ve su costo pisado acá,
+      # sin importar qué haya llegado en el CSV o qué parámetros se manipulen.
+      attributes[:cost_cents] = cost_cents if product.manual?
+
+      product.update!(attributes)
     end
 
     def public_category_name(category_code)

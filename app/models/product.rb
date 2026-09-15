@@ -2,7 +2,13 @@
 class Product < ApplicationRecord
   belongs_to :category
 
+  # "manual": cost_cents se carga/edita a mano (default — todo producto nace
+  # así). "recipe": cost_cents lo gobierna una receta (Fase 4 en adelante);
+  # todavía no existe ningún camino en la app para llegar a "recipe".
+  enum :cost_source, { manual: "manual", recipe: "recipe" }, default: "manual"
+
   validates :name, :price_cents, presence: true
+  validates :cost_source, presence: true
   validates :price_cents, :cost_cents,
     numericality: { greater_than_or_equal_to: 0 },
     allow_nil: true
