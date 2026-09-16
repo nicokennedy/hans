@@ -1,0 +1,15 @@
+<div class="container py-5">
+  <h1>Editar preparación</h1>
+  <p class="text-muted"><%= @preparation.name %></p>
+
+  <%= render "form" %>
+
+  <%= render "components",
+    preparation: @preparation,
+    component_costs: @component_costs,
+    total_cost_cents: @total_cost_cents,
+    unit_cost_cents: @unit_cost_cents,
+    cost_calculation_error: @cost_calculation_error,
+    raw_material_options: @raw_material_options,
+    preparation_options: @preparation_options %>
+</div>

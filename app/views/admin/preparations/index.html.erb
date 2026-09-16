@@ -1,0 +1,59 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Preparaciones</h1>
+      <p class="text-muted mb-0">Subrecetas reutilizables (masas, rellenos, coberturas) — base para las recetas de producto.</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+      <%= link_to "+ Nueva preparación", new_admin_preparation_path, class: "btn btn-dark" %>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <% if @preparations.empty? %>
+      <div class="p-4 text-center">
+        <h2 class="h5">No hay preparaciones cargadas</h2>
+        <p class="text-muted">Empezá agregando la primera.</p>
+      </div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Preparación</th>
+              <th>Rendimiento</th>
+              <th>Costo total</th>
+              <th>Costo normalizado</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @preparations.each do |preparation| %>
+              <% total_display, unit_display = preparation_cost_display(preparation) %>
+              <tr>
+                <td class="fw-bold"><%= preparation.name %></td>
+                <td><%= format_quantity_unit(preparation.yield_quantity, preparation.yield_unit) %></td>
+                <td><%= total_display %></td>
+                <td><%= unit_display %></td>
+                <td>
+                  <% if preparation.active? %>
+                    <span class="badge bg-success">Activa</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Inactiva</span>
+                  <% end %>
+                </td>
+                <td class="text-end">
+                  <%= link_to "Editar", edit_admin_preparation_path(preparation), class: "btn btn-sm btn-outline-dark" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -46,6 +46,9 @@ Rails.application.routes.draw do
     end
     resources :categories
     resources :raw_materials, only: [:index, :new, :create, :edit, :update]
+    resources :preparations, only: [:index, :new, :create, :edit, :update] do
+      resources :recipe_components, only: [:create, :update, :destroy]
+    end
 
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do

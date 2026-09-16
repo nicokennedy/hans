@@ -27,6 +27,16 @@ class RawMaterial < ApplicationRecord
     dependent: :restrict_with_error,
     inverse_of: :raw_material
 
+  # Fase 3: ahora que RecipeComponent puede referenciar una RawMaterial como
+  # ingrediente, se completa la misma política de Fase 2 — una materia
+  # prima en uso no puede destruirse, solo desactivarse (active: false).
+  has_many :recipe_components,
+    as: :component,
+    dependent: :restrict_with_error,
+    inverse_of: :component
+
+  scope :active, -> { where(active: true) }
+
   validates :name, presence: true
   validates :purchase_price_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :purchase_quantity, presence: true, numericality: { greater_than: 0 }

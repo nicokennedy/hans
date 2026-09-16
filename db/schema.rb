@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_16_090001) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_16_150001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -111,6 +111,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_090001) do
     t.index ["paid_at"], name: "index_payments_on_paid_at"
   end
 
+  create_table "preparations", force: :cascade do |t|
+    t.string "name", null: false
+    t.decimal "yield_quantity", precision: 12, scale: 3, null: false
+    t.string "yield_unit", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_preparations_on_name"
+  end
+
   create_table "products", force: :cascade do |t|
     t.string "name"
     t.text "description"
@@ -173,6 +183,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_16_090001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_raw_materials_on_name"
+  end
+
+  create_table "recipe_components", force: :cascade do |t|
+    t.string "owner_type", null: false
+    t.bigint "owner_id", null: false
+    t.string "component_type", null: false
+    t.bigint "component_id", null: false
+    t.decimal "quantity", precision: 12, scale: 3, null: false
+    t.string "unit", null: false
+    t.integer "position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["component_type", "component_id"], name: "index_recipe_components_on_component"
+    t.index ["owner_type", "owner_id"], name: "index_recipe_components_on_owner"
   end
 
   create_table "users", force: :cascade do |t|

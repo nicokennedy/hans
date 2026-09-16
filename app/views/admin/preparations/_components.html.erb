@@ -1,0 +1,127 @@
+<div class="product-card mt-4">
+  <h2 class="h5">Componentes</h2>
+
+  <% if cost_calculation_error.present? %>
+    <div class="alert alert-danger">
+      No se pudo calcular el costo: <%= cost_calculation_error %>. Esto indica datos corruptos (un ciclo entre
+      preparaciones) que no debería poder crearse desde este formulario — revisá los componentes de abajo y
+      eliminá el que corresponda para resolverlo.
+    </div>
+
+    <% raw_components = preparation.recipe_components.includes(:component).order(:position, :id) %>
+    <% if raw_components.any? %>
+      <div class="table-responsive mb-3">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% raw_components.each do |recipe_component| %>
+              <tr>
+                <td class="fw-bold"><%= recipe_component.component_label %></td>
+                <td><%= recipe_component.component.is_a?(RawMaterial) ? "Materia prima" : "Preparación" %></td>
+                <td><%= format_quantity_unit(recipe_component.quantity, recipe_component.unit) %></td>
+                <td class="text-end">
+                  <%= button_to "Eliminar",
+                    admin_preparation_recipe_component_path(preparation, recipe_component),
+                    method: :delete,
+                    class: "btn btn-sm btn-outline-danger",
+                    form: { class: "d-inline" },
+                    data: { turbo_confirm: "¿Quitar este componente de la preparación?" } %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  <% elsif component_costs.empty? %>
+    <p class="text-muted mb-0">Todavía no tiene componentes agregados.</p>
+  <% else %>
+    <div class="table-responsive mb-3">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Costo unitario</th>
+            <th>Costo aportado</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <% component_costs.each do |entry| %>
+            <% recipe_component = entry[:recipe_component] %>
+            <% component = recipe_component.component %>
+            <tr>
+              <td class="fw-bold"><%= recipe_component.component_label %></td>
+              <td><%= component.is_a?(RawMaterial) ? "Materia prima" : "Preparación" %></td>
+              <td>
+                <%= form_with model: [:admin, preparation, recipe_component], local: true, html: { class: "d-flex gap-1 flex-nowrap" } do |f| %>
+                  <%= f.number_field :quantity, value: format_quantity(recipe_component.quantity), class: "form-control form-control-sm", style: "width: 5.5rem;", min: 0, step: "any" %>
+                  <%= f.select :unit, Admin::PreparationsHelper::COMPONENT_UNIT_OPTIONS.map { |label, value| [value, value] }, {}, class: "form-select form-select-sm", style: "width: 4.5rem;" %>
+                  <%= f.submit "✓", class: "btn btn-sm btn-outline-dark" %>
+                <% end %>
+              </td>
+              <td>
+                <% if component.is_a?(RawMaterial) %>
+                  <%= format_money(component.unit_cost_cents) %>/<%= component.base_unit %>
+                <% else %>
+                  <%= format_money(component.unit_cost_cents) %>/<%= component.yield_unit %>
+                <% end %>
+              </td>
+              <td class="fw-bold"><%= format_money(entry[:cost_cents]) %></td>
+              <td class="text-end">
+                <%= button_to "Eliminar",
+                  admin_preparation_recipe_component_path(preparation, recipe_component),
+                  method: :delete,
+                  class: "btn btn-sm btn-outline-danger",
+                  form: { class: "d-inline" },
+                  data: { turbo_confirm: "¿Quitar este componente de la preparación? (no borra la materia prima/preparación en sí)" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <% if cost_calculation_error.blank? %>
+    <div class="d-flex gap-4 mb-4">
+      <div>
+        <div class="text-muted small">Costo total</div>
+        <div class="h5 mb-0"><%= format_money(total_cost_cents) %></div>
+      </div>
+      <div>
+        <div class="text-muted small">Costo normalizado</div>
+        <div class="h5 mb-0"><%= format_money(unit_cost_cents) %>/<%= preparation.yield_unit %></div>
+      </div>
+    </div>
+  <% end %>
+
+  <h3 class="h6">Agregar componente</h3>
+  <%= form_with url: admin_preparation_recipe_components_path(preparation), local: true, html: { class: "row g-2 align-items-end" } do |f| %>
+    <div class="col-12 col-md-5">
+      <%= f.label :component_ref, "Materia prima o preparación", class: "form-label" %>
+      <%= f.select "recipe_component[component_ref]", component_ref_options(raw_material_options, preparation_options), { prompt: "Seleccionar" }, class: "form-select", required: true %>
+    </div>
+    <div class="col-6 col-md-3">
+      <%= f.label :quantity, "Cantidad", class: "form-label" %>
+      <%= f.number_field "recipe_component[quantity]", class: "form-control", min: 0, step: "any", required: true %>
+    </div>
+    <div class="col-6 col-md-2">
+      <%= f.label :unit, "Unidad", class: "form-label" %>
+      <%= f.select "recipe_component[unit]", Admin::PreparationsHelper::COMPONENT_UNIT_OPTIONS, { prompt: "Unidad" }, class: "form-select", required: true %>
+    </div>
+    <div class="col-12 col-md-2">
+      <%= f.submit "Agregar", class: "btn btn-dark w-100" %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,36 @@
+<%= form_with model: [:admin, @preparation], local: true do |f| %>
+  <% if @preparation.errors.any? %>
+    <div class="alert alert-danger">
+      <%= @preparation.errors.full_messages.join(", ") %>
+    </div>
+  <% end %>
+
+  <div class="product-card">
+    <div class="mb-3">
+      <%= f.label :name, "Nombre", class: "form-label" %>
+      <%= f.text_field :name, class: "form-control", required: true %>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-md-4">
+        <%= f.label :yield_quantity, "Rendimiento", class: "form-label" %>
+        <%= f.number_field :yield_quantity, class: "form-control", min: 0, step: "any", required: true %>
+      </div>
+      <div class="col-12 col-md-4">
+        <%= f.label :yield_unit, "Unidad de rendimiento", class: "form-label" %>
+        <%= f.select :yield_unit, Admin::PreparationsHelper::YIELD_UNIT_OPTIONS, { prompt: "Seleccionar" }, class: "form-select", required: true %>
+        <div class="form-text">Siempre kg, l o un — para que el costo normalizado sea comparable.</div>
+      </div>
+    </div>
+
+    <div class="form-check mb-4">
+      <%= f.check_box :active, class: "form-check-input" %>
+      <%= f.label :active, "Activa", class: "form-check-label" %>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= f.submit "Guardar", class: "btn btn-dark" %>
+      <%= link_to "Cancelar", admin_preparations_path, class: "btn btn-outline-dark" %>
+    </div>
+  </div>
+<% end %>

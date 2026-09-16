@@ -129,6 +129,24 @@ class RawMaterialTest < ActiveSupport::TestCase
     end
   end
 
+  test "Fase 3: a raw material referenced by a RecipeComponent cannot be destroyed — must be deactivated instead" do
+    raw_material = RawMaterial.create!(name: "X", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
+    preparation = Preparation.create!(name: "Usa Esta Materia Prima", yield_quantity: 1, yield_unit: "kg")
+    preparation.recipe_components.create!(component: raw_material, quantity: 1, unit: "kg")
+
+    result = raw_material.destroy
+    assert_equal false, result
+    assert raw_material.errors[:base].present?
+    assert RawMaterial.exists?(raw_material.id)
+
+    # el camino soportado es desactivar, no borrar — y la preparación que la
+    # usa sigue siendo calculable con normalidad (una materia prima inactiva
+    # no deja de tener unit_cost_cents).
+    assert raw_material.update(active: false)
+    assert_not raw_material.reload.active?
+    assert_equal 100_000, preparation.reload.total_cost_cents
+  end
+
   test "purchase_format renders quantity and unit without trailing zeros" do
     raw_material = RawMaterial.create!(name: "X", purchase_price_cents: 100, purchase_quantity: 25, purchase_unit: "kg", base_unit: "kg")
     assert_equal "25 kg", raw_material.purchase_format

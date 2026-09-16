@@ -20,6 +20,9 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
       name: "Manteca ProdRoleTest", category: "Lácteos", purchase_price_cents: 100_000,
       purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg"
     )
+
+    @preparation = Preparation.create!(name: "Masa Sable ProdRoleTest", yield_quantity: 2, yield_unit: "kg")
+    @recipe_component = @preparation.recipe_components.create!(component: @raw_material, quantity: 1000, unit: "g")
   end
 
   # --- Production: allowed access ---
@@ -183,6 +186,55 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_production_index_path
   end
 
+  test "production cannot access preparations (index, new, edit, update), and never sees costs" do
+    sign_in @production_user
+
+    get admin_preparations_path
+    assert_redirected_to admin_production_index_path
+
+    get new_admin_preparation_path
+    assert_redirected_to admin_production_index_path
+
+    get edit_admin_preparation_path(@preparation)
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @preparation.reload.name } do
+      patch admin_preparation_path(@preparation), params: { preparation: { name: "Hackeada" } }
+    end
+    assert_redirected_to admin_production_index_path
+  end
+
+  test "production cannot add, edit or remove recipe components via direct mutation" do
+    sign_in @production_user
+
+    assert_no_difference "RecipeComponent.count" do
+      post admin_preparation_recipe_components_path(@preparation), params: {
+        recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
+      }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @recipe_component.reload.quantity } do
+      patch admin_preparation_recipe_component_path(@preparation, @recipe_component), params: { recipe_component: { quantity: "999" } }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_difference "RecipeComponent.count" do
+      delete admin_preparation_recipe_component_path(@preparation, @recipe_component)
+    end
+    assert_redirected_to admin_production_index_path
+  end
+
+  test "production sees no link to Preparaciones in the navbar, and is redirected away from a direct URL" do
+    sign_in @production_user
+
+    get admin_orders_path
+    assert_no_match "Preparaciones", response.body
+
+    get admin_preparations_path
+    assert_redirected_to admin_production_index_path
+  end
+
   test "production cannot access customers or collections" do
     sign_in @production_user
     get admin_customers_path
@@ -298,6 +350,14 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     get edit_admin_raw_material_path(@raw_material)
     assert_response :success
+
+    get admin_preparations_path
+    assert_response :success
+    assert_match "Preparaciones", response.body
+
+    get edit_admin_preparation_path(@preparation)
+    assert_response :success
+    assert_match "Manteca ProdRoleTest", response.body
   end
 
   # --- Customer: unaffected, isolated ---
@@ -325,6 +385,23 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
 
     get edit_admin_raw_material_path(@raw_material)
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access preparations or recipe components via direct URL" do
+    sign_in @customer_user
+
+    get admin_preparations_path
+    assert_redirected_to dashboard_path
+
+    get edit_admin_preparation_path(@preparation)
+    assert_redirected_to dashboard_path
+
+    assert_no_difference "RecipeComponent.count" do
+      post admin_preparation_recipe_components_path(@preparation), params: {
+        recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
+      }
+    end
     assert_redirected_to dashboard_path
   end
 
