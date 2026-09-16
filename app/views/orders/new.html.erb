@@ -123,6 +123,12 @@ function initDeliveryDatePicker() {
   }
 
   const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
+  // Fechas exactas habilitadas por excepción puntual (ver
+  // DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES, que sigue siendo la
+  // validación definitiva del lado del backend) — se leen de ahí para que
+  // el calendario del cliente no las bloquee por caer en un día de semana
+  // normalmente no habilitado.
+  const exceptionalDates = <%= DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES.map { |d| d.strftime("%Y-%m-%d") }.to_json.html_safe %>
   // Corte recurrente de sábado (ver DeliveryDateValidator::SATURDAY_CUTOFF_HOUR
   // en el backend, que sigue siendo la validación definitiva): se lee la hora
   // directamente de esa constante para no duplicar el número acá.
@@ -140,6 +146,11 @@ function initDeliveryDatePicker() {
 
     disable: [
       function(date) {
+        const isoYear = date.getFullYear()
+        const isoMonth = String(date.getMonth() + 1).padStart(2, "0")
+        const isoDay = String(date.getDate()).padStart(2, "0")
+        if (exceptionalDates.includes(isoYear + "-" + isoMonth + "-" + isoDay)) return false
+
         if (disabledDays.includes(date.getDay())) return true
 
         if (date.getDay() === 6) { // sábado: corte el viernes anterior a las saturdayCutoffHour, hora Argentina

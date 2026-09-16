@@ -1,6 +1,17 @@
 class DeliveryDateValidator
   UNAVAILABLE_WEEKDAYS = [0, 2, 4].freeze # domingo, martes, jueves
 
+  # Excepción puntual, no una regla recurrente: el jueves 17/09/2026 se
+  # habilita como fecha de entrega por única vez (evento especial de HANS).
+  # A propósito es una lista de fechas EXACTAS, no un rango ni un cambio al
+  # día de semana — así de un vistazo queda claro que esto no habilita los
+  # jueves en general, sólo bypasea unavailable_weekday? para esa fecha
+  # puntual. El corte horario normal (no se pide para el mismo día) sigue
+  # aplicando igual que para cualquier otra fecha vía cutoff_passed?, así
+  # que a partir de que efectivamente sea 17/09 esta fecha deja de poder
+  # pedirse, igual que cualquier otro día ya vencido.
+  EXCEPTIONAL_AVAILABLE_DATES = [Date.new(2026, 9, 17)].freeze
+
   # Corte recurrente para la entrega del sábado: se acepta pedido hasta el
   # viernes anterior a esta hora (en vez de hasta la medianoche del propio
   # sábado, como el resto de los días habilitados). Aplica todas las semanas,
@@ -61,6 +72,8 @@ class DeliveryDateValidator
   end
 
   def unavailable_weekday?
+    return false if EXCEPTIONAL_AVAILABLE_DATES.include?(date)
+
     settings.unavailable_weekdays.include?(date.wday)
   end
 
