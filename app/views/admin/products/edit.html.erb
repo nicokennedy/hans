@@ -3,4 +3,57 @@
   <p class="text-muted"><%= @product.name %></p>
 
   <%= render "form" %>
+
+  <div class="product-card mt-4">
+    <h2 class="h5">Costeo</h2>
+
+    <p class="mb-2">
+      <strong>Fuente de costo:</strong> <%= @product.recipe? ? "Receta" : "Manual" %><br>
+      <strong>Costo actual:</strong> <%= format_money(@product.cost_cents) %>
+    </p>
+
+    <% if @product.product_recipe.blank? %>
+      <p class="text-muted">Este producto todavía no tiene una receta.</p>
+      <%= link_to "Crear receta", new_admin_product_product_recipe_path(@product), class: "btn btn-outline-dark" %>
+    <% else %>
+      <% total_cost_display, unit_cost_display = product_recipe_cost_display(@product.product_recipe) %>
+
+      <p class="mb-2">
+        Rendimiento: <%= format_quantity(@product.product_recipe.yield_quantity) %> un &middot;
+        Costo total receta: <%= total_cost_display %> &middot;
+        Costo unitario receta: <%= unit_cost_display %>
+      </p>
+
+      <% if @product.manual? %>
+        <% diff_cents = @product.product_recipe.calculable? ? (@product.product_recipe.unit_cost_cents - @product.cost_cents.to_i) : nil %>
+        <p class="mb-2">
+          Costo actual manual: <%= format_money(@product.cost_cents) %> /
+          Costo calculado receta: <%= unit_cost_display %>
+          <% if diff_cents %>
+            / Diferencia: <%= diff_cents >= 0 ? "+" : "" %><%= format_money(diff_cents) %>
+          <% end %>
+        </p>
+      <% end %>
+
+      <div class="d-flex gap-2 mb-2">
+        <%= link_to "Ver / editar receta", edit_admin_product_product_recipe_path(@product), class: "btn btn-outline-dark" %>
+
+        <% if @product.manual? %>
+          <%= button_to "Activar costo por receta",
+            activate_admin_product_product_recipe_path(@product),
+            method: :post,
+            class: "btn btn-dark",
+            form: { class: "d-inline" },
+            data: { turbo_confirm: "¿Activar el costeo por receta para este producto? El costo actual pasará a calcularse automáticamente." } %>
+        <% else %>
+          <%= button_to "Usar costo manual",
+            deactivate_admin_product_product_recipe_path(@product),
+            method: :post,
+            class: "btn btn-outline-dark",
+            form: { class: "d-inline" },
+            data: { turbo_confirm: "¿Volver a costeo manual? Se conserva el costo actual como punto de partida; la receta no se borra." } %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>

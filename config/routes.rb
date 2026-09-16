@@ -40,6 +40,11 @@ Rails.application.routes.draw do
         post :preview_import
         post :confirm_import
       end
+      resource :product_recipe, only: [:new, :create, :edit, :update] do
+        post :activate
+        post :deactivate
+        resources :recipe_components, only: [:create, :update, :destroy], controller: "product_recipe_components"
+      end
     end
     resources :customers, only: [:index, :show, :new, :create, :edit, :update] do
       patch :toggle_active, on: :member

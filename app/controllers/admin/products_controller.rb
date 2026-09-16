@@ -134,22 +134,31 @@ class Admin::ProductsController < ApplicationController
     @product = Product.find(params[:id])
   end
 
+  # cost_amount se excluye cuando el producto está en modo recipe: cost_cents
+  # lo gobierna la ProductRecipe activa (ver Costing::SyncProductCost), y
+  # dejar pasar un cost_amount manual acá no solo lo ignoraría en vano sino
+  # que dispararía la validación cost_cents_not_manually_edited_while_recipe_sourced
+  # y tiraría abajo TODO el update (incluidos los demás campos del form) —
+  # mejor ni intentar asignarlo.
   def product_params
-    params.require(:product).permit(
+    permitted = [
       :name,
       :description,
       :price_amount,
-    	:cost_amount,
       :category_id,
       :internal_category,
       :position,
       :active
-    )
+    ]
+    permitted << :cost_amount unless @product&.recipe?
+
+    params.require(:product).permit(*permitted)
   end
 
   def set_inline_field
     @field = params[:field]
     head :not_found unless INLINE_FIELDS.include?(@field)
+    head :not_found if @field == "cost_amount" && @product&.recipe?
   end
 
   def inline_field_params

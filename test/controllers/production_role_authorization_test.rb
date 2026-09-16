@@ -23,6 +23,9 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     @preparation = Preparation.create!(name: "Masa Sable ProdRoleTest", yield_quantity: 2, yield_unit: "kg")
     @recipe_component = @preparation.recipe_components.create!(component: @raw_material, quantity: 1000, unit: "g")
+
+    @product_recipe = ProductRecipe.create!(product: @product, yield_quantity: 10)
+    @product_recipe_component = @product_recipe.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
   end
 
   # --- Production: allowed access ---
@@ -225,6 +228,52 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_production_index_path
   end
 
+  test "production cannot access product recipes (new, create, edit, update, activate, deactivate) or their components" do
+    sign_in @production_user
+
+    get new_admin_product_product_recipe_path(@product)
+    assert_redirected_to admin_production_index_path
+
+    get edit_admin_product_product_recipe_path(@product)
+    assert_redirected_to admin_production_index_path
+
+    other_product = Product.create!(name: "Otro Producto ProdRoleTest", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 2)
+    assert_no_difference "ProductRecipe.count" do
+      post admin_product_product_recipe_path(other_product), params: { product_recipe: { yield_quantity: "5" } }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @product_recipe.reload.yield_quantity } do
+      patch admin_product_product_recipe_path(@product), params: { product_recipe: { yield_quantity: "999" } }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @product.reload.cost_source } do
+      post activate_admin_product_product_recipe_path(@product)
+    end
+    assert_redirected_to admin_production_index_path
+
+    post deactivate_admin_product_product_recipe_path(@product)
+    assert_redirected_to admin_production_index_path
+
+    assert_no_difference "RecipeComponent.count" do
+      post admin_product_product_recipe_recipe_components_path(@product), params: {
+        recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
+      }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @product_recipe_component.reload.quantity } do
+      patch admin_product_product_recipe_recipe_component_path(@product, @product_recipe_component), params: { recipe_component: { quantity: "999" } }
+    end
+    assert_redirected_to admin_production_index_path
+
+    assert_no_difference "RecipeComponent.count" do
+      delete admin_product_product_recipe_recipe_component_path(@product, @product_recipe_component)
+    end
+    assert_redirected_to admin_production_index_path
+  end
+
   test "production sees no link to Preparaciones in the navbar, and is redirected away from a direct URL" do
     sign_in @production_user
 
@@ -358,6 +407,10 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     get edit_admin_preparation_path(@preparation)
     assert_response :success
     assert_match "Manteca ProdRoleTest", response.body
+
+    get edit_admin_product_product_recipe_path(@product)
+    assert_response :success
+    assert_match "Manteca ProdRoleTest", response.body
   end
 
   # --- Customer: unaffected, isolated ---
@@ -399,6 +452,25 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "RecipeComponent.count" do
       post admin_preparation_recipe_components_path(@preparation), params: {
+        recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
+      }
+    end
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access product recipes or their components via direct URL" do
+    sign_in @customer_user
+
+    get edit_admin_product_product_recipe_path(@product)
+    assert_redirected_to dashboard_path
+
+    assert_no_changes -> { @product.reload.cost_source } do
+      post activate_admin_product_product_recipe_path(@product)
+    end
+    assert_redirected_to dashboard_path
+
+    assert_no_difference "RecipeComponent.count" do
+      post admin_product_product_recipe_recipe_components_path(@product), params: {
         recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
       }
     end

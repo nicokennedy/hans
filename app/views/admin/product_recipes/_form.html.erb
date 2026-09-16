@@ -1,0 +1,25 @@
+<%= form_with model: @product_recipe,
+    url: admin_product_product_recipe_path(@product),
+    method: (@product_recipe.new_record? ? :post : :patch),
+    local: true do |f| %>
+  <% if @product_recipe.errors.any? %>
+    <div class="alert alert-danger">
+      <%= @product_recipe.errors.full_messages.join(", ") %>
+    </div>
+  <% end %>
+
+  <div class="product-card">
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-md-4">
+        <%= f.label :yield_quantity, "Rendimiento (un)", class: "form-label" %>
+        <%= f.number_field :yield_quantity, class: "form-control", min: 0, step: "any", required: true %>
+        <div class="form-text">Cantidad de unidades que produce esta receta.</div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= f.submit "Guardar", class: "btn btn-dark" %>
+      <%= link_to "Cancelar", edit_admin_product_path(@product), class: "btn btn-outline-dark" %>
+    </div>
+  </div>
+<% end %>

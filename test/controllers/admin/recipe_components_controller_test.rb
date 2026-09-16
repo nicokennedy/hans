@@ -80,4 +80,61 @@ class Admin::RecipeComponentsControllerTest < ActionDispatch::IntegrationTest
     assert RawMaterial.exists?(@harina.id)
     assert_equal 0, @preparation.reload.total_cost_cents
   end
+
+  test "deleting the last component of a Preparation used by an ACTIVE ProductRecipe is rejected; the component and the product's cost survive" do
+    recipe_component = @preparation.recipe_components.create!(component: @harina, quantity: 1000, unit: "g")
+
+    category = Category.create!(name: "RCCtrlActiveCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto RCCtrlActive #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    product_recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    product_recipe.recipe_components.create!(component: @preparation, quantity: 1, unit: "kg")
+    Costing::ActivateProductRecipe.call(product)
+    original_cost = product.reload.cost_cents
+
+    assert_no_difference "RecipeComponent.count" do
+      delete admin_preparation_recipe_component_path(@preparation, recipe_component)
+    end
+
+    assert_redirected_to edit_admin_preparation_path(@preparation)
+    assert flash[:alert].present?
+    assert RecipeComponent.exists?(recipe_component.id)
+    assert_equal 1, @preparation.reload.recipe_components.count
+    assert_equal original_cost, product.reload.cost_cents
+  end
+
+  test "the rejection also applies through a two-level nested Preparation chain" do
+    recipe_component = @preparation.recipe_components.create!(component: @harina, quantity: 1000, unit: "g")
+    outer = Preparation.create!(name: "Outer RCCtrl", yield_quantity: 1, yield_unit: "kg")
+    outer.recipe_components.create!(component: @preparation, quantity: 1, unit: "kg")
+
+    category = Category.create!(name: "RCCtrlNestedCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto RCCtrlNested #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    product_recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    product_recipe.recipe_components.create!(component: outer, quantity: 1, unit: "kg")
+    Costing::ActivateProductRecipe.call(product)
+    original_cost = product.reload.cost_cents
+
+    assert_no_difference "RecipeComponent.count" do
+      delete admin_preparation_recipe_component_path(@preparation, recipe_component)
+    end
+
+    assert_redirected_to edit_admin_preparation_path(@preparation)
+    assert flash[:alert].present?
+    assert RecipeComponent.exists?(recipe_component.id)
+    assert_equal 1, @preparation.reload.recipe_components.count
+    assert_equal original_cost, product.reload.cost_cents
+  end
+
+  test "the same deletion is permitted when no active ProductRecipe depends on the Preparation" do
+    recipe_component = @preparation.recipe_components.create!(component: @harina, quantity: 1000, unit: "g")
+
+    assert_difference "RecipeComponent.count", -1 do
+      delete admin_preparation_recipe_component_path(@preparation, recipe_component)
+    end
+
+    assert_redirected_to edit_admin_preparation_path(@preparation)
+    assert_not RecipeComponent.exists?(recipe_component.id)
+  end
 end

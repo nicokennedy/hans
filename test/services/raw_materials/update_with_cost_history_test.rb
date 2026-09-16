@@ -168,6 +168,121 @@ class RawMaterials::UpdateWithCostHistoryTest < ActiveSupport::TestCase
     assert_equal 130_000, second.new_unit_cost_cents
   end
 
+  test "changing a RawMaterial's cost propagates automatically through Preparation -> ProductRecipe -> Product#cost_cents, with no manual recalculation call" do
+    # A propósito NO se llama a Costing::PropagateCostChange ni a
+    # Costing::SyncProductCost en este test — la propagación tiene que
+    # ocurrir como consecuencia real de la operación normal de update.
+    category = Category.create!(name: "PropagationCat#{rand(1_000_000)}", position: 1, active: true)
+
+    masa_sable = Preparation.create!(name: "Masa Sable Propagation", yield_quantity: 2, yield_unit: "kg")
+    masa_sable.recipe_components.create!(component: @raw_material, quantity: 0.5, unit: "kg")
+    # Manteca (@raw_material) a $1.000/kg -> Masa Sable: 0,5kg * 100.000 = 50.000 / 2kg = 25.000/kg
+
+    product = Product.create!(name: "Alfajor Propagation #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 10)
+    recipe.recipe_components.create!(component: masa_sable, quantity: 1, unit: "kg")
+
+    Costing::ActivateProductRecipe.call(product)
+    assert_equal 2_500, product.reload.cost_cents # 25.000 / 10
+
+    RawMaterials::UpdateWithCostHistory.call(
+      raw_material: @raw_material,
+      attributes: { purchase_price_amount: "1200" }, # Manteca $1.000/kg -> $1.200/kg
+      changed_by: @admin
+    )
+
+    masa_sable.reload
+    assert_equal 30_000, masa_sable.unit_cost_cents # 0,5kg * 120.000 = 60.000 / 2kg = 30.000/kg
+    assert_equal 3_000, product.reload.cost_cents # 1kg * 30.000 = 30.000 / 10 = 3.000
+  end
+
+  test "propagation reaches nested preparations and two products sharing the same preparation" do
+    category = Category.create!(name: "DeepPropagationCat#{rand(1_000_000)}", position: 1, active: true)
+
+    inner = Preparation.create!(name: "Inner DeepPropagation", yield_quantity: 1, yield_unit: "kg")
+    inner.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
+    outer = Preparation.create!(name: "Outer DeepPropagation", yield_quantity: 1, yield_unit: "kg")
+    outer.recipe_components.create!(component: inner, quantity: 1, unit: "kg")
+
+    product_a = Product.create!(name: "Product A DeepPropagation #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    recipe_a = ProductRecipe.create!(product: product_a, yield_quantity: 1)
+    recipe_a.recipe_components.create!(component: outer, quantity: 1, unit: "kg")
+
+    product_b = Product.create!(name: "Product B DeepPropagation #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 2)
+    recipe_b = ProductRecipe.create!(product: product_b, yield_quantity: 2)
+    recipe_b.recipe_components.create!(component: outer, quantity: 1, unit: "kg")
+
+    Costing::ActivateProductRecipe.call(product_a)
+    Costing::ActivateProductRecipe.call(product_b)
+    assert_equal 100_000, product_a.reload.cost_cents
+    assert_equal 50_000, product_b.reload.cost_cents
+
+    RawMaterials::UpdateWithCostHistory.call(
+      raw_material: @raw_material,
+      attributes: { purchase_price_amount: "1500" }, # $1.000/kg -> $1.500/kg
+      changed_by: @admin
+    )
+
+    assert_equal 150_000, product_a.reload.cost_cents
+    assert_equal 75_000, product_b.reload.cost_cents
+  end
+
+  test "a manual product with a draft ProductRecipe is never touched by propagation" do
+    category = Category.create!(name: "ManualUntouchedCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto Manual Untouched #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 99_000, cost_source: "manual", category: category, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    recipe.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
+
+    RawMaterials::UpdateWithCostHistory.call(
+      raw_material: @raw_material,
+      attributes: { purchase_price_amount: "5000" },
+      changed_by: @admin
+    )
+
+    assert_equal 99_000, product.reload.cost_cents
+    assert product.manual?
+  end
+
+  test "atomicity, forced: if Costing::SyncProductCost fails mid-propagation, the RawMaterial update, its cost history, and the Product's cost ALL roll back together" do
+    category = Category.create!(name: "AtomicPropagationCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto Atomic Propagation #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    recipe.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
+
+    Costing::ActivateProductRecipe.call(product)
+    product.reload
+    original_product_cost_cents = product.cost_cents
+    original_purchase_price_cents = @raw_material.purchase_price_cents
+    original_unit_cost_cents = @raw_material.unit_cost_cents
+
+    # SyncProductCost falla -> PropagateCostChange lo envuelve en
+    # PropagationError (ver Costing::PropagateCostChange#call) en vez de
+    # dejar pasar el error original tal cual — esa es la excepción real que
+    # sube y hace fallar la transacción completa de UpdateWithCostHistory.
+    Costing::SyncProductCost.stub(:call, ->(*) { raise "fallo forzado de sincronización" }) do
+      assert_raises(Costing::PropagateCostChange::PropagationError) do
+        RawMaterials::UpdateWithCostHistory.call(
+          raw_material: @raw_material,
+          attributes: { purchase_price_amount: "9999" },
+          changed_by: @admin
+        )
+      end
+    end
+
+    @raw_material.reload
+    product.reload
+
+    assert_equal original_purchase_price_cents, @raw_material.purchase_price_cents
+    assert_equal original_unit_cost_cents, @raw_material.unit_cost_cents
+    assert_equal 0, @raw_material.cost_changes.count
+    assert_equal original_product_cost_cents, product.cost_cents
+  end
+
   test "RawMaterialCostChange records are read-only once created" do
     RawMaterials::UpdateWithCostHistory.call(
       raw_material: @raw_material, attributes: { purchase_price_amount: "1200" }, changed_by: @admin

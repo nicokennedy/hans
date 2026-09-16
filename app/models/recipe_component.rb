@@ -1,15 +1,16 @@
 # Una línea de receta: "tanta cantidad, en tal unidad, de tal componente"
-# dentro de una Preparation (y, en una fase posterior, de una ProductRecipe
-# también). component es polimórfico a propósito — una misma línea puede
-# apuntar a una RawMaterial o a otra Preparation, y desde la perspectiva del
-# motor de costeo (Costing::PreparationCalculator) ambas se tratan de forma
-# equivalente: cada una expone su propio costo normalizado por unidad base.
+# dentro de una Preparation o de una ProductRecipe. component es
+# polimórfico a propósito — una misma línea puede apuntar a una RawMaterial
+# o a otra Preparation, y desde la perspectiva del motor de costeo
+# (Costing::ComponentCostCalculator) ambas se tratan de forma equivalente:
+# cada una expone su propio costo normalizado por unidad base.
 class RecipeComponent < ApplicationRecord
   UNITS = %w[kg g l ml cc un].freeze # sin "min" todavía
 
-  # Por ahora solo Preparation puede ser owner — ProductRecipe se sumará acá
-  # en una fase posterior, sin tocar el resto de este modelo.
-  ALLOWED_OWNER_TYPES = %w[Preparation].freeze
+  # ProductRecipe nunca puede ser component (ni tampoco Product) — así que
+  # una ProductRecipe jamás puede formar parte de un ciclo, solo ser la
+  # raíz. No agregar "ProductRecipe" ni "Product" acá.
+  ALLOWED_OWNER_TYPES = %w[Preparation ProductRecipe].freeze
   ALLOWED_COMPONENT_TYPES = %w[RawMaterial Preparation].freeze
 
   belongs_to :owner, polymorphic: true

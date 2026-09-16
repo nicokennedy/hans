@@ -68,6 +68,36 @@ class Admin::PreparationsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Harina PrepCtrl", response.body
   end
 
+  test "updating only the name does NOT recalculate downstream products (no cost-relevant change)" do
+    category = Category.create!(name: "PrepCtrlPropCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto PrepCtrlProp #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    recipe.recipe_components.create!(component: @preparation, quantity: 1, unit: "kg")
+    Costing::ActivateProductRecipe.call(product)
+    original_cost = product.reload.cost_cents
+
+    patch admin_preparation_path(@preparation), params: { preparation: { name: "Masa Sable Renombrada", yield_quantity: @preparation.yield_quantity, yield_unit: @preparation.yield_unit } }
+
+    assert_redirected_to admin_preparations_path
+    assert_equal original_cost, product.reload.cost_cents
+  end
+
+  test "changing yield_quantity DOES recalculate downstream products automatically" do
+    category = Category.create!(name: "PrepCtrlYieldCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Producto PrepCtrlYield #{rand(1_000_000)}", price_cents: 500_000,
+      cost_cents: 1, cost_source: "manual", category: category, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
+    recipe.recipe_components.create!(component: @preparation, quantity: 1, unit: "kg")
+    Costing::ActivateProductRecipe.call(product)
+    assert_equal 50_000, product.reload.cost_cents # 100.000 total / 2kg yield
+
+    patch admin_preparation_path(@preparation), params: { preparation: { name: @preparation.name, yield_quantity: "1", yield_unit: "kg" } }
+
+    assert_redirected_to admin_preparations_path
+    assert_equal 100_000, product.reload.cost_cents # mismo total / 1kg yield ahora
+  end
+
   test "a corrupted circular dependency (bypassing validations) does not crash the index or edit pages, and stays fixable" do
     a = Preparation.create!(name: "CorruptA PrepCtrl", yield_quantity: 1, yield_unit: "kg")
     b = Preparation.create!(name: "CorruptB PrepCtrl", yield_quantity: 1, yield_unit: "kg")

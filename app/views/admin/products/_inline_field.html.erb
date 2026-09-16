@@ -1,5 +1,5 @@
 <%= turbo_frame_tag "product_#{product.id}_#{field}" do %>
-  <% if editing %>
+  <% if editing && cost_field_editable?(product, field) %>
     <%= form_with model: [:admin, product],
         url: update_inline_admin_product_path(product, field: field),
         method: :patch,
@@ -18,9 +18,11 @@
   <% else %>
     <div class="d-flex align-items-center gap-2 flex-nowrap">
       <span><%= inline_field_display(product, field) %></span>
-      <%= link_to "✏️",
-          edit_inline_admin_product_path(product, field: field),
-          class: "text-decoration-none" %>
+      <% if cost_field_editable?(product, field) %>
+        <%= link_to "✏️",
+            edit_inline_admin_product_path(product, field: field),
+            class: "text-decoration-none" %>
+      <% end %>
     </div>
   <% end %>
 <% end %>

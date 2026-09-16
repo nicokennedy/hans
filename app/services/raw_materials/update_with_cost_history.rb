@@ -19,7 +19,10 @@ module RawMaterials
     def call
       before = snapshot
 
-      ActiveRecord::Base.transaction do
+      # requires_new: true por el mismo motivo que en CostPropagating#propagate_after
+      # — garantiza un SAVEPOINT real y un rollback real de este bloque
+      # incluso si quien llama ya está dentro de otra transacción.
+      ActiveRecord::Base.transaction(requires_new: true) do
         raw_material.update!(attributes)
 
         after = snapshot
@@ -38,6 +41,12 @@ module RawMaterials
             new_unit_cost_cents: after[:unit_cost_cents],
             changed_by_user: changed_by
           )
+
+          # Mismo transaction que el update y el historial: si algún Product
+          # recipe-sourced que depende de esta materia prima no puede
+          # sincronizarse, todo esto se revierte junto — nunca queda un
+          # unit_cost_cents nuevo sin que su costo haya terminado de propagarse.
+          Costing::PropagateCostChange.call(raw_material)
         end
       end
 

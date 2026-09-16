@@ -1,4 +1,6 @@
 class Admin::RecipeComponentsController < ApplicationController
+  include CostPropagating
+
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_preparation
@@ -11,7 +13,9 @@ class Admin::RecipeComponentsController < ApplicationController
       unit: params.dig(:recipe_component, :unit)
     )
 
-    if component.present? && @recipe_component.save
+    saved = component.present? && propagate_after(@preparation) { @recipe_component.save }
+
+    if saved
       redirect_to edit_admin_preparation_path(@preparation), notice: "Componente agregado."
     else
       redirect_to edit_admin_preparation_path(@preparation), alert: component_error_message(@recipe_component, component)
@@ -20,14 +24,17 @@ class Admin::RecipeComponentsController < ApplicationController
 
   # Solo cantidad/unidad son editables acá — cambiar A QUÉ apunta la línea
   # no tiene UI (se borra y se agrega de nuevo); el modelo igual valida
-  # ciclos ante cualquier update, sea cual sea el origen.
+  # ciclos ante cualquier update, sea cual sea el origen. position no se
+  # edita desde acá, así que cualquier update real cambia quantity/unit y
+  # siempre amerita propagar.
   def update
     recipe_component = @preparation.recipe_components.find(params[:id])
 
-    if recipe_component.update(recipe_component_params)
+    if propagate_after(@preparation) { recipe_component.update(recipe_component_params) }
       redirect_to edit_admin_preparation_path(@preparation), notice: "Componente actualizado."
     else
-      redirect_to edit_admin_preparation_path(@preparation), alert: recipe_component.errors.full_messages.join(", ")
+      alert = @cost_propagation_error || recipe_component.errors.full_messages.join(", ")
+      redirect_to edit_admin_preparation_path(@preparation), alert: alert
     end
   end
 
@@ -35,8 +42,13 @@ class Admin::RecipeComponentsController < ApplicationController
     # Solo elimina la línea de la receta — nunca la RawMaterial/Preparation
     # que referenciaba. "esta preparación ya no usa este ingrediente", no
     # "borrar el ingrediente".
-    @preparation.recipe_components.find(params[:id]).destroy!
-    redirect_to edit_admin_preparation_path(@preparation), notice: "Componente eliminado de la preparación."
+    recipe_component = @preparation.recipe_components.find(params[:id])
+
+    if propagate_after(@preparation) { recipe_component.destroy! }
+      redirect_to edit_admin_preparation_path(@preparation), notice: "Componente eliminado de la preparación."
+    else
+      redirect_to edit_admin_preparation_path(@preparation), alert: @cost_propagation_error || "No se pudo eliminar el componente."
+    end
   end
 
   private

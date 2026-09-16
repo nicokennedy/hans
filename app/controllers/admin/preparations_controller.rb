@@ -1,4 +1,6 @@
 class Admin::PreparationsController < ApplicationController
+  include CostPropagating
+
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_preparation, only: [:edit, :update]
@@ -25,16 +27,34 @@ class Admin::PreparationsController < ApplicationController
     load_component_form_data
   end
 
+  # name/active solos no cambian el cálculo (ver Preparation#total_cost_cents)
+  # — solo yield_quantity/yield_unit lo hacen. Por eso solo esos dos
+  # ameritan propagar; el resto del update corre igual, sin transacción ni
+  # side-effects extra.
   def update
-    if @preparation.update(preparation_params)
+    yield_changed = yield_relevant_change?
+
+    saved = propagate_after(yield_changed ? @preparation : nil) { @preparation.update(preparation_params) }
+
+    if saved
       redirect_to admin_preparations_path, notice: "Preparación actualizada correctamente."
     else
+      # Si la propagación falló, la transacción revirtió el update en la DB
+      # pero el objeto en memoria quedó "sucio" con los valores nuevos —
+      # reload para que la pantalla muestre el estado real persistido.
+      @preparation.reload if @cost_propagation_error
       load_component_form_data
+      flash.now[:alert] = @cost_propagation_error if @cost_propagation_error
       render :edit, status: :unprocessable_entity
     end
   end
 
   private
+
+  def yield_relevant_change?
+    params.dig(:preparation, :yield_quantity).to_s != @preparation.yield_quantity.to_s ||
+      params.dig(:preparation, :yield_unit).to_s != @preparation.yield_unit.to_s
+  end
 
   def set_preparation
     @preparation = Preparation.find(params[:id])
