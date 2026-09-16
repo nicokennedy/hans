@@ -45,6 +45,7 @@ Rails.application.routes.draw do
       patch :toggle_active, on: :member
     end
     resources :categories
+    resources :raw_materials, only: [:index, :new, :create, :edit, :update]
 
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do

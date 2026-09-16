@@ -1,0 +1,8 @@
+<div class="container py-5">
+  <h1>Editar materia prima</h1>
+  <p class="text-muted"><%= @raw_material.name %></p>
+
+  <%= render "form" %>
+
+  <%= render "cost_history", cost_changes: @cost_changes %>
+</div>

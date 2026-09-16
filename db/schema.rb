@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_15_153009) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_16_090001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -140,6 +140,41 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_15_153009) do
     t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
   end
 
+  create_table "raw_material_cost_changes", force: :cascade do |t|
+    t.bigint "raw_material_id", null: false
+    t.integer "previous_purchase_price_cents", null: false
+    t.integer "new_purchase_price_cents", null: false
+    t.decimal "previous_purchase_quantity", precision: 12, scale: 3, null: false
+    t.decimal "new_purchase_quantity", precision: 12, scale: 3, null: false
+    t.string "previous_purchase_unit", null: false
+    t.string "new_purchase_unit", null: false
+    t.string "previous_base_unit", null: false
+    t.string "new_base_unit", null: false
+    t.integer "previous_unit_cost_cents", null: false
+    t.integer "new_unit_cost_cents", null: false
+    t.bigint "changed_by_user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["raw_material_id"], name: "index_raw_material_cost_changes_on_raw_material_id"
+  end
+
+  create_table "raw_materials", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "category"
+    t.string "brand"
+    t.string "supplier"
+    t.integer "purchase_price_cents", null: false
+    t.decimal "purchase_quantity", precision: 12, scale: 3, null: false
+    t.string "purchase_unit", null: false
+    t.string "base_unit", null: false
+    t.integer "unit_cost_cents", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_raw_materials_on_name"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -163,4 +198,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_15_153009) do
   add_foreign_key "payments", "orders"
   add_foreign_key "products", "categories"
   add_foreign_key "push_subscriptions", "users"
+  add_foreign_key "raw_material_cost_changes", "raw_materials"
+  add_foreign_key "raw_material_cost_changes", "users", column: "changed_by_user_id"
 end

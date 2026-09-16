@@ -1,0 +1,39 @@
+<div class="product-card mt-4">
+  <h2 class="h5">Historial de costo</h2>
+
+  <% if cost_changes.empty? %>
+    <p class="text-muted mb-0">Todavía no hay cambios registrados para esta materia prima.</p>
+  <% else %>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Precio compra anterior</th>
+            <th>Precio compra nuevo</th>
+            <th>Cantidad/unidad anterior</th>
+            <th>Cantidad/unidad nueva</th>
+            <th>Costo unitario anterior</th>
+            <th>Costo unitario nuevo</th>
+            <th>Cambiado por</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <% cost_changes.each do |change| %>
+            <tr>
+              <td><%= change.created_at.strftime("%d/%m/%Y %H:%M") %></td>
+              <td><%= format_money(change.previous_purchase_price_cents) %></td>
+              <td><%= format_money(change.new_purchase_price_cents) %></td>
+              <td><%= change.previous_purchase_quantity.to_s("F") %> <%= change.previous_purchase_unit %></td>
+              <td><%= change.new_purchase_quantity.to_s("F") %> <%= change.new_purchase_unit %></td>
+              <td><%= format_money(change.previous_unit_cost_cents) %>/<%= change.previous_base_unit %></td>
+              <td><%= format_money(change.new_unit_cost_cents) %>/<%= change.new_base_unit %></td>
+              <td><%= change.changed_by_user&.email || "-" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

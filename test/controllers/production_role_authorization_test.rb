@@ -15,6 +15,11 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     @admin = User.create!(email: "prodrole-admin@example.com", password: "password123", role: "admin")
     @production_user = User.create!(email: "prodrole-production@example.com", password: "password123", role: "production")
     @customer_user = User.create!(email: "prodrole-customer@example.com", password: "password123", role: "customer", customer: @customer)
+
+    @raw_material = RawMaterial.create!(
+      name: "Manteca ProdRoleTest", category: "Lácteos", purchase_price_cents: 100_000,
+      purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg"
+    )
   end
 
   # --- Production: allowed access ---
@@ -150,6 +155,34 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "production cannot access raw materials (index, new, edit, update), and never sees costs or history" do
+    sign_in @production_user
+
+    get admin_raw_materials_path
+    assert_redirected_to admin_production_index_path
+
+    get new_admin_raw_material_path
+    assert_redirected_to admin_production_index_path
+
+    get edit_admin_raw_material_path(@raw_material)
+    assert_redirected_to admin_production_index_path
+
+    assert_no_changes -> { @raw_material.reload.purchase_price_cents } do
+      patch admin_raw_material_path(@raw_material), params: { raw_material: { purchase_price_amount: "999999" } }
+    end
+    assert_redirected_to admin_production_index_path
+  end
+
+  test "production sees no link to Materias primas in the navbar, and is redirected away from a direct URL" do
+    sign_in @production_user
+
+    get admin_orders_path
+    assert_no_match "Materias primas", response.body
+
+    get admin_raw_materials_path
+    assert_redirected_to admin_production_index_path
+  end
+
   test "production cannot access customers or collections" do
     sign_in @production_user
     get admin_customers_path
@@ -258,6 +291,13 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     get admin_customers_path
     assert_response :success
+
+    get admin_raw_materials_path
+    assert_response :success
+    assert_match "Materias primas", response.body
+
+    get edit_admin_raw_material_path(@raw_material)
+    assert_response :success
   end
 
   # --- Customer: unaffected, isolated ---
@@ -275,6 +315,16 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
 
     get admin_production_index_path
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access raw materials via direct URL" do
+    sign_in @customer_user
+
+    get admin_raw_materials_path
+    assert_redirected_to dashboard_path
+
+    get edit_admin_raw_material_path(@raw_material)
     assert_redirected_to dashboard_path
   end
 

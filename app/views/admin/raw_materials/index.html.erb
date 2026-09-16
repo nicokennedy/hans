@@ -1,0 +1,64 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Materias primas</h1>
+      <p class="text-muted mb-0">Costos de compra e insumos — base para preparaciones y recetas.</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+      <%= link_to "+ Nueva materia prima", new_admin_raw_material_path, class: "btn btn-dark" %>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <% if @raw_materials.empty? %>
+      <div class="p-4 text-center">
+        <h2 class="h5">No hay materias primas cargadas</h2>
+        <p class="text-muted">Empezá agregando la primera.</p>
+      </div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Materia prima</th>
+              <th>Categoría</th>
+              <th>Marca</th>
+              <th>Proveedor</th>
+              <th>Formato de compra</th>
+              <th>Precio compra</th>
+              <th>Costo normalizado</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% @raw_materials.each do |raw_material| %>
+              <tr>
+                <td class="fw-bold"><%= raw_material.name %></td>
+                <td><%= raw_material.category.presence || "-" %></td>
+                <td><%= raw_material.brand.presence || "-" %></td>
+                <td><%= raw_material.supplier.presence || "-" %></td>
+                <td><%= raw_material.purchase_format %></td>
+                <td><%= format_money(raw_material.purchase_price_cents) %></td>
+                <td><%= format_money(raw_material.unit_cost_cents) %>/<%= raw_material.base_unit %></td>
+                <td>
+                  <% if raw_material.active? %>
+                    <span class="badge bg-success">Activa</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Inactiva</span>
+                  <% end %>
+                </td>
+                <td class="text-end">
+                  <%= link_to "Editar", edit_admin_raw_material_path(raw_material), class: "btn btn-sm btn-outline-dark" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>
