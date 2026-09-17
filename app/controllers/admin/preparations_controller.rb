@@ -1,5 +1,6 @@
 class Admin::PreparationsController < ApplicationController
   include CostPropagating
+  include RecipeComponentsBuildable
 
   before_action :authenticate_user!
   before_action :require_admin!
@@ -11,14 +12,22 @@ class Admin::PreparationsController < ApplicationController
 
   def new
     @preparation = Preparation.new(active: true)
+    load_recipe_component_options
   end
 
+  # Arma la preparación Y sus componentes en un solo submit — no hace falta
+  # guardar antes de poder cargar la receta. Nada que propagar acá: una
+  # Preparation recién creada todavía no puede ser usada por ninguna
+  # ProductRecipe (no existía un instante atrás), así que no hay ningún
+  # Product activo que pudiera depender de ella.
   def create
     @preparation = Preparation.new(preparation_params)
+    build_recipe_components(@preparation, params[:recipe_components])
 
     if @preparation.save
       redirect_to admin_preparations_path, notice: "Preparación creada correctamente."
     else
+      load_recipe_component_options
       render :new, status: :unprocessable_entity
     end
   end

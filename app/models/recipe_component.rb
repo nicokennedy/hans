@@ -25,6 +25,16 @@ class RecipeComponent < ApplicationRecord
 
   before_validation :assign_position, on: :create
 
+  # Único lugar que interpreta el formato "Tipo:id" que usan los selects de
+  # componente en el admin (ej. "RawMaterial:42") — antes duplicado en cada
+  # controller que arma un RecipeComponent a partir de params.
+  def self.resolve_component(component_ref)
+    type, id = component_ref.to_s.split(":", 2)
+    return nil unless ALLOWED_COMPONENT_TYPES.include?(type)
+
+    type.constantize.find_by(id: id)
+  end
+
   def component_label
     component.respond_to?(:name) ? component.name : "componente ##{component_id}"
   end

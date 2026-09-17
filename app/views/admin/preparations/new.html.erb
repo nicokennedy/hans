@@ -1,6 +1,70 @@
 <div class="container py-5">
   <h1>Nueva preparación</h1>
-  <p class="text-muted">Después de guardarla vas a poder agregarle sus componentes.</p>
+  <p class="text-muted">Armá la preparación completa: nombre, rendimiento y sus componentes.</p>
 
-  <%= render "form" %>
+  <%= form_with model: [:admin, @preparation], local: true, data: { controller: "recipe-components" } do |f| %>
+    <% if @preparation.errors.any? %>
+      <div class="alert alert-danger">
+        <%= @preparation.errors.full_messages.join(", ") %>
+        <% @preparation.recipe_components.each_with_index do |recipe_component, index| %>
+          <% if recipe_component.errors.any? %>
+            <div>Componente <%= index + 1 %>: <%= recipe_component.errors.full_messages.join(", ") %></div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="product-card">
+      <div class="mb-3">
+        <%= f.label :name, "Nombre", class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true %>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4">
+          <%= f.label :yield_quantity, "Rendimiento", class: "form-label" %>
+          <%= f.number_field :yield_quantity, class: "form-control", min: 0, step: "any", required: true %>
+        </div>
+        <div class="col-12 col-md-4">
+          <%= f.label :yield_unit, "Unidad de rendimiento", class: "form-label" %>
+          <%= f.select :yield_unit, Admin::PreparationsHelper::YIELD_UNIT_OPTIONS, { prompt: "Seleccionar" }, class: "form-select", required: true %>
+          <div class="form-text">Siempre kg, l o un — para que el costo normalizado sea comparable.</div>
+        </div>
+      </div>
+
+      <div class="form-check mb-4">
+        <%= f.check_box :active, class: "form-check-input" %>
+        <%= f.label :active, "Activa", class: "form-check-label" %>
+      </div>
+
+      <hr>
+
+      <h2 class="h5">Componentes</h2>
+      <p class="text-muted small">Materias primas y/o otras preparaciones que forman esta preparación.</p>
+
+      <div data-recipe-components-target="list">
+        <% components_for_form = @preparation.recipe_components.presence || Array.new(2) { RecipeComponent.new } %>
+        <% components_for_form.each do |recipe_component| %>
+          <%= render "admin/recipe_components/fields",
+            recipe_component: recipe_component,
+            raw_material_options: @raw_material_options,
+            preparation_options: @preparation_options %>
+        <% end %>
+      </div>
+
+      <template data-recipe-components-target="template">
+        <%= render "admin/recipe_components/fields",
+          recipe_component: RecipeComponent.new,
+          raw_material_options: @raw_material_options,
+          preparation_options: @preparation_options %>
+      </template>
+
+      <button type="button" class="btn btn-outline-dark btn-sm mb-4" data-action="recipe-components#add">+ Agregar componente</button>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Guardar", class: "btn btn-dark" %>
+        <%= link_to "Cancelar", admin_preparations_path, class: "btn btn-outline-dark" %>
+      </div>
+    </div>
+  <% end %>
 </div>

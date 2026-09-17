@@ -1,5 +1,6 @@
 class Admin::ProductRecipesController < ApplicationController
   include CostPropagating
+  include RecipeComponentsBuildable
 
   before_action :authenticate_user!
   before_action :require_admin!
@@ -7,14 +8,22 @@ class Admin::ProductRecipesController < ApplicationController
 
   def new
     @product_recipe = @product.build_product_recipe
+    load_recipe_component_options
   end
 
+  # Arma la ProductRecipe Y sus componentes en un solo submit. Tampoco hay
+  # nada que propagar acá: crear la ProductRecipe nunca cambia
+  # Product#cost_source (eso solo lo hace Costing::ActivateProductRecipe,
+  # una acción explícita posterior), así que el producto sigue siendo
+  # manual — Costing::SyncProductCost no tocaría nada aunque se llamara.
   def create
     @product_recipe = @product.build_product_recipe(product_recipe_params)
+    build_recipe_components(@product_recipe, params[:recipe_components])
 
     if @product_recipe.save
-      redirect_to edit_admin_product_product_recipe_path(@product), notice: "Receta creada. Agregale componentes y activala cuando esté lista."
+      redirect_to edit_admin_product_product_recipe_path(@product), notice: "Receta creada correctamente."
     else
+      load_recipe_component_options
       render :new, status: :unprocessable_entity
     end
   end

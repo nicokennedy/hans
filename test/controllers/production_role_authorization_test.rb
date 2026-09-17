@@ -274,11 +274,19 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_production_index_path
   end
 
-  test "production sees no link to Preparaciones in the navbar, and is redirected away from a direct URL" do
+  test "production cannot access the Recetas index" do
+    sign_in @production_user
+
+    get admin_recipes_path
+    assert_redirected_to admin_production_index_path
+  end
+
+  test "production sees no link to Preparaciones or Recetas in the navbar, and is redirected away from a direct URL" do
     sign_in @production_user
 
     get admin_orders_path
     assert_no_match "Preparaciones", response.body
+    assert_no_match "Recetas", response.body
 
     get admin_preparations_path
     assert_redirected_to admin_production_index_path
@@ -411,6 +419,10 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     get edit_admin_product_product_recipe_path(@product)
     assert_response :success
     assert_match "Manteca ProdRoleTest", response.body
+
+    get admin_recipes_path
+    assert_response :success
+    assert_match @product.name, response.body
   end
 
   # --- Customer: unaffected, isolated ---
@@ -474,6 +486,13 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
         recipe_component: { component_ref: "RawMaterial:#{@raw_material.id}", quantity: "1", unit: "kg" }
       }
     end
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access the Recetas index" do
+    sign_in @customer_user
+
+    get admin_recipes_path
     assert_redirected_to dashboard_path
   end
 

@@ -19,9 +19,11 @@ class Admin::PreparationsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Masa Sable PrepCtrl", response.body
   end
 
-  test "admin can view the new form" do
+  test "admin can view the new form, with a components section ready to fill" do
     get new_admin_preparation_path
     assert_response :success
+    assert_match "Componentes", response.body
+    assert_match "+ Agregar componente", response.body
   end
 
   test "admin can create a preparation without components" do
@@ -33,6 +35,87 @@ class Admin::PreparationsControllerTest < ActionDispatch::IntegrationTest
     preparation = Preparation.find_by!(name: "Nueva PrepCtrl")
     assert_equal 0, preparation.recipe_components.count
     assert_equal 0, preparation.total_cost_cents
+  end
+
+  test "admin can create a preparation with multiple RecipeComponents in the same submit" do
+    manteca = RawMaterial.create!(name: "Manteca PrepCtrl New", purchase_price_cents: 1_000_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
+    azucar = RawMaterial.create!(name: "Azucar PrepCtrl New", purchase_price_cents: 200_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
+
+    assert_difference "Preparation.count", 1 do
+      post admin_preparations_path, params: {
+        preparation: { name: "Masa Flora PrepCtrl", yield_quantity: "23.7", yield_unit: "kg", active: "1" },
+        recipe_components: [
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "10", unit: "kg" },
+          { component_ref: "RawMaterial:#{manteca.id}", quantity: "5", unit: "kg" },
+          { component_ref: "RawMaterial:#{azucar.id}", quantity: "5", unit: "kg" }
+        ]
+      }
+    end
+
+    assert_redirected_to admin_preparations_path
+    preparation = Preparation.find_by!(name: "Masa Flora PrepCtrl")
+    assert_equal 3, preparation.recipe_components.count
+    assert_equal 10 * 100_000 + 5 * 1_000_000 + 5 * 200_000, preparation.total_cost_cents
+  end
+
+  test "a new preparation admits a mix of RawMaterial and Preparation components" do
+    assert_difference "Preparation.count", 1 do
+      post admin_preparations_path, params: {
+        preparation: { name: "Mixta PrepCtrl", yield_quantity: "1", yield_unit: "kg", active: "1" },
+        recipe_components: [
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "1", unit: "kg" },
+          { component_ref: "Preparation:#{@preparation.id}", quantity: "1", unit: "kg" }
+        ]
+      }
+    end
+
+    preparation = Preparation.find_by!(name: "Mixta PrepCtrl")
+    assert_equal %w[Preparation RawMaterial], preparation.recipe_components.map(&:component_type).sort
+  end
+
+  test "duplicated components (same ingredient, two lines) are still allowed when creating" do
+    assert_difference "Preparation.count", 1 do
+      post admin_preparations_path, params: {
+        preparation: { name: "Duplicada PrepCtrl", yield_quantity: "2", yield_unit: "kg", active: "1" },
+        recipe_components: [
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "0.3", unit: "kg" },
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "0.1", unit: "kg" }
+        ]
+      }
+    end
+
+    preparation = Preparation.find_by!(name: "Duplicada PrepCtrl")
+    assert_equal 2, preparation.recipe_components.where(component: @harina).count
+  end
+
+  test "blank component rows are discarded silently, without blocking creation" do
+    assert_difference "Preparation.count", 1 do
+      post admin_preparations_path, params: {
+        preparation: { name: "Con Filas Vacias PrepCtrl", yield_quantity: "1", yield_unit: "kg", active: "1" },
+        recipe_components: [
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "1", unit: "kg" },
+          { component_ref: "", quantity: "", unit: "" }
+        ]
+      }
+    end
+
+    preparation = Preparation.find_by!(name: "Con Filas Vacias PrepCtrl")
+    assert_equal 1, preparation.recipe_components.count
+  end
+
+  test "an invalid component row blocks the whole creation atomically, with a clear per-row error" do
+    assert_no_difference ["Preparation.count", "RecipeComponent.count"] do
+      post admin_preparations_path, params: {
+        preparation: { name: "Fila Invalida PrepCtrl", yield_quantity: "1", yield_unit: "kg", active: "1" },
+        recipe_components: [
+          { component_ref: "RawMaterial:#{@harina.id}", quantity: "1", unit: "ml" } # kg base, ml incompatible
+        ]
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "Componente 1", response.body
+    assert_not Preparation.exists?(name: "Fila Invalida PrepCtrl")
   end
 
   test "creating with an invalid yield_unit re-renders the form with a clear error, server-side" do

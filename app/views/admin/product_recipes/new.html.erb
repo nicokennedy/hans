@@ -2,5 +2,59 @@
   <h1>Crear receta</h1>
   <p class="text-muted"><%= @product.name %></p>
 
-  <%= render "form" %>
+  <%= form_with model: @product_recipe,
+      url: admin_product_product_recipe_path(@product),
+      method: :post,
+      local: true,
+      data: { controller: "recipe-components" } do |f| %>
+    <% if @product_recipe.errors.any? %>
+      <div class="alert alert-danger">
+        <%= @product_recipe.errors.full_messages.join(", ") %>
+        <% @product_recipe.recipe_components.each_with_index do |recipe_component, index| %>
+          <% if recipe_component.errors.any? %>
+            <div>Componente <%= index + 1 %>: <%= recipe_component.errors.full_messages.join(", ") %></div>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="product-card">
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4">
+          <%= f.label :yield_quantity, "Rendimiento (un)", class: "form-label" %>
+          <%= f.number_field :yield_quantity, class: "form-control", min: 0, step: "any", required: true %>
+          <div class="form-text">Cantidad de unidades que produce esta receta.</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <h2 class="h5">Componentes</h2>
+      <p class="text-muted small">Materias primas y/o preparaciones que forman esta receta. No puede incluir otro producto.</p>
+
+      <div data-recipe-components-target="list">
+        <% components_for_form = @product_recipe.recipe_components.presence || Array.new(2) { RecipeComponent.new } %>
+        <% components_for_form.each do |recipe_component| %>
+          <%= render "admin/recipe_components/fields",
+            recipe_component: recipe_component,
+            raw_material_options: @raw_material_options,
+            preparation_options: @preparation_options %>
+        <% end %>
+      </div>
+
+      <template data-recipe-components-target="template">
+        <%= render "admin/recipe_components/fields",
+          recipe_component: RecipeComponent.new,
+          raw_material_options: @raw_material_options,
+          preparation_options: @preparation_options %>
+      </template>
+
+      <button type="button" class="btn btn-outline-dark btn-sm mb-4" data-action="recipe-components#add">+ Agregar componente</button>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Guardar", class: "btn btn-dark" %>
+        <%= link_to "Cancelar", edit_admin_product_path(@product), class: "btn btn-outline-dark" %>
+      </div>
+    </div>
+  <% end %>
 </div>

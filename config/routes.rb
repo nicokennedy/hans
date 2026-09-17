@@ -54,6 +54,10 @@ Rails.application.routes.draw do
     resources :preparations, only: [:index, :new, :create, :edit, :update] do
       resources :recipe_components, only: [:create, :update, :destroy]
     end
+    # Vista administrativa sobre Product + ProductRecipe existentes — no es
+    # un modelo/concepto nuevo, solo un índice más visible que "adentro de
+    # cada Producto" (ver Admin::RecipesController).
+    resources :recipes, only: [:index]
 
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do

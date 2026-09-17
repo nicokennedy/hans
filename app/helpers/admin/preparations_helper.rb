@@ -14,12 +14,13 @@ module Admin::PreparationsHelper
     [ "—", "—" ]
   end
 
-  def component_ref_options(raw_materials, preparations)
+  def component_ref_options(raw_materials, preparations, selected: nil)
     raw_material_options = raw_materials.map { |rm| [ rm.name, "RawMaterial:#{rm.id}" ] }
     preparation_options = preparations.map { |p| [ p.name, "Preparation:#{p.id}" ] }
 
     grouped_options_for_select(
-      [ [ "Materias primas", raw_material_options ], [ "Preparaciones", preparation_options ] ]
+      [ [ "Materias primas", raw_material_options ], [ "Preparaciones", preparation_options ] ],
+      selected
     )
   end
 end

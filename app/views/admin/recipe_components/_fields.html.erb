@@ -1,0 +1,23 @@
+<%# locals: recipe_component (RecipeComponent.new o uno ya construido/con errores), raw_material_options, preparation_options %>
+<% selected_ref = recipe_component.component_type.present? ? "#{recipe_component.component_type}:#{recipe_component.component_id}" : nil %>
+<div class="row g-2 align-items-start mb-2 recipe-component-row">
+  <div class="col-12 col-md-5">
+    <%= select_tag "recipe_components[][component_ref]",
+        component_ref_options(raw_material_options, preparation_options, selected: selected_ref),
+        include_blank: "Seleccionar materia prima o preparación", class: "form-select" %>
+  </div>
+  <div class="col-6 col-md-3">
+    <%= number_field_tag "recipe_components[][quantity]", recipe_component.quantity, min: 0, step: "any", class: "form-control", placeholder: "Cantidad" %>
+  </div>
+  <div class="col-6 col-md-2">
+    <%= select_tag "recipe_components[][unit]",
+        options_for_select(Admin::PreparationsHelper::COMPONENT_UNIT_OPTIONS, recipe_component.unit),
+        include_blank: "Unidad", class: "form-select" %>
+  </div>
+  <div class="col-12 col-md-2">
+    <%= button_tag "Eliminar", type: "button", class: "btn btn-outline-danger btn-sm w-100", data: { action: "recipe-components#remove" } %>
+  </div>
+  <% if recipe_component.errors.any? %>
+    <div class="col-12 text-danger small"><%= recipe_component.errors.full_messages.join(", ") %></div>
+  <% end %>
+</div>

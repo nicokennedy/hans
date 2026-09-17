@@ -6,7 +6,7 @@ class Admin::RecipeComponentsController < ApplicationController
   before_action :set_preparation
 
   def create
-    component = find_component(params.dig(:recipe_component, :component_ref))
+    component = RecipeComponent.resolve_component(params.dig(:recipe_component, :component_ref))
     @recipe_component = @preparation.recipe_components.new(
       component: component,
       quantity: params.dig(:recipe_component, :quantity),
@@ -59,13 +59,6 @@ class Admin::RecipeComponentsController < ApplicationController
 
   def recipe_component_params
     params.require(:recipe_component).permit(:quantity, :unit)
-  end
-
-  def find_component(component_ref)
-    type, id = component_ref.to_s.split(":", 2)
-    return nil unless RecipeComponent::ALLOWED_COMPONENT_TYPES.include?(type)
-
-    type.constantize.find_by(id: id)
   end
 
   def component_error_message(recipe_component, component)
