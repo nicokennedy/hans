@@ -46,15 +46,15 @@
               </div>
 
               <% if current_user.admin? %>
-                <%= link_to "Panel", admin_root_path, class: "btn btn-sm btn-dark" %>
-                <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Clientes", admin_customers_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Productos", admin_products_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Materias primas", admin_raw_materials_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Preparaciones", admin_preparations_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Recetas", admin_recipes_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
+                <%= link_to "Panel", admin_root_path, class: nav_link_class("admin/dashboard") %>
+                <%= link_to "Pedidos", admin_orders_path, class: nav_link_class("admin/orders") %>
+                <%= link_to "Producción", admin_production_index_path, class: nav_link_class("admin/production") %>
+                <%= link_to "Clientes", admin_customers_path, class: nav_link_class("admin/customers") %>
+                <%= link_to "Productos", admin_products_path, class: nav_link_class("admin/products", "admin/product_recipes") %>
+                <%= link_to "Materias primas", admin_raw_materials_path, class: nav_link_class("admin/raw_materials") %>
+                <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
+                <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
+                <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
               <% elsif current_user.production? %>
                 <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>
                 <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
