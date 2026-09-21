@@ -163,4 +163,25 @@ class DeliveryDateValidatorTest < ActiveSupport::TestCase
 
     refute DeliveryDateValidator.available?(exceptional_date, now: Time.zone.local(2026, 9, 16, 20, 24, 0))
   end
+
+  # --- Excepción puntual: martes 22/09/2026 ---
+
+  test "the one-off exception: Tuesday 22/09/2026 is available on the evening of Monday 21/09/2026" do
+    assert_equal 2, Date.new(2026, 9, 22).wday # sigue siendo martes
+
+    assert DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 21, 20, 0, 0))
+  end
+
+  test "the 22/09 exception does not enable Tuesdays in general — the following Tuesday 29/09/2026 stays closed" do
+    refute DeliveryDateValidator.available?(Date.new(2026, 9, 29), now: Time.zone.local(2026, 9, 27, 12, 0, 0))
+  end
+
+  test "the 22/09 exception still respects the no-same-day rule: it closes exactly at its own midnight" do
+    refute DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 22, 0, 0, 0))
+    refute DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 22, 8, 0, 0))
+  end
+
+  test "both one-off exceptions (17/09 and 22/09) coexist without interfering with each other" do
+    assert_equal [Date.new(2026, 9, 17), Date.new(2026, 9, 22)], DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES
+  end
 end
