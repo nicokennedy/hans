@@ -136,52 +136,58 @@ class DeliveryDateValidatorTest < ActiveSupport::TestCase
     assert DeliveryDateValidator.available?(Date.new(2026, 9, 14), now: Time.zone.local(2026, 9, 11, 14, 0, 0))
   end
 
-  # --- Excepción puntual: jueves 17/09/2026 ---
+  # --- Fechas excepcionales persistidas (DeliverySetting#exceptional_dates,
+  # administradas desde Admin — ver Admin::ExceptionalDeliveryDatesController).
+  # Ya no hay ninguna fecha hardcodeada en el validator: todo pasa por acá. ---
 
-  test "the one-off exception: Thursday 17/09/2026 is available on the evening of Wednesday 16/09/2026" do
-    assert_equal 4, Date.new(2026, 9, 17).wday # sigue siendo jueves
+  test "a persisted exceptional date becomes available, without enabling that weekday in general" do
+    tuesday = Date.new(2026, 10, 6)
+    assert_equal 2, tuesday.wday # martes, normalmente bloqueado
 
-    assert DeliveryDateValidator.available?(Date.new(2026, 9, 17), now: Time.zone.local(2026, 9, 16, 20, 24, 0))
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+
+    assert DeliveryDateValidator.available?(tuesday, now: Time.zone.local(2026, 10, 5, 20, 0, 0))
   end
 
-  test "the exception does not enable Thursdays in general — the following Thursday 24/09/2026 stays closed" do
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 24), now: Time.zone.local(2026, 9, 22, 12, 0, 0))
+  test "a different date on the same weekday, not added as an exception, stays blocked" do
+    tuesday = Date.new(2026, 10, 6)
+    another_tuesday = Date.new(2026, 10, 13)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+
+    refute DeliveryDateValidator.available?(another_tuesday, now: Time.zone.local(2026, 10, 12, 12, 0, 0))
   end
 
-  test "the exception does not enable Thursdays in general — an unrelated later Thursday stays closed" do
-    refute DeliveryDateValidator.available?(Date.new(2026, 12, 3), now: Time.zone.local(2026, 12, 1, 12, 0, 0))
+  test "a persisted exceptional date still respects the no-same-day rule, exactly like any other date" do
+    tuesday = Date.new(2026, 10, 6)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+
+    refute DeliveryDateValidator.available?(tuesday, now: Time.zone.local(2026, 10, 6, 0, 0, 0))
+    refute DeliveryDateValidator.available?(tuesday, now: Time.zone.local(2026, 10, 6, 8, 0, 0))
   end
 
-  test "the exception still respects the no-same-day rule: 17/09/2026 closes exactly at its own midnight, same as any other day" do
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 17), now: Time.zone.local(2026, 9, 17, 0, 0, 0))
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 17), now: Time.zone.local(2026, 9, 17, 8, 0, 0))
+  test "removing a persisted exceptional date reverts it to blocked" do
+    tuesday = Date.new(2026, 10, 6)
+    setting = DeliverySetting.current
+    setting.add_exceptional_date!(tuesday)
+    setting.remove_exceptional_date!(tuesday)
+
+    refute DeliveryDateValidator.available?(tuesday, now: Time.zone.local(2026, 10, 5, 20, 0, 0))
   end
 
-  test "a manually blocked date still wins over the one-off Thursday exception" do
-    exceptional_date = Date.new(2026, 9, 17)
-    BlockedDate.create!(date: exceptional_date, active: true)
+  test "adding the same exceptional date twice does not create duplicates" do
+    tuesday = Date.new(2026, 10, 6)
+    setting = DeliverySetting.current
+    setting.add_exceptional_date!(tuesday)
+    setting.add_exceptional_date!(tuesday)
 
-    refute DeliveryDateValidator.available?(exceptional_date, now: Time.zone.local(2026, 9, 16, 20, 24, 0))
+    assert_equal 1, setting.reload.exceptional_dates.count(tuesday)
   end
 
-  # --- Excepción puntual: martes 22/09/2026 ---
+  test "a manually blocked date still wins over a persisted exceptional date" do
+    tuesday = Date.new(2026, 10, 6)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+    BlockedDate.create!(date: tuesday, active: true)
 
-  test "the one-off exception: Tuesday 22/09/2026 is available on the evening of Monday 21/09/2026" do
-    assert_equal 2, Date.new(2026, 9, 22).wday # sigue siendo martes
-
-    assert DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 21, 20, 0, 0))
-  end
-
-  test "the 22/09 exception does not enable Tuesdays in general — the following Tuesday 29/09/2026 stays closed" do
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 29), now: Time.zone.local(2026, 9, 27, 12, 0, 0))
-  end
-
-  test "the 22/09 exception still respects the no-same-day rule: it closes exactly at its own midnight" do
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 22, 0, 0, 0))
-    refute DeliveryDateValidator.available?(Date.new(2026, 9, 22), now: Time.zone.local(2026, 9, 22, 8, 0, 0))
-  end
-
-  test "both one-off exceptions (17/09 and 22/09) coexist without interfering with each other" do
-    assert_equal [Date.new(2026, 9, 17), Date.new(2026, 9, 22)], DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES
+    refute DeliveryDateValidator.available?(tuesday, now: Time.zone.local(2026, 10, 5, 20, 0, 0))
   end
 end

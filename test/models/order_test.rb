@@ -212,20 +212,29 @@ class OrderTest < ActiveSupport::TestCase
     weird_customer.destroy
   end
 
-  # --- Excepción puntual: jueves 17/09/2026 (ver DeliveryDateValidator) ---
+  # --- Fecha excepcional persistida (DeliverySetting#exceptional_dates,
+  # administrada desde Admin — ver DeliveryDateValidatorTest para la
+  # cobertura completa del mecanismo). Acá solo se confirma que Order
+  # respeta lo mismo que cualquier otra fecha habilitada. ---
 
-  test "a customer order for the one-off Thursday 17/09/2026 is accepted on the evening of 16/09/2026" do
-    travel_to Time.zone.local(2026, 9, 16, 20, 24, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 17))
+  test "a customer order for a persisted exceptional date is accepted the evening before" do
+    tuesday = Date.new(2026, 10, 6)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+
+    travel_to Time.zone.local(2026, 10, 5, 20, 0, 0) do
+      order = Order.new(customer: @customer, delivery_date: tuesday)
       order.order_items.build(product: @product, quantity: 1)
 
       assert order.save
     end
   end
 
-  test "a customer order for 17/09/2026 is still rejected once it's actually that same day (no-same-day rule preserved)" do
-    travel_to Time.zone.local(2026, 9, 17, 8, 0, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 17))
+  test "a customer order for a persisted exceptional date is still rejected once it's actually that same day (no-same-day rule preserved)" do
+    tuesday = Date.new(2026, 10, 6)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+
+    travel_to Time.zone.local(2026, 10, 6, 8, 0, 0) do
+      order = Order.new(customer: @customer, delivery_date: tuesday)
       order.order_items.build(product: @product, quantity: 1)
 
       assert_not order.valid?
@@ -233,40 +242,13 @@ class OrderTest < ActiveSupport::TestCase
     end
   end
 
-  test "a customer order for the following Thursday 24/09/2026 is still rejected — the exception is not a general Thursday rule" do
-    travel_to Time.zone.local(2026, 9, 22, 12, 0, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 24))
-      order.order_items.build(product: @product, quantity: 1)
+  test "a customer order for a different Tuesday, not added as an exception, is still rejected" do
+    tuesday = Date.new(2026, 10, 6)
+    another_tuesday = Date.new(2026, 10, 13)
+    DeliverySetting.current.add_exceptional_date!(tuesday)
 
-      assert_not order.valid?
-      assert order.errors[:delivery_date].present?
-    end
-  end
-
-  # --- Excepción puntual: martes 22/09/2026 (ver DeliveryDateValidator) ---
-
-  test "a customer order for the one-off Tuesday 22/09/2026 is accepted on the evening of 21/09/2026" do
-    travel_to Time.zone.local(2026, 9, 21, 20, 0, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 22))
-      order.order_items.build(product: @product, quantity: 1)
-
-      assert order.save
-    end
-  end
-
-  test "a customer order for 22/09/2026 is still rejected once it's actually that same day (no-same-day rule preserved)" do
-    travel_to Time.zone.local(2026, 9, 22, 8, 0, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 22))
-      order.order_items.build(product: @product, quantity: 1)
-
-      assert_not order.valid?
-      assert order.errors[:delivery_date].present?
-    end
-  end
-
-  test "a customer order for the following Tuesday 29/09/2026 is still rejected — the exception is not a general Tuesday rule" do
-    travel_to Time.zone.local(2026, 9, 27, 12, 0, 0) do
-      order = Order.new(customer: @customer, delivery_date: Date.new(2026, 9, 29))
+    travel_to Time.zone.local(2026, 10, 12, 12, 0, 0) do
+      order = Order.new(customer: @customer, delivery_date: another_tuesday)
       order.order_items.build(product: @product, quantity: 1)
 
       assert_not order.valid?

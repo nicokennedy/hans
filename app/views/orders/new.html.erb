@@ -122,13 +122,15 @@ function initDeliveryDatePicker() {
     input._flatpickr.destroy()
   }
 
-  const disabledDays = <%= DeliverySetting.current.unavailable_weekdays.to_json.html_safe %>
-  // Fechas exactas habilitadas por excepción puntual (ver
-  // DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES, que sigue siendo la
-  // validación definitiva del lado del backend) — se leen de ahí para que
-  // el calendario del cliente no las bloquee por caer en un día de semana
-  // normalmente no habilitado.
-  const exceptionalDates = <%= DeliveryDateValidator::EXCEPTIONAL_AVAILABLE_DATES.map { |d| d.strftime("%Y-%m-%d") }.to_json.html_safe %>
+  <% delivery_setting = DeliverySetting.current %>
+  const disabledDays = <%= delivery_setting.unavailable_weekdays.to_json.html_safe %>
+  // Fechas exactas habilitadas por excepción puntual, administradas desde
+  // Admin (ver DeliverySetting#exceptional_dates — misma fuente que usa
+  // DeliveryDateValidator del lado del backend, que sigue siendo la
+  // validación definitiva) — se leen de ahí para que el calendario del
+  // cliente no las bloquee por caer en un día de semana normalmente no
+  // habilitado.
+  const exceptionalDates = <%= delivery_setting.exceptional_dates.map { |d| d.strftime("%Y-%m-%d") }.to_json.html_safe %>
   // Corte recurrente de sábado (ver DeliveryDateValidator::SATURDAY_CUTOFF_HOUR
   // en el backend, que sigue siendo la validación definitiva): se lee la hora
   // directamente de esa constante para no duplicar el número acá.

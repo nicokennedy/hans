@@ -54,6 +54,7 @@
                 <%= link_to "Materias primas", admin_raw_materials_path, class: nav_link_class("admin/raw_materials") %>
                 <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
                 <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
+                <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
                 <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
               <% elsif current_user.production? %>
                 <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>

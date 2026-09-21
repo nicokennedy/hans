@@ -281,12 +281,26 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_production_index_path
   end
 
-  test "production sees no link to Preparaciones or Recetas in the navbar, and is redirected away from a direct URL" do
+  test "production cannot access or manage exceptional delivery dates" do
+    sign_in @production_user
+
+    get admin_delivery_settings_path
+    assert_redirected_to admin_production_index_path
+
+    tuesday = Date.new(2026, 10, 6)
+    assert_no_changes -> { DeliverySetting.current.exceptional_date?(tuesday) } do
+      post admin_exceptional_delivery_dates_path, params: { date: tuesday.iso8601 }
+    end
+    assert_redirected_to admin_production_index_path
+  end
+
+  test "production sees no link to Preparaciones, Recetas or Fechas de entrega in the navbar, and is redirected away from a direct URL" do
     sign_in @production_user
 
     get admin_orders_path
     assert_no_match "Preparaciones", response.body
     assert_no_match "Recetas", response.body
+    assert_no_match "Fechas de entrega", response.body
 
     get admin_preparations_path
     assert_redirected_to admin_production_index_path
@@ -423,6 +437,10 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     get admin_recipes_path
     assert_response :success
     assert_match @product.name, response.body
+
+    get admin_delivery_settings_path
+    assert_response :success
+    assert_match "Fechas excepcionales de entrega", response.body
   end
 
   # --- Customer: unaffected, isolated ---
@@ -493,6 +511,25 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in @customer_user
 
     get admin_recipes_path
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access or manage exceptional delivery dates, even by manipulating the URL directly" do
+    sign_in @customer_user
+
+    get admin_delivery_settings_path
+    assert_redirected_to dashboard_path
+
+    tuesday = Date.new(2026, 10, 6)
+    assert_no_changes -> { DeliverySetting.current.exceptional_date?(tuesday) } do
+      post admin_exceptional_delivery_dates_path, params: { date: tuesday.iso8601 }
+    end
+    assert_redirected_to dashboard_path
+
+    DeliverySetting.current.add_exceptional_date!(tuesday)
+    assert_no_changes -> { DeliverySetting.current.exceptional_date?(tuesday) } do
+      delete admin_exceptional_delivery_date_path(tuesday.iso8601)
+    end
     assert_redirected_to dashboard_path
   end
 

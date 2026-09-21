@@ -59,6 +59,13 @@ Rails.application.routes.draw do
     # cada Producto" (ver Admin::RecipesController).
     resources :recipes, only: [:index]
 
+    # Pantalla de administración de DeliverySetting — por ahora solo expone
+    # las fechas excepcionales de entrega (ver Admin::DeliverySettingsController
+    # y Admin::ExceptionalDeliveryDatesController). No hay :id porque
+    # DeliverySetting.current es un singleton.
+    resource :delivery_settings, only: [:show]
+    resources :exceptional_delivery_dates, only: [:create, :destroy]
+
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do
       post :test, on: :member
