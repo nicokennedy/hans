@@ -1,12 +1,6 @@
 class DeliveryDateValidator
   UNAVAILABLE_WEEKDAYS = [0, 2, 4].freeze # domingo, martes, jueves
 
-  # Corte recurrente para la entrega del sábado: se acepta pedido hasta el
-  # viernes anterior a esta hora (en vez de hasta la medianoche del propio
-  # sábado, como el resto de los días habilitados). Aplica todas las semanas,
-  # no es una excepción puntual de una fecha concreta.
-  SATURDAY_CUTOFF_HOUR = 14
-
   # Nombres en plural para el mensaje de error, en el orden habitual de la
   # semana (lunes a domingo) — no el orden numérico de wday (que arranca en
   # domingo=0), para que el mensaje se lea "martes, jueves ni domingos" y
@@ -89,15 +83,13 @@ class DeliveryDateValidator
     "#{items[0..-2].join(', ')} ni #{items.last}"
   end
 
+  # Misma regla para todos los días de entrega, sin excepción: se puede
+  # pedir hasta las 23:59 (hora local, Time.zone) del día anterior. A partir
+  # de las 00:00 del propio día de entrega ya cerró — conceptualmente
+  # equivalente a exigir date > Date.current. Ya no hay ningún corte
+  # especial para sábado (existió un tiempo como SATURDAY_CUTOFF_HOUR,
+  # viernes 14:00 — eliminado a pedido del negocio).
   def cutoff_passed?
-    now >= cutoff_time
-  end
-
-  def cutoff_time
-    if date.saturday?
-      (date - 1).in_time_zone.change(hour: SATURDAY_CUTOFF_HOUR, min: 0, sec: 0)
-    else
-      date.in_time_zone.beginning_of_day
-    end
+    now >= date.in_time_zone.beginning_of_day
   end
 end

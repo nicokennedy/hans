@@ -460,10 +460,10 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "allows creating and editing an order for a Saturday after the recurring customer cutoff (Friday 14:00 -03)" do
+  test "allows creating and editing an order for a Saturday after the customer cutoff (same-day midnight, like any other day)" do
     saturday_date = Date.new(2026, 9, 5)
 
-    travel_to Time.zone.local(2026, 9, 4, 14, 0, 0) do
+    travel_to Time.zone.local(2026, 9, 5, 0, 0, 0) do
       assert DeliveryDateValidator.reason(saturday_date).present?,
         "test setup expects this Saturday to already be closed for customers at this time"
 

@@ -238,10 +238,10 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_blocked_for_customer(next_weekday(0))
   end
 
-  test "a customer cannot create an order for Saturday once the Friday 14:00 cutoff has passed" do
+  test "a customer cannot create an order for Saturday once it's actually Saturday (midnight cutoff, same rule as every other day)" do
     saturday_date = Date.new(2026, 9, 12)
 
-    travel_to Time.zone.local(2026, 9, 11, 14, 0, 0) do
+    travel_to Time.zone.local(2026, 9, 12, 0, 0, 0) do
       assert DeliveryDateValidator.reason(saturday_date).present?, "test setup expects this Saturday to already be closed"
 
       sign_in @user
@@ -256,10 +256,30 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "a customer can still create an order for Saturday before the Friday 14:00 cutoff" do
+  # No existe más un corte especial de viernes 14:00 para el sábado — un
+  # pedido de Saturday sigue disponible durante todo el viernes, a
+  # cualquier hora, igual que cualquier otro día respecto del suyo.
+  test "a customer can still create an order for Saturday any time Friday, including after the old 14:00 cutoff" do
     saturday_date = Date.new(2026, 9, 12)
 
-    travel_to Time.zone.local(2026, 9, 11, 13, 59, 59) do
+    travel_to Time.zone.local(2026, 9, 11, 18, 0, 0) do
+      sign_in @user
+      post add_cart_path, params: { product_id: @product.id }
+
+      assert_difference "Order.count", 1 do
+        post orders_path, params: { order: { delivery_date: saturday_date, payment_method_selected: "cash_on_delivery" } }
+      end
+
+      order = @customer.orders.order(:id).last
+      assert_redirected_to order_path(order)
+      assert_equal saturday_date, order.delivery_date
+    end
+  end
+
+  test "a customer can create an order for Saturday right up to 23:59:59 Friday" do
+    saturday_date = Date.new(2026, 9, 12)
+
+    travel_to Time.zone.local(2026, 9, 11, 23, 59, 59) do
       sign_in @user
       post add_cart_path, params: { product_id: @product.id }
 
