@@ -66,6 +66,22 @@ Rails.application.routes.draw do
     resource :delivery_settings, only: [:show]
     resources :exceptional_delivery_dates, only: [:create, :destroy]
 
+    # Módulo Stock/Producción. StockItem no tiene rutas nested bajo
+    # products/preparations a propósito: el form de alta/edición (embebido
+    # en la pantalla del Product/Preparation) manda stockable_type/id como
+    # campos ocultos — mismo criterio "un solo controller, tipo resuelto
+    # desde el propio payload" que ya usa RecipeComponent (ver
+    # RecipeComponent.resolve_component). show es el panel diario; las
+    # acciones de producción/conteo son las únicas que puede usar el perfil
+    # production (ver Admin::StockController/Admin::StockItemsController).
+    resource :stock, only: [:show], controller: "stock"
+    resources :stock_items, only: [:show, :create, :update] do
+      member do
+        post :register_production
+        post :register_count
+      end
+    end
+
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do
       post :test, on: :member

@@ -4,6 +4,15 @@
     <div class="text-muted">Panel operativo mayorista</div>
   </div>
 
+  <% if @stock_needing_production_count.positive? %>
+    <%= link_to admin_stock_path, class: "text-decoration-none" do %>
+      <div class="alert alert-danger d-flex align-items-center justify-content-between">
+        <span>🔴 <%= @stock_needing_production_count %> <%= @stock_needing_production_count == 1 ? "producto/preparación necesita" : "productos/preparaciones necesitan" %> producción</span>
+        <span class="fw-bold">Ir a Stock / Producción →</span>
+      </div>
+    <% end %>
+  <% end %>
+
   <div class="row g-4">
     <div class="col-md-4">
       <%= link_to admin_orders_path, class: "text-decoration-none text-dark" do %>

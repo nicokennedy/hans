@@ -9,6 +9,15 @@ class OrderItem < ApplicationRecord
   before_validation :set_snapshots, on: :create
   before_validation :calculate_totals
 
+  # Red de seguridad: Admin::OrdersController edita/agrega/borra order_items
+  # directamente (item.save!/create!/destroy!) y recién al final llama
+  # order.update!, que es lo que dispara Order#reconcile_stock_dispatch. Si
+  # alguna vez un order_item se guarda sin pasar por ahí, esto asegura que
+  # igual se reconcilie — Stock::DispatchReconciler es idempotente (delta
+  # 0 si ya estaba al día), así que disparar de más nunca hace daño.
+  after_save :reconcile_order_stock_dispatch
+  after_destroy :reconcile_order_stock_dispatch
+
   def unit_price_amount
     unit_price_cents_snapshot.to_i / 100
   end
@@ -36,5 +45,9 @@ class OrderItem < ApplicationRecord
   def calculate_totals
     self.line_revenue_cents = quantity.to_i * unit_price_cents_snapshot.to_i
     self.line_cost_cents = quantity.to_i * unit_cost_cents_snapshot.to_i
+  end
+
+  def reconcile_order_stock_dispatch
+    Stock::DispatchReconciler.call(order)
   end
 end

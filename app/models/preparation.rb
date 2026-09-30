@@ -15,6 +15,12 @@ class Preparation < ApplicationRecord
   # terceros).
   has_many :recipe_components, as: :owner, dependent: :destroy, inverse_of: :owner
 
+  # dependent: :destroy porque es dato propio de la preparación — igual
+  # criterio que Product#stock_item. Si tiene movimientos, StockItem
+  # (dependent: :restrict_with_error) impide borrarla, protegiendo la
+  # trazabilidad.
+  has_one :stock_item, as: :stockable, dependent: :destroy
+
   # Dónde ESTA preparación es usada como ingrediente de otra. Acá sí
   # restrict_with_error — no se puede destruir (ni existe UI para hacerlo)
   # una preparación de la que otra depende.
@@ -40,6 +46,10 @@ class Preparation < ApplicationRecord
 
   def component_costs
     Costing::PreparationCalculator.component_costs(self)
+  end
+
+  def stock_controlled?
+    stock_item&.active? || false
   end
 
   # ¿"self" aparece, directa o transitivamente, entre los componentes de

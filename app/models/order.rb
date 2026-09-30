@@ -57,12 +57,23 @@ class Order < ApplicationRecord
   validates :delivery_date, presence: true
   validates :status, :payment_status, presence: true
   validate :delivery_date_must_be_available, on: :create, unless: :created_by_admin?
+  validate :sufficient_stock_for_items, on: :create, unless: :created_by_admin?
   validate :must_have_order_items, on: :update
 
   scope :not_canceled, -> { where.not(status: "canceled") }
 
   before_validation :set_defaults
   before_save :recalculate_total
+
+  # Reconcilia SIEMPRE, sin condición — crear/editar/cancelar un pedido, o
+  # cambiarle la fecha de entrega, puede alterar si corresponde una salida
+  # física (ver Stock::DispatchReconciler). Es intencionalmente incondicional
+  # en vez de intentar adivinar "¿esto es relevante?": el propio reconciler
+  # ya es barato y no-op cuando no hay nada que cambiar (delta 0), así que
+  # es más seguro correrlo siempre que arriesgarse a un caso borde donde no
+  # se dispare. Corre DENTRO de la misma transacción que el guardado del
+  # pedido — si falla, el pedido tampoco se guarda, nunca queda a medias.
+  after_save :reconcile_stock_dispatch
 
   # Dispara la notificación (Action Cable + Web Push) una sola vez, después
   # de que la creación del pedido esté realmente confirmada en la base de
@@ -154,5 +165,13 @@ class Order < ApplicationRecord
 
     reason = DeliveryDateValidator.reason(delivery_date)
     errors.add(:delivery_date, reason) if reason.present?
+  end
+
+  def sufficient_stock_for_items
+    Stock::InsufficientStockChecker.violations_for(self).each { |message| errors.add(:base, message) }
+  end
+
+  def reconcile_stock_dispatch
+    Stock::DispatchReconciler.call(self)
   end
 end

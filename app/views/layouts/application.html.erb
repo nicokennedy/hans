@@ -54,11 +54,13 @@
                 <%= link_to "Materias primas", admin_raw_materials_path, class: nav_link_class("admin/raw_materials") %>
                 <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
                 <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
+                <%= link_to "Stock", admin_stock_path, class: nav_link_class("admin/stock", "admin/stock_items") %>
                 <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
                 <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
               <% elsif current_user.production? %>
                 <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>
                 <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
+                <%= link_to "Stock", admin_stock_path, class: "btn btn-sm btn-outline-dark" %>
                 <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
               <% else %>
                 <%= link_to "Mi portal", dashboard_path, class: "btn btn-sm btn-dark" %>

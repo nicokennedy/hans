@@ -26,6 +26,8 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     @product_recipe = ProductRecipe.create!(product: @product, yield_quantity: 10)
     @product_recipe_component = @product_recipe.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
+
+    @stock_item = StockItem.create!(stockable: @preparation, active: true, quantity: 5, minimum_quantity: 2)
   end
 
   # --- Production: allowed access ---
@@ -76,6 +78,28 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_match "Enviar pedido por WhatsApp", response.body
   ensure
     ENV["WHATSAPP_OBRADOR_NUMBER"] = original
+  end
+
+  test "production can access the stock dashboard and a stock item's history" do
+    sign_in @production_user
+
+    get admin_stock_path
+    assert_response :success
+
+    get admin_stock_item_path(@stock_item)
+    assert_response :success
+  end
+
+  test "production can register production and stock counts" do
+    sign_in @production_user
+
+    post register_production_admin_stock_item_path(@stock_item), params: { quantity: 2 }
+    assert_redirected_to admin_stock_path
+    assert_equal BigDecimal("7"), @stock_item.reload.quantity
+
+    post register_count_admin_stock_item_path(@stock_item), params: { counted_quantity: 4 }
+    assert_redirected_to admin_stock_path
+    assert_equal BigDecimal("4"), @stock_item.reload.quantity
   end
 
   # --- Production: blocked access (server-side, not just hidden UI) ---
@@ -332,6 +356,21 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_production_index_path
   end
 
+  test "production cannot create or update stock item configuration (admin-only), even by direct mutation" do
+    sign_in @production_user
+
+    other_preparation = Preparation.create!(name: "Other Prep ProdRoleTest", yield_quantity: 1, yield_unit: "kg")
+    other_preparation.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
+
+    assert_no_difference "StockItem.count" do
+      post admin_stock_items_path, params: { stock_item: { stockable_type: "Preparation", stockable_id: other_preparation.id, active: "1", minimum_quantity: 3 } }
+    end
+
+    assert_no_changes -> { @stock_item.reload.minimum_quantity } do
+      patch admin_stock_item_path(@stock_item), params: { stock_item: { minimum_quantity: 99 } }
+    end
+  end
+
   test "production cannot access the customer-facing cart, dashboard or own-orders screens" do
     sign_in @production_user
 
@@ -511,6 +550,26 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in @customer_user
 
     get admin_recipes_path
+    assert_redirected_to dashboard_path
+  end
+
+  test "customer cannot access the stock module at all, even via direct URL/param manipulation" do
+    sign_in @customer_user
+
+    get admin_stock_path
+    assert_redirected_to dashboard_path
+
+    get admin_stock_item_path(@stock_item)
+    assert_redirected_to dashboard_path
+
+    assert_no_difference "StockMovement.count" do
+      post register_production_admin_stock_item_path(@stock_item), params: { quantity: 2 }
+    end
+    assert_redirected_to dashboard_path
+
+    assert_no_changes -> { @stock_item.reload.minimum_quantity } do
+      patch admin_stock_item_path(@stock_item), params: { stock_item: { minimum_quantity: 99 } }
+    end
     assert_redirected_to dashboard_path
   end
 

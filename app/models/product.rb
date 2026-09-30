@@ -7,6 +7,12 @@ class Product < ApplicationRecord
   # que nunca incluye "ProductRecipe"), mismo criterio que Order/order_items.
   has_one :product_recipe, dependent: :destroy
 
+  # dependent: :destroy por el mismo criterio que product_recipe — es dato
+  # propio del producto. Si tiene movimientos, StockItem#stock_movements
+  # (dependent: :restrict_with_error) va a impedir borrarlo — y por lo tanto
+  # también impide borrar el Product, protegiendo la trazabilidad.
+  has_one :stock_item, as: :stockable, dependent: :destroy
+
   # "manual": cost_cents se carga/edita a mano (default — todo producto nace
   # así). "recipe": cost_cents lo gobierna la ProductRecipe activa (Fase
   # 4/5) — ver Costing::ActivateProductRecipe/SyncProductCost.
@@ -43,6 +49,13 @@ class Product < ApplicationRecord
 
   def cost_amount=(value)
     self.cost_cents = value.to_s.gsub(".", "").gsub(",", "").to_i * 100
+  end
+
+  # true (default de la columna) para todos los productos existentes: nadie
+  # empieza a bloquearse por stock salvo que un admin lo configure a
+  # propósito con un StockItem activo Y esta bandera en false.
+  def stock_controlled?
+    stock_item&.active? || false
   end
 
   # --- Escritura interna privilegiada del motor de costeo ------------------

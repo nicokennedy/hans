@@ -1,0 +1,52 @@
+<%# locals: stockable (Product o Preparation) %>
+<div class="product-card mt-4">
+  <h2 class="h5">Stock</h2>
+
+  <% stock_item = stockable.stock_item %>
+
+  <% if stock_item.blank? %>
+    <p class="text-muted">
+      <%= stockable.is_a?(Product) ? "Este producto" : "Esta preparación" %> todavía no controla stock — sigue
+      funcionando exactamente igual que hoy hasta que lo actives acá.
+    </p>
+
+    <%= form_with url: admin_stock_items_path, method: :post, local: true, html: { class: "row g-2 align-items-end" } do %>
+      <%= hidden_field_tag "stock_item[stockable_type]", stockable.class.name %>
+      <%= hidden_field_tag "stock_item[stockable_id]", stockable.id %>
+      <%= hidden_field_tag "stock_item[active]", "1" %>
+
+      <div class="col-12 col-md-4">
+        <%= label_tag "stock_item_minimum_quantity", "Stock mínimo esperado", class: "form-label" %>
+        <%= number_field_tag "stock_item[minimum_quantity]", 0, min: 0, step: "any", class: "form-control", required: true %>
+        <div class="form-text">En <%= stockable.is_a?(Preparation) ? stockable.yield_unit : "un" %>.</div>
+      </div>
+      <div class="col-12 col-md-4">
+        <%= submit_tag "Habilitar control de stock", class: "btn btn-dark" %>
+      </div>
+    <% end %>
+  <% else %>
+    <p class="mb-2">
+      <strong>Control de stock:</strong> <%= stock_item.active? ? "Activo" : "Desactivado" %> &middot;
+      <strong>Unidad:</strong> <%= stock_item.unit %> &middot;
+      <strong>Stock físico actual:</strong> <%= format_quantity(stock_item.quantity) %> <%= stock_item.unit %>
+    </p>
+
+    <%= form_with model: stock_item, url: admin_stock_item_path(stock_item), method: :patch, local: true, html: { class: "row g-2 align-items-end mb-3" } do |f| %>
+      <div class="col-12 col-md-4">
+        <%= f.label :minimum_quantity, "Stock mínimo esperado", class: "form-label" %>
+        <%= f.number_field :minimum_quantity, min: 0, step: "any", class: "form-control", required: true %>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="form-check">
+          <%= f.check_box :active, class: "form-check-input" %>
+          <%= f.label :active, "Controla stock", class: "form-check-label" %>
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <%= f.submit "Guardar", class: "btn btn-dark" %>
+      </div>
+    <% end %>
+
+    <%= link_to "Ver historial de stock", admin_stock_item_path(stock_item), class: "btn btn-sm btn-outline-dark" %>
+  <% end %>
+</div>

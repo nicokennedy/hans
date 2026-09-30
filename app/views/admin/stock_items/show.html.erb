@@ -1,0 +1,80 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1><%= @stock_item.name %></h1>
+      <p class="text-muted mb-0">Historial de stock</p>
+    </div>
+    <%= link_to "← Stock / Producción", admin_stock_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card mb-4">
+    <div class="row text-center g-3">
+      <div class="col-6 col-md-3">
+        <div class="text-muted small">Stock físico</div>
+        <div class="h5 mb-0"><%= format_quantity(@snapshot.physical_quantity) %> <%= @snapshot.unit %></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted small">Comprometido futuro</div>
+        <div class="h5 mb-0"><%= format_quantity(@snapshot.future_committed) %> <%= @snapshot.unit %></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted small">
+          Salidas de hoy
+          <% if @snapshot.today_dispatch_materialized %>
+            (ya descontadas)
+          <% else %>
+            (pendiente)
+          <% end %>
+        </div>
+        <div class="h5 mb-0"><%= format_quantity(@snapshot.today_dispatch) %> <%= @snapshot.unit %></div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted small">Disponible</div>
+        <div class="h5 mb-0"><%= format_quantity(@snapshot.available_quantity) %> <%= @snapshot.unit %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card">
+    <h2 class="h5">Movimientos</h2>
+
+    <% if @movements.empty? %>
+      <p class="text-muted mb-0">Todavía no hay movimientos registrados.</p>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th>Stock resultante</th>
+              <th>Pedido</th>
+              <th>Usuario</th>
+              <th>Observación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @movements.each do |movement| %>
+              <tr>
+                <td><%= movement.created_at.strftime("%d/%m %H:%M") %></td>
+                <td><%= stock_movement_type_label(movement.movement_type) %></td>
+                <td class="<%= movement.quantity.positive? ? "text-success" : "text-danger" %>">
+                  <%= movement.quantity.positive? ? "+" : "" %><%= format_quantity(movement.quantity) %>
+                </td>
+                <td><%= format_quantity(movement.resulting_quantity) %> <%= @snapshot.unit %></td>
+                <td>
+                  <% if movement.order.present? %>
+                    <%= link_to movement.order.number, admin_order_path(movement.order) %>
+                  <% end %>
+                </td>
+                <td><%= movement.user&.email %></td>
+                <td><%= movement.note %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

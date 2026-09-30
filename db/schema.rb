@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_21_123922) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_29_164612) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -144,6 +144,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_21_123922) do
     t.string "internal_category"
     t.string "public_category"
     t.string "cost_source", default: "manual", null: false
+    t.boolean "sell_without_stock", default: true, null: false
     t.index ["category_id"], name: "index_products_on_category_id"
   end
 
@@ -208,6 +209,32 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_21_123922) do
     t.index ["owner_type", "owner_id"], name: "index_recipe_components_on_owner"
   end
 
+  create_table "stock_items", force: :cascade do |t|
+    t.string "stockable_type", null: false
+    t.bigint "stockable_id", null: false
+    t.decimal "quantity", precision: 12, scale: 3, default: "0.0", null: false
+    t.decimal "minimum_quantity", precision: 12, scale: 3, default: "0.0", null: false
+    t.boolean "active", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["stockable_type", "stockable_id"], name: "index_stock_items_on_stockable_type_and_stockable_id", unique: true
+  end
+
+  create_table "stock_movements", force: :cascade do |t|
+    t.bigint "stock_item_id", null: false
+    t.string "movement_type", null: false
+    t.decimal "quantity", precision: 12, scale: 3, null: false
+    t.decimal "resulting_quantity", precision: 12, scale: 3, null: false
+    t.bigint "order_id"
+    t.bigint "user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_stock_movements_on_order_id"
+    t.index ["stock_item_id", "order_id"], name: "index_stock_movements_on_stock_item_id_and_order_id"
+    t.index ["stock_item_id"], name: "index_stock_movements_on_stock_item_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -234,4 +261,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_21_123922) do
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "raw_material_cost_changes", "raw_materials"
   add_foreign_key "raw_material_cost_changes", "users", column: "changed_by_user_id"
+  add_foreign_key "stock_movements", "orders"
+  add_foreign_key "stock_movements", "stock_items"
+  add_foreign_key "stock_movements", "users"
 end

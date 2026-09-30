@@ -1,0 +1,66 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Stock / Producción</h1>
+      <p class="text-muted mb-0">Qué producir hoy, según stock disponible y pedidos comprometidos.</p>
+    </div>
+    <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <% if @snapshots.empty? %>
+    <div class="product-card">
+      <p class="text-muted mb-0">
+        Todavía no hay ningún producto ni preparación controlando stock. Activalo desde la pantalla de edición
+        de un producto o de una preparación.
+      </p>
+    </div>
+  <% else %>
+    <% @snapshots.each do |snapshot| %>
+      <div class="product-card mb-3">
+        <div class="row align-items-center g-3">
+          <div class="col-12 col-md-5">
+            <div class="fs-4">
+              <%= stock_status_emoji(snapshot.status) %>
+              <%= link_to snapshot.name, admin_stock_item_path(snapshot.stock_item), class: "text-decoration-none text-dark fw-bold" %>
+            </div>
+
+            <% if snapshot.production_needed.positive? %>
+              <div class="fs-5 fw-bold text-danger">PRODUCIR: <%= format_quantity(snapshot.production_needed) %> <%= snapshot.unit %></div>
+            <% else %>
+              <div class="fs-6 text-muted"><%= stock_status_text(snapshot.status) %></div>
+            <% end %>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="small text-muted">
+              Disponible: <strong><%= format_quantity(snapshot.available_quantity) %> <%= snapshot.unit %></strong>
+              &middot; Mínimo: <%= format_quantity(snapshot.minimum_quantity) %> <%= snapshot.unit %>
+            </div>
+            <div class="small text-muted">
+              Físico: <%= format_quantity(snapshot.physical_quantity) %> <%= snapshot.unit %>
+              &middot; Comprometido futuro: <%= format_quantity(snapshot.future_committed) %> <%= snapshot.unit %>
+            </div>
+            <div class="small text-muted">
+              Salidas de hoy: <%= format_quantity(snapshot.today_dispatch) %> <%= snapshot.unit %>
+              <%= snapshot.today_dispatch_materialized ? "(ya descontadas)" : "(pendiente)" %>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <div class="d-flex flex-column gap-2">
+              <%= form_with url: register_production_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex gap-1" } do %>
+                <%= number_field_tag :quantity, nil, min: 0, step: "any", placeholder: "Cantidad", class: "form-control form-control-sm", required: true %>
+                <%= submit_tag "+ Producción", class: "btn btn-sm btn-dark text-nowrap" %>
+              <% end %>
+
+              <%= form_with url: register_count_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex gap-1" } do %>
+                <%= number_field_tag :counted_quantity, format_quantity(snapshot.physical_quantity), min: 0, step: "any", placeholder: "Conteo", class: "form-control form-control-sm", required: true %>
+                <%= submit_tag "Contar", class: "btn btn-sm btn-outline-dark text-nowrap" %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

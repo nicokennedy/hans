@@ -148,7 +148,8 @@ class Admin::ProductsController < ApplicationController
       :category_id,
       :internal_category,
       :position,
-      :active
+      :active,
+      :sell_without_stock
     ]
     permitted << :cost_amount unless @product&.recipe?
 
