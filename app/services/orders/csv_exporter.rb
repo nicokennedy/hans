@@ -13,9 +13,20 @@ module Orders
       "Precio unitario",
       "Total producto",
       "Total pedido",
-      "Pagado",
-      "Pendiente"
+      "Estado de pago",
+      "Total pagado",
+      "Saldo pendiente"
     ].freeze
+
+    # Etiquetas propias del CSV (no app/models/order.rb#PAYMENT_STATUS_LABELS,
+    # que dice "Pago parcial" en el resto de la UI) — acá se pidió "Parcial"
+    # a secas. Mapea el valor REAL del enum (ver Order#payment_status), nunca
+    # recalcula el estado en sí.
+    PAYMENT_STATUS_CSV_LABELS = {
+      "paid" => "Pagado",
+      "partial" => "Parcial",
+      "pending" => "Pendiente"
+    }.freeze
 
     # BOM UTF-8: sin esto, Excel en Windows/Argentina suele interpretar el
     # archivo con otra codificación y corrompe tildes/ñ (Cliente, Producto).
@@ -40,6 +51,7 @@ module Orders
               money(item.unit_price_cents_snapshot),
               money(item.line_revenue_cents),
               money(order.total_cents),
+              payment_status_label(order),
               money(order.amount_paid_cents),
               money(order.balance_due_cents)
             ]
@@ -58,6 +70,10 @@ module Orders
     # nunca el precio o costo actual del producto.
     def money(cents)
       format("%.2f", cents.to_i / 100.0)
+    end
+
+    def payment_status_label(order)
+      PAYMENT_STATUS_CSV_LABELS[order.payment_status] || order.payment_status
     end
   end
 end
