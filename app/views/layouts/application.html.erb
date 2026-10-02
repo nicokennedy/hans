@@ -21,108 +21,122 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
   </head>
 
-  <body>
-    <nav class="navbar-hans py-3">
-      <div class="container">
-        <div class="nav-hans-wrapper">
-          <%= link_to "HANS", root_path, class: "brand-hans" %>
+  <body class="<%= 'with-sidebar' if user_signed_in? %>">
+    <% if user_signed_in? %>
+      <header class="topbar-hans">
+        <%= link_to "HANS", root_path, class: "brand-hans" %>
 
-          <button class="nav-hans-toggle" type="button" onclick="document.body.classList.toggle('nav-open')">
-            ☰
-          </button>
+        <button class="nav-hans-toggle" type="button" aria-label="Abrir menú" onclick="document.body.classList.toggle('nav-open')">
+          ☰
+        </button>
+      </header>
 
-          <div class="nav-hans-menu">
-            <% if user_signed_in? %>
-              <div class="nav-user-badge">
-                <div class="nav-user-dot"></div>
+      <div class="sidebar-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
 
-                <span>
-                  <% if current_user.customer.present? %>
-                    <%= current_user.customer.name.presence || current_user.email %>
-                  <% else %>
-                    <%= current_user.email %>
-                  <% end %>
-                </span>
-              </div>
+      <aside class="sidebar-hans">
+        <%= link_to "HANS", root_path, class: "brand-hans sidebar-brand" %>
 
-              <% if current_user.admin? %>
-                <%= link_to "Panel", admin_root_path, class: nav_link_class("admin/dashboard") %>
-                <%= link_to "Pedidos", admin_orders_path, class: nav_link_class("admin/orders") %>
-                <%= link_to "Producción", admin_production_index_path, class: nav_link_class("admin/production") %>
-                <%= link_to "Clientes", admin_customers_path, class: nav_link_class("admin/customers") %>
-                <%= link_to "Productos", admin_products_path, class: nav_link_class("admin/products", "admin/product_recipes") %>
-                <%= link_to "Materias primas", admin_raw_materials_path, class: nav_link_class("admin/raw_materials") %>
-                <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
-                <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
-                <%= link_to "Stock", admin_stock_path, class: nav_link_class("admin/stock", "admin/stock_items") %>
-                <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
-                <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
-              <% elsif current_user.production? %>
-                <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>
-                <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Stock", admin_stock_path, class: "btn btn-sm btn-outline-dark" %>
-                <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
-              <% else %>
-                <%= link_to "Mi portal", dashboard_path, class: "btn btn-sm btn-dark" %>
+        <div class="nav-user-badge">
+          <div class="nav-user-dot"></div>
 
-                <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
-
-                <%= turbo_frame_tag "cart_count" do %>
-                  <%= link_to "Carrito (#{cart_count})",
-                    cart_path,
-                    class: "btn btn-sm btn-outline-dark",
-                    data: { turbo_frame: "_top" } %>
-                <% end %>
-
-                <%= link_to "Mis pedidos", orders_path, class: "btn btn-sm btn-outline-dark" %>
-              <% end %>
-
-              <%= button_to "Salir",
-                destroy_user_session_path,
-                method: :delete,
-                class: "btn btn-outline-dark btn-sm" %>
+          <span>
+            <% if current_user.customer.present? %>
+              <%= current_user.customer.name.presence || current_user.email %>
             <% else %>
-              <%= link_to "Ingresar",
-                new_user_session_path,
-                class: "btn btn-dark btn-sm" %>
+              <%= current_user.email %>
             <% end %>
+          </span>
+        </div>
+
+        <nav class="sidebar-links">
+          <% if current_user.admin? %>
+            <%= link_to "Panel", admin_root_path, class: nav_link_class("admin/dashboard") %>
+            <%= link_to "Pedidos", admin_orders_path, class: nav_link_class("admin/orders") %>
+            <%= link_to "Producción", admin_production_index_path, class: nav_link_class("admin/production") %>
+            <%= link_to "Clientes", admin_customers_path, class: nav_link_class("admin/customers") %>
+            <%= link_to "Productos", admin_products_path, class: nav_link_class("admin/products", "admin/product_recipes") %>
+            <%= link_to "Materias primas", admin_raw_materials_path, class: nav_link_class("admin/raw_materials") %>
+            <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
+            <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
+            <%= link_to "Stock", admin_stock_path, class: nav_link_class("admin/stock", "admin/stock_items") %>
+            <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
+            <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
+          <% elsif current_user.production? %>
+            <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>
+            <%= link_to "Producción", admin_production_index_path, class: "btn btn-sm btn-outline-dark" %>
+            <%= link_to "Stock", admin_stock_path, class: "btn btn-sm btn-outline-dark" %>
+            <%= link_to "Notificaciones", admin_push_settings_path, class: "btn btn-sm btn-outline-dark" %>
+          <% else %>
+            <%= link_to "Mi portal", dashboard_path, class: "btn btn-sm btn-dark" %>
+
+            <% cart_count = session[:cart].to_h.values.map(&:to_i).sum %>
+
+            <%= turbo_frame_tag "cart_count" do %>
+              <%= link_to "Carrito (#{cart_count})",
+                cart_path,
+                class: "btn btn-sm btn-outline-dark",
+                data: { turbo_frame: "_top" } %>
+            <% end %>
+
+            <%= link_to "Mis pedidos", orders_path, class: "btn btn-sm btn-outline-dark" %>
+          <% end %>
+        </nav>
+
+        <div class="sidebar-footer">
+          <%= button_to "Salir",
+            destroy_user_session_path,
+            method: :delete,
+            class: "btn btn-outline-dark btn-sm" %>
+        </div>
+      </aside>
+    <% else %>
+      <nav class="navbar-hans py-3">
+        <div class="container">
+          <div class="nav-hans-wrapper">
+            <%= link_to "HANS", root_path, class: "brand-hans" %>
+
+            <%= link_to "Ingresar",
+              new_user_session_path,
+              class: "btn btn-dark btn-sm" %>
           </div>
         </div>
-      </div>
-    </nav>
-
-    <div class="container py-2">
-      <% if notice.present? %>
-        <div class="alert alert-success"><%= notice %></div>
-      <% end %>
-
-      <% if alert.present? %>
-        <div class="alert alert-danger"><%= alert %></div>
-      <% end %>
-    </div>
-
-    <% if user_signed_in? && current_user.admin_or_production? %>
-      <div data-controller="order-notifications" data-order-notifications-current-url-value="<%= request.original_url %>">
-        <div data-order-notifications-target="container" aria-live="polite"></div>
-
-        <template data-order-notifications-target="template">
-          <div class="order-notification-banner" role="status">
-            <div class="order-notification-banner-title">Nuevo pedido recibido</div>
-            <div class="order-notification-banner-body">
-              <span data-order-notifications-target="customerName"></span> ·
-              Pedido <span data-order-notifications-target="orderNumber"></span>
-            </div>
-            <div class="order-notification-banner-actions">
-              <a href="#" class="btn btn-sm btn-dark" data-order-notifications-target="viewLink">Ver pedido</a>
-              <button type="button" class="btn btn-sm btn-outline-dark" data-action="order-notifications#refresh">Actualizar</button>
-              <button type="button" class="btn-close-banner" data-action="order-notifications#dismiss" aria-label="Cerrar aviso">×</button>
-            </div>
-          </div>
-        </template>
-      </div>
+      </nav>
     <% end %>
 
-    <%= yield %>
+    <div class="app-content">
+      <div class="container py-2">
+        <% if notice.present? %>
+          <div class="alert alert-success"><%= notice %></div>
+        <% end %>
+
+        <% if alert.present? %>
+          <div class="alert alert-danger"><%= alert %></div>
+        <% end %>
+      </div>
+
+      <% if user_signed_in? && current_user.admin_or_production? %>
+        <div data-controller="order-notifications" data-order-notifications-current-url-value="<%= request.original_url %>">
+          <div data-order-notifications-target="container" aria-live="polite"></div>
+
+          <template data-order-notifications-target="template">
+            <div class="order-notification-banner" role="status">
+              <div class="order-notification-banner-title">Nuevo pedido recibido</div>
+              <div class="order-notification-banner-body">
+                <span data-order-notifications-target="customerName"></span> ·
+                Pedido <span data-order-notifications-target="orderNumber"></span>
+              </div>
+              <div class="order-notification-banner-actions">
+                <a href="#" class="btn btn-sm btn-dark" data-order-notifications-target="viewLink">Ver pedido</a>
+                <button type="button" class="btn btn-sm btn-outline-dark" data-action="order-notifications#refresh">Actualizar</button>
+                <button type="button" class="btn-close-banner" data-action="order-notifications#dismiss" aria-label="Cerrar aviso">×</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </div>
 
     <% if user_signed_in? && current_user.admin_or_production? %>
       <script>

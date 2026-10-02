@@ -955,3 +955,110 @@ textarea.hans-input {
     max-width: none;
   }
 }
+
+// --- Sidebar de navegación (usuarios con sesión) ---------------------------
+// Desktop: columna fija a la izquierda. Mobile (<= 768px): el sidebar es un
+// drawer que se abre con el botón ☰ de la barra superior (body.nav-open).
+$sidebar-width: 250px;
+
+.topbar-hans,
+.sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-hans {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: $sidebar-width;
+  z-index: 1030;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 16px;
+  overflow-y: auto;
+  background: #ffffff;
+  border-right: 1px solid var(--hans-orange-light);
+
+  .sidebar-brand {
+    display: block;
+    padding: 0 4px;
+  }
+
+  .nav-user-badge {
+    border-radius: 14px;
+    padding: 8px 12px;
+    font-size: 14px;
+
+    span {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .btn,
+    turbo-frame,
+    turbo-frame .btn {
+      width: 100%;
+    }
+
+    .btn {
+      text-align: left;
+    }
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+
+    form,
+    .btn {
+      width: 100%;
+    }
+  }
+}
+
+body.with-sidebar .app-content {
+  margin-left: $sidebar-width;
+}
+
+@media (max-width: 768px) {
+  .topbar-hans {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--hans-orange-light);
+  }
+
+  .sidebar-hans {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    box-shadow: none;
+  }
+
+  body.nav-open .sidebar-hans {
+    transform: translateX(0);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
+  }
+
+  body.nav-open .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1025;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  body.with-sidebar .app-content {
+    margin-left: 0;
+  }
+}
