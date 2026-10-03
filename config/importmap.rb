@@ -8,3 +8,5 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 pin "@rails/actioncable", to: "@rails--actioncable.js" # @7.2.302
 pin "html2canvas" # @1.4.1
 pin "receipt_png"
+pin "receipt_layout"
+pin "pdf_writer"

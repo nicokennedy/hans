@@ -48,10 +48,15 @@ const EXPORT_WIDTH = 1100
 // evalúan el ancho de la ventana, no el ancho del elemento — así que
 // ensanchar el elemento original (o solo pasarle windowWidth a
 // html2canvas) no alcanza si el navegador real es angosto.
-function buildExportClone(sourceElement) {
+function buildExportClone(sourceElement, width = EXPORT_WIDTH) {
   const clone = sourceElement.cloneNode(true)
   clone.removeAttribute("id") // evitar un id duplicado en el documento
   clone.classList.add("receipt-export-render")
+
+  // El PNG individual usa el ancho por defecto de la clase CSS (1100px). La
+  // impresión masiva en PDF pide un ancho propio (más angosto, para que el
+  // texto salga más grande al escalarlo al ancho de una hoja A4).
+  if (width !== EXPORT_WIDTH) clone.style.width = `${width}px`
 
   const wrapper = document.createElement("div")
   wrapper.setAttribute("aria-hidden", "true")
@@ -69,27 +74,20 @@ function buildExportClone(sourceElement) {
   return { wrapper, clone }
 }
 
-export async function captureElementAsPng(element) {
+// Captura el remito como <canvas>. captureElementAsPng (remito individual)
+// y la impresión masiva en PDF (bulk_receipts_controller.js) comparten esta
+// misma captura — así el PDF se ve igual que el PNG, sin un segundo diseño.
+export async function captureElementAsCanvas(element, { width = EXPORT_WIDTH, scale = captureScale() } = {}) {
   const { default: html2canvas } = await import("html2canvas")
 
-  const { wrapper, clone } = buildExportClone(element)
+  const { wrapper, clone } = buildExportClone(element, width)
 
   try {
-    const canvas = await html2canvas(clone, {
+    return await html2canvas(clone, {
       backgroundColor: "#ffffff",
-      scale: captureScale(),
+      scale,
       useCORS: true,
-      windowWidth: EXPORT_WIDTH + 100
-    })
-
-    return await new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob)
-        } else {
-          reject(new Error("No se pudo generar la imagen."))
-        }
-      }, "image/png")
+      windowWidth: width + 100
     })
   } finally {
     // Se ejecuta también si html2canvas tira una excepción — nunca debe
@@ -98,8 +96,26 @@ export async function captureElementAsPng(element) {
   }
 }
 
-// Descarga el blob directamente en la mayoría de los navegadores. En
-// dispositivos Apple táctiles, muestra la imagen en una pestaña nueva y
+export function canvasToBlob(canvas, type = "image/png", quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob)
+      } else {
+        reject(new Error("No se pudo generar la imagen."))
+      }
+    }, type, quality)
+  })
+}
+
+export async function captureElementAsPng(element) {
+  const canvas = await captureElementAsCanvas(element)
+  return await canvasToBlob(canvas, "image/png")
+}
+
+// Descarga el blob (PNG del remito individual, o el PDF de impresión
+// masiva) directamente en la mayoría de los navegadores. En
+// dispositivos Apple táctiles, muestra el archivo en una pestaña nueva y
 // visible para que la persona la guarde o comparta manualmente (mantener
 // presionado / usar el botón de compartir de Safari), como pide el sprint
 // cuando la descarga directa no es confiable.
@@ -113,7 +129,7 @@ export async function captureElementAsPng(element) {
 //   "download"  -> se disparó la descarga directa
 //   "new_tab"   -> la imagen se abrió en una pestaña ya visible
 //   "blocked"   -> el navegador bloqueó la apertura de la pestaña
-export function deliverPng(blob, filename, { preOpenedWindow } = {}) {
+export function deliverBlob(blob, filename, { preOpenedWindow } = {}) {
   const url = URL.createObjectURL(blob)
 
   if (isAppleTouchDevice()) {
@@ -139,4 +155,8 @@ export function deliverPng(blob, filename, { preOpenedWindow } = {}) {
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 5000)
   return { method: "download" }
+}
+
+export function deliverPng(blob, filename, options) {
+  return deliverBlob(blob, filename, options)
 }

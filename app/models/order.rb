@@ -61,6 +61,9 @@ class Order < ApplicationRecord
   validate :must_have_order_items, on: :update
 
   scope :not_canceled, -> { where.not(status: "canceled") }
+  # Pedidos que salen en una fecha de entrega, con el mismo criterio operativo
+  # que Producción: por delivery_date y sin los cancelados.
+  scope :for_delivery_date, ->(date) { not_canceled.where(delivery_date: date) }
 
   before_validation :set_defaults
   before_save :recalculate_total

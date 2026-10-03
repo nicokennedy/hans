@@ -1,0 +1,76 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold mb-0">Imprimir remitos por fecha</h1>
+    <%= link_to "← Pedidos", admin_orders_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card mb-4">
+    <%= form_with url: receipts_admin_orders_path, method: :get, local: true do %>
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="date">Fecha de entrega</label>
+          <%= date_field_tag :date, @date&.iso8601 || params[:date], class: "form-control", required: true,
+                onchange: "this.form.requestSubmit()" %>
+        </div>
+
+        <div class="col-12 col-md-2">
+          <%= submit_tag "Ver pedidos", class: "btn btn-outline-dark w-100", name: nil %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @date && @orders.empty? %>
+    <div class="product-card">
+      No hay pedidos para entregar el <%= @date.strftime("%d/%m/%Y") %>.
+    </div>
+  <% elsif @date %>
+    <% filename = "remitos-#{@date.iso8601}.pdf" %>
+
+    <div data-controller="bulk-receipts"
+         data-bulk-receipts-filename-value="<%= filename %>"
+         data-bulk-receipts-copies-value="<%= @copies %>">
+      <div class="product-card mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <div class="fw-bold" id="receipts-summary">
+              <%= @orders.size %> <%= @orders.size == 1 ? "pedido" : "pedidos" %> para el <%= @date.strftime("%d/%m/%Y") %>
+              → <%= @orders.size * @copies %> remitos (<%= @copies %> copias de cada uno)
+            </div>
+            <div class="small text-muted">
+              Una copia queda en el comercio y la otra vuelve firmada con el repartidor.
+              Se arma un único PDF A4 aprovechando cada hoja; imprimilo al 100% (tamaño real).
+            </div>
+            <div data-bulk-receipts-target="status" class="small mt-1" aria-live="polite"></div>
+          </div>
+
+          <button type="button" class="btn btn-dark" data-bulk-receipts-target="button" data-action="bulk-receipts#generate">
+            Generar PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="product-card mb-4">
+        <% @orders.each do |order| %>
+          <div class="d-flex justify-content-between border-bottom py-2 receipts-order-row">
+            <div>
+              <span class="fw-bold"><%= order.customer.name %></span>
+              <span class="text-muted small ms-2"><%= order.number %></span>
+            </div>
+            <div class="small text-muted"><%= order.order_items.size %> <%= order.order_items.size == 1 ? "producto" : "productos" %></div>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Remitos fuente para la captura: mismo partial que el remito individual (se
+          clonan y renderizan fuera de pantalla al generar el PDF). No se muestran. %>
+      <div class="d-none" aria-hidden="true" id="bulk-receipts-source">
+        <% @orders.each do |order| %>
+          <div data-bulk-receipts-target="receipt" data-order-number="<%= order.number %>">
+            <%= render "orders/receipt", order: order, dom_id: "receipt-#{order.id}" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

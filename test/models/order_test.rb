@@ -255,4 +255,13 @@ class OrderTest < ActiveSupport::TestCase
       assert order.errors[:delivery_date].present?
     end
   end
+
+  test "for_delivery_date returns only that day's orders and leaves out the canceled ones" do
+    date = Date.new(2026, 10, 3)
+    kept = Order.create!(customer: @customer, delivery_date: date, status: "confirmed", created_by_admin: true)
+    Order.create!(customer: @customer, delivery_date: date, status: "canceled", created_by_admin: true)
+    Order.create!(customer: @customer, delivery_date: date + 1, created_by_admin: true)
+
+    assert_equal [kept], Order.for_delivery_date(date).to_a
+  end
 end

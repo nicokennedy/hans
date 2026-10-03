@@ -1,9 +1,12 @@
 class Admin::OrdersController < ApplicationController
   before_action :authenticate_user!
-  before_action :require_admin_or_production!, only: [:index, :show]
+  before_action :require_admin_or_production!, only: [:index, :show, :receipts]
   before_action :require_admin!, only: [:new, :create, :edit, :update, :export]
 
   PAYMENT_STATUS_FILTERS = %w[all pending partial paid].freeze
+
+  # Una copia queda en el comercio y la otra vuelve firmada con el repartidor.
+  DELIVERY_NOTE_COPIES = 2
 
   def index
     if params[:payment_status_filter].present?
@@ -32,6 +35,17 @@ class Admin::OrdersController < ApplicationController
 
   def show
     @order = Order.includes(:customer, :payments, order_items: :product).find(params[:id])
+  end
+
+  # Impresión masiva de remitos de una fecha de entrega. El servidor solo
+  # elige los pedidos y renderiza cada remito con el mismo partial que el
+  # remito individual; el armado de las hojas A4 y el PDF se hacen en el
+  # navegador (bulk_receipts_controller.js), que es quien conoce la altura
+  # real de cada remito.
+  def receipts
+    @copies = DELIVERY_NOTE_COPIES
+    @date = receipts_date
+    @orders = @date ? receipts_orders(@date) : Order.none
   end
 
   def new
@@ -97,6 +111,24 @@ class Admin::OrdersController < ApplicationController
   def current_payment_status_filter
     filter = session[:orders_payment_status_filter].presence || "all"
     PAYMENT_STATUS_FILTERS.include?(filter) ? filter : "all"
+  end
+
+  def receipts_date
+    return Date.current if params[:date].blank?
+
+    Date.iso8601(params[:date])
+  rescue ArgumentError
+    flash.now[:alert] = "La fecha no es válida."
+    nil
+  end
+
+  # Orden estable y legible para quien imprime: por cliente y, a igual
+  # cliente, por antigüedad del pedido.
+  def receipts_orders(date)
+    Order.for_delivery_date(date)
+      .joins(:customer)
+      .preload(:customer, :order_items)
+      .order("customers.name", "orders.id")
   end
 
   def filtered_orders(includes:)

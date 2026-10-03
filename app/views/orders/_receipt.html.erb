@@ -1,4 +1,5 @@
-<div class="hans-receipt" id="order-receipt">
+<%# locals: order, dom_id (opcional, default "order-receipt": id estable que usa el PNG individual) %>
+<div class="hans-receipt" id="<%= local_assigns.fetch(:dom_id, "order-receipt") %>">
   <div class="hans-receipt-header">
     <div class="hans-receipt-brand">HANS</div>
 
