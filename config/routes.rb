@@ -41,6 +41,7 @@ Rails.application.routes.draw do
         post :preview_import
         post :confirm_import
       end
+      resources :stock_sources, only: [:create, :destroy], controller: "product_stock_sources"
       resource :product_recipe, only: [:new, :create, :edit, :update] do
         post :activate
         post :deactivate

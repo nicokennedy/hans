@@ -33,9 +33,12 @@
 
           <tbody>
             <% @preparations.each do |preparation| %>
-              <% total_display, unit_display = preparation_cost_display(preparation) %>
+              <% total_display, unit_display = preparation.stock_only? ? [ "—", "—" ] : preparation_cost_display(preparation) %>
               <tr>
-                <td class="fw-bold"><%= preparation.name %></td>
+                <td class="fw-bold">
+                  <%= preparation.name %>
+                  <% if preparation.stock_only? %><span class="badge bg-info text-dark ms-1">Solo stock</span><% end %>
+                </td>
                 <td><%= format_quantity_unit(preparation.yield_quantity, preparation.yield_unit) %></td>
                 <td><%= total_display %></td>
                 <td><%= unit_display %></td>

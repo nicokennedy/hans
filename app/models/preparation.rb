@@ -30,11 +30,18 @@ class Preparation < ApplicationRecord
     dependent: :restrict_with_error,
     inverse_of: :component
 
+  # Productos que descuentan de ESTE objeto de stock (solo tiene sentido si
+  # stock_only). No se puede borrar una preparación con productos vinculados.
+  has_many :product_stock_sources, dependent: :restrict_with_error
+
   scope :active, -> { where(active: true) }
+  # Las únicas que pueden aparecer como ingrediente en una receta.
+  scope :usable_in_recipes, -> { where(stock_only: false) }
 
   validates :name, presence: true
   validates :yield_quantity, presence: true, numericality: { greater_than: 0 }
   validates :yield_unit, presence: true, inclusion: { in: YIELD_UNITS }
+  validate :stock_only_has_no_recipe_and_is_not_an_ingredient
 
   def total_cost_cents
     Costing::PreparationCalculator.total_cost_cents(self)
@@ -68,5 +75,17 @@ class Preparation < ApplicationRecord
       child = recipe_component.component
       child.present? && child.depends_on?(other, visited)
     end
+  end
+
+  private
+
+  # Un objeto de stock (stock_only) es solo "lo que se cuenta en el freezer":
+  # sin receta propia y sin poder ser ingrediente de ninguna receta. Esa es la
+  # garantía estructural de que agregarlo no puede duplicar ni alterar costos.
+  def stock_only_has_no_recipe_and_is_not_an_ingredient
+    return unless stock_only?
+
+    errors.add(:base, "Un objeto de stock no puede tener receta (componentes)") if recipe_components.any?
+    errors.add(:base, "Un objeto de stock no puede estar usado como ingrediente de una receta") if persisted? && component_usages.exists?
   end
 end

@@ -84,7 +84,7 @@ class Admin::ProductRecipesController < ApplicationController
     @cost_calculation_error = e.message
   ensure
     @raw_material_options = RawMaterial.active.order(:name)
-    @preparation_options = Preparation.active.order(:name)
+    @preparation_options = Preparation.active.usable_in_recipes.order(:name)
   end
 
   def product_recipe_params

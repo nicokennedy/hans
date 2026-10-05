@@ -102,4 +102,39 @@ class PreparationTest < ActiveSupport::TestCase
     assert_not a.depends_on?(b)
     assert_not a.depends_on?(c)
   end
+
+  # --- stock_only: objeto operativo de stock (tapas/bases), sin receta ni costo ---
+
+  test "stock_only defaults to false so no existing preparation changes behavior" do
+    assert_equal false, Preparation.new(name: "X", yield_quantity: 1, yield_unit: "kg").stock_only
+  end
+
+  test "a stock-only preparation cannot have recipe components" do
+    raw = RawMaterial.create!(name: "RM StockOnly #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
+    preparation = Preparation.new(name: "Tapas X", yield_quantity: 1, yield_unit: "un", stock_only: true)
+    preparation.recipe_components.build(component: raw, quantity: 1, unit: "kg")
+
+    assert_not preparation.valid?
+    assert_match(/no puede tener receta/, preparation.errors.full_messages.join)
+  end
+
+  test "a preparation already used as an ingredient cannot be turned into a stock-only object" do
+    raw = RawMaterial.create!(name: "RM StockOnly2 #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
+    inner = Preparation.create!(name: "Interna", yield_quantity: 1, yield_unit: "kg")
+    inner.recipe_components.create!(component: raw, quantity: 1, unit: "kg")
+    outer = Preparation.create!(name: "Externa", yield_quantity: 1, yield_unit: "kg")
+    outer.recipe_components.create!(component: inner, quantity: 1, unit: "kg")
+
+    inner.stock_only = true
+
+    assert_not inner.valid?
+  end
+
+  test "usable_in_recipes leaves out stock-only objects" do
+    normal = Preparation.create!(name: "Normal", yield_quantity: 1, yield_unit: "kg")
+    stock = Preparation.create!(name: "Tapas", yield_quantity: 1, yield_unit: "un", stock_only: true)
+
+    assert_includes Preparation.usable_in_recipes, normal
+    assert_not_includes Preparation.usable_in_recipes, stock
+  end
 end

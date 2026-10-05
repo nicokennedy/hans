@@ -32,6 +32,6 @@ module RecipeComponentsBuildable
   # nada puede depender de él).
   def load_recipe_component_options
     @raw_material_options = RawMaterial.active.order(:name)
-    @preparation_options = Preparation.active.order(:name)
+    @preparation_options = Preparation.active.usable_in_recipes.order(:name)
   end
 end

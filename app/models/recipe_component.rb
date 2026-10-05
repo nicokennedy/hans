@@ -20,6 +20,7 @@ class RecipeComponent < ApplicationRecord
   validates :unit, presence: true, inclusion: { in: UNITS }
   validates :owner_type, inclusion: { in: ALLOWED_OWNER_TYPES }
   validates :component_type, inclusion: { in: ALLOWED_COMPONENT_TYPES }
+  validate :component_is_not_stock_only
   validate :unit_compatible_with_component
   validate :component_does_not_introduce_cycle
 
@@ -60,6 +61,15 @@ class RecipeComponent < ApplicationRecord
     unless Measurement::UnitConverter.compatible?(unit, target_unit)
       errors.add(:unit, "no es compatible con la unidad de #{component_label} (#{target_unit})")
     end
+  end
+
+  # Los objetos de stock ("Tapas ...") no tienen costo y no son ingredientes:
+  # si entraran en una receta se sumarían al costo del producto además de la
+  # masa. Se bloquea acá para que sea imposible, no solo desaconsejado.
+  def component_is_not_stock_only
+    return unless component.is_a?(Preparation) && component.stock_only?
+
+    errors.add(:component, "#{component_label} es un objeto de stock y no puede usarse como ingrediente de una receta")
   end
 
   def component_target_unit

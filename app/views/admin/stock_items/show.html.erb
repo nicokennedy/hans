@@ -35,6 +35,17 @@
     </div>
   </div>
 
+  <% if @stock_item.stockable.is_a?(Preparation) && @stock_item.stockable.product_stock_sources.any? %>
+    <div class="product-card mb-4">
+      <h2 class="h5">Productos que descuentan de este stock</h2>
+      <ul class="mb-0">
+        <% @stock_item.stockable.product_stock_sources.includes(:product).sort_by { |s| s.product.name }.each do |source| %>
+          <li><%= source.product.name.strip %> — <%= format_quantity(source.quantity) %> <%= @snapshot.unit %> por unidad vendida</li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <div class="product-card">
     <h2 class="h5">Movimientos</h2>
 

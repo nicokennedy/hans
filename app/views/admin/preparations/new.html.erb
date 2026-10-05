@@ -32,9 +32,18 @@
         </div>
       </div>
 
-      <div class="form-check mb-4">
+      <div class="form-check mb-3">
         <%= f.check_box :active, class: "form-check-input" %>
         <%= f.label :active, "Activa", class: "form-check-label" %>
+      </div>
+
+      <div class="form-check mb-4">
+        <%= f.check_box :stock_only, class: "form-check-input" %>
+        <%= f.label :stock_only, "Objeto de stock (solo se cuenta en el freezer)", class: "form-check-label" %>
+        <div class="form-text">
+          Para tapas o bases que cocina cuenta en unidades (ej. "Tapas Alfajor Almendra"). No tiene receta ni costo
+          y no se puede usar como ingrediente: los productos se vinculan desde su pantalla de edición.
+        </div>
       </div>
 
       <hr>

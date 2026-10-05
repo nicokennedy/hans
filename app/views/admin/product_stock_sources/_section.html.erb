@@ -1,0 +1,47 @@
+<%# locals: product %>
+<% sources = product.product_stock_sources.includes(:preparation).sort_by { |s| s.preparation.name } %>
+<% available = Preparation.active.where(stock_only: true).where.not(id: sources.map(&:preparation_id)).order(:name) %>
+
+<div class="product-card mt-4" id="product-stock-sources">
+  <h2 class="h5">Stock compartido (tapas / bases)</h2>
+  <p class="text-muted small">
+    Si este producto no se stockea armado sino a partir de tapas o una base común, elegí acá de qué objeto de stock
+    descuenta cada unidad vendida. No afecta la receta ni el costo.
+  </p>
+
+  <% if sources.empty? %>
+    <p class="text-muted">No descuenta de ningún objeto de stock compartido.</p>
+  <% else %>
+    <ul class="list-unstyled">
+      <% sources.each do |source| %>
+        <li class="d-flex align-items-center gap-3 mb-2">
+          <span>
+            <strong><%= source.preparation.name %></strong>
+            — <%= format_quantity(source.quantity) %> <%= source.preparation.yield_unit %> por unidad vendida
+          </span>
+          <%= button_to "Quitar", admin_product_stock_source_path(product, source),
+                method: :delete, class: "btn btn-sm btn-outline-dark", form: { class: "d-inline" },
+                data: { turbo_confirm: "¿Quitar este vínculo de stock?" } %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <% if available.any? %>
+    <%= form_with url: admin_product_stock_sources_path(product), method: :post, local: true, html: { class: "row g-2 align-items-end" } do %>
+      <div class="col-12 col-md-5">
+        <%= label_tag "product_stock_source_preparation_id", "Objeto de stock", class: "form-label" %>
+        <%= select_tag "product_stock_source[preparation_id]", options_from_collection_for_select(available, :id, :name), class: "form-select", required: true %>
+      </div>
+      <div class="col-12 col-md-3">
+        <%= label_tag "product_stock_source_quantity", "Cantidad por unidad vendida", class: "form-label" %>
+        <%= number_field_tag "product_stock_source[quantity]", 1, min: 0, step: "any", class: "form-control", required: true %>
+      </div>
+      <div class="col-12 col-md-3">
+        <%= submit_tag "Vincular", class: "btn btn-dark" %>
+      </div>
+    <% end %>
+  <% else %>
+    <p class="small text-muted mb-0">No hay más objetos de stock para vincular (se crean desde Preparaciones marcando "Objeto de stock").</p>
+  <% end %>
+</div>

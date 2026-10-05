@@ -86,7 +86,7 @@ class Admin::PreparationsController < ApplicationController
     @cost_calculation_error = e.message
   ensure
     @raw_material_options = RawMaterial.active.order(:name)
-    @preparation_options = Preparation.active.where.not(id: @preparation.id)
+    @preparation_options = Preparation.active.usable_in_recipes.where.not(id: @preparation.id)
       .reject { |candidate| candidate.depends_on?(@preparation) }
       .sort_by(&:name)
   end
@@ -94,6 +94,6 @@ class Admin::PreparationsController < ApplicationController
   # unit_cost_cents/total_cost_cents no existen como columnas — no hay nada
   # que blindar ahí. active default true lo pone el modelo/schema.
   def preparation_params
-    params.require(:preparation).permit(:name, :yield_quantity, :yield_unit, :active)
+    params.require(:preparation).permit(:name, :yield_quantity, :yield_unit, :active, :stock_only)
   end
 end

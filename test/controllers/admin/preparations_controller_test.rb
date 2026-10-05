@@ -208,4 +208,74 @@ class Admin::PreparationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match(/Ciclo detectado/, response.body)
   end
+
+  # --- objetos de stock (stock_only) ---
+
+  test "admin can create a stock-only object in units, with no components" do
+    assert_difference "Preparation.count", 1 do
+      post admin_preparations_path, params: { preparation: { name: "Tapas Alfajor X", yield_quantity: 1, yield_unit: "un", active: "1", stock_only: "1" } }
+    end
+
+    created = Preparation.find_by!(name: "Tapas Alfajor X")
+    assert created.stock_only?
+    assert_equal "un", created.yield_unit
+    assert_redirected_to admin_preparations_path
+  end
+
+  test "a stock-only object cannot be created together with a recipe" do
+    assert_no_difference "Preparation.count" do
+      post admin_preparations_path, params: {
+        preparation: { name: "Tapas con receta", yield_quantity: 1, yield_unit: "un", active: "1", stock_only: "1" },
+        recipe_components: [ { component_ref: "RawMaterial:#{@harina.id}", quantity: "1", unit: "kg" } ]
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "no puede tener receta", response.body
+  end
+
+  test "stock-only objects are not offered as ingredients on the new, edit or product-recipe forms" do
+    tapas = Preparation.create!(name: "Tapas Oculta PrepCtrl", yield_quantity: 1, yield_unit: "un", stock_only: true)
+    category = Category.create!(name: "PrepCtrlCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Prod PrepCtrl #{rand(1_000_000)}", category: category, price_cents: 500, cost_cents: 200, active: true, position: 1)
+    ProductRecipe.create!(product: product, yield_quantity: 1)
+
+    get new_admin_preparation_path
+    assert_no_match "Tapas Oculta PrepCtrl", response.body
+
+    get edit_admin_preparation_path(@preparation)
+    assert_no_match "Tapas Oculta PrepCtrl", response.body
+
+    get edit_admin_product_product_recipe_path(product)
+    assert_no_match "Tapas Oculta PrepCtrl", response.body
+    assert tapas.persisted?
+  end
+
+  test "the index marks stock-only objects and shows no cost for them" do
+    Preparation.create!(name: "Tapas Indice PrepCtrl", yield_quantity: 1, yield_unit: "un", stock_only: true)
+
+    get admin_preparations_path
+
+    assert_select "tr", text: /Tapas Indice PrepCtrl.*Solo stock/m
+  end
+
+  test "editing a stock-only object shows the products that deduct from it, not a recipe" do
+    tapas = Preparation.create!(name: "Tapas Edit PrepCtrl", yield_quantity: 1, yield_unit: "un", stock_only: true)
+    category = Category.create!(name: "PrepCtrlCat2#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Alfajor Vinculado PrepCtrl", category: category, price_cents: 500, cost_cents: 200, active: true, position: 1)
+    ProductStockSource.create!(product: product, preparation: tapas)
+
+    get edit_admin_preparation_path(tapas)
+
+    assert_response :success
+    assert_match "Alfajor Vinculado PrepCtrl", response.body
+    assert_no_match "Componentes", response.body
+  end
+
+  test "a preparation used in a recipe cannot be switched to stock-only from the form" do
+    patch admin_preparation_path(@preparation), params: { preparation: { stock_only: "1" } }
+
+    assert_response :unprocessable_entity
+    assert_not @preparation.reload.stock_only?
+  end
 end

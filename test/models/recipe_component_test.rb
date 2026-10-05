@@ -161,4 +161,16 @@ class RecipeComponentTest < ActiveSupport::TestCase
 
     assert rc.valid?
   end
+
+  test "a stock-only preparation can never be used as an ingredient (it would double the cost)" do
+    category = Category.create!(name: "RCStockCat#{rand(1_000_000)}", position: 1, active: true)
+    product = Product.create!(name: "Prod RC #{rand(1_000_000)}", category: category, price_cents: 500, cost_cents: 200, active: true, position: 1)
+    recipe = ProductRecipe.create!(product: product, yield_quantity: 10)
+    tapas = Preparation.create!(name: "Tapas RC #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "un", stock_only: true)
+
+    component = recipe.recipe_components.build(component: tapas, quantity: 10, unit: "un")
+
+    assert_not component.valid?
+    assert_match(/objeto de stock/, component.errors.full_messages.join)
+  end
 end

@@ -13,6 +13,10 @@ class Product < ApplicationRecord
   # también impide borrar el Product, protegiendo la trazabilidad.
   has_one :stock_item, as: :stockable, dependent: :destroy
 
+  # De qué objetos de stock compartidos (tapas, bases) descuenta este producto
+  # cuando se vende, aparte de su receta (ver ProductStockSource).
+  has_many :product_stock_sources, dependent: :destroy
+
   # "manual": cost_cents se carga/edita a mano (default — todo producto nace
   # así). "recipe": cost_cents lo gobierna la ProductRecipe activa (Fase
   # 4/5) — ver Costing::ActivateProductRecipe/SyncProductCost.

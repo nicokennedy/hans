@@ -9,6 +9,11 @@ module Stock
   # controla como unidad física propia (producirlo es una acción manual
   # aparte, no algo que se derive automáticamente de la receta).
   #
+  # Además de la receta, un Product puede descontar de objetos de stock
+  # compartidos configurados a mano (ProductStockSource): es lo que permite
+  # que, por ejemplo, 3 alfajores distintos descuenten del mismo "Tapas
+  # Alfajor Almendra" sin tocar su receta ni su costo.
+  #
   # RawMaterial nunca es relevante acá — este módulo no controla materia
   # prima, solo Preparation/Product.
   class ProductConsumption
@@ -25,6 +30,8 @@ module Stock
         return result
       end
 
+      add_explicit_sources(product, result)
+
       product_recipe = product.product_recipe
       return result if product_recipe.blank? || product_recipe.yield_quantity.to_d.zero?
 
@@ -33,6 +40,19 @@ module Stock
     end
 
     private
+
+    # Objetos de stock compartidos configurados a mano para este producto
+    # (ProductStockSource), ej. 1 un de "Tapas Alfajor Almendra" por alfajor.
+    # Son aparte de la receta: una preparación stock_only no puede ser
+    # ingrediente de ninguna receta (ver RecipeComponent), así que nunca
+    # colisiona con lo que suma `accumulate`. Si el StockItem no existe o está
+    # inactivo, el vínculo simplemente no descuenta nada.
+    def add_explicit_sources(product, result)
+      product.product_stock_sources.includes(preparation: :stock_item).each do |source|
+        stock_item = active_stock_item_for(source.preparation)
+        result[stock_item] += source.quantity.to_d if stock_item
+      end
+    end
 
     # factor = cuántas yield-units del dueño de recipe_components corresponden
     # a 1 unidad del Product raíz. path protege contra un ciclo corrupto en

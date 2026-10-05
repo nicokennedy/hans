@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_29_164612) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_05_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -119,6 +119,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_29_164612) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "stock_only", default: false, null: false
     t.index ["name"], name: "index_preparations_on_name"
   end
 
@@ -128,6 +129,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_29_164612) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["product_id"], name: "index_product_recipes_on_product_id", unique: true
+  end
+
+  create_table "product_stock_sources", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "preparation_id", null: false
+    t.decimal "quantity", precision: 12, scale: 3, default: "1.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["preparation_id"], name: "index_product_stock_sources_on_preparation_id"
+    t.index ["product_id", "preparation_id"], name: "index_product_stock_sources_on_product_id_and_preparation_id", unique: true
+    t.index ["product_id"], name: "index_product_stock_sources_on_product_id"
   end
 
   create_table "products", force: :cascade do |t|
@@ -257,6 +269,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_29_164612) do
   add_foreign_key "orders", "customers"
   add_foreign_key "payments", "orders"
   add_foreign_key "product_recipes", "products"
+  add_foreign_key "product_stock_sources", "preparations"
+  add_foreign_key "product_stock_sources", "products"
   add_foreign_key "products", "categories"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "raw_material_cost_changes", "raw_materials"
