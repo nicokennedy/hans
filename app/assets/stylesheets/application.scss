@@ -1062,3 +1062,11 @@ body.with-sidebar .app-content {
     margin-left: 0;
   }
 }
+
+// Buscador de /admin/stock: el botón "Limpiar" ya hace de "×", así que se
+// oculta la "×" nativa del navegador para no mostrar dos.
+#stock-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}

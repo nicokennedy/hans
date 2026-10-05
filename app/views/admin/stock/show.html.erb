@@ -15,8 +15,32 @@
       </p>
     </div>
   <% else %>
+    <%# Buscador: filtra en el navegador las filas ya renderizadas (ver stock_search_controller.js); no hace requests ni dispara conciliaciones. %>
+    <div data-controller="stock-search" data-stock-search-total-value="<%= @snapshots.size %>">
+      <div class="product-card mb-3" id="stock-search">
+        <div class="input-group">
+          <input type="search"
+                 class="form-control form-control-lg"
+                 id="stock-search-input"
+                 placeholder="Buscar producto o base..."
+                 aria-label="Buscar producto o base"
+                 autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="search" enterkeyhint="search"
+                 data-stock-search-target="input"
+                 data-action="input->stock-search#filter keydown.esc->stock-search#clear keydown.enter->stock-search#preventSubmit">
+          <button type="button" class="btn btn-outline-dark" hidden
+                  aria-label="Limpiar búsqueda"
+                  data-stock-search-target="clear"
+                  data-action="stock-search#clear">&times; Limpiar</button>
+        </div>
+        <div class="small text-muted mt-1" data-stock-search-target="counter" aria-live="polite" hidden></div>
+      </div>
+
+      <div class="product-card text-muted" id="stock-search-empty" data-stock-search-target="empty" hidden>
+        No se encontraron productos.
+      </div>
+
     <% @snapshots.each do |snapshot| %>
-      <div class="product-card mb-3">
+      <div class="product-card mb-3" data-stock-search-target="row" data-stock-search-name="<%= snapshot.name.strip %>">
         <div class="row align-items-center g-3">
           <div class="col-12 col-md-5">
             <div class="fs-4">
@@ -73,5 +97,6 @@
         </div>
       </div>
     <% end %>
+    </div>
   <% end %>
 </div>

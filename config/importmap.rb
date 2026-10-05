@@ -10,3 +10,4 @@ pin "html2canvas" # @1.4.1
 pin "receipt_png"
 pin "receipt_layout"
 pin "pdf_writer"
+pin "stock_search"
