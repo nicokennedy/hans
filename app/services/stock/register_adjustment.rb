@@ -20,6 +20,14 @@ module Stock
     def call
       raise InvalidQuantityError, "El conteo no puede ser negativo" if counted_quantity.negative?
 
+      # El conteo físico es lo que QUEDÓ después de las salidas del día. Si hay
+      # salidas vencidas todavía sin materializar (la conciliación es "perezosa":
+      # corre al abrir el panel), se materializan ANTES de fijar el conteo; si no,
+      # se descontarían después sobre un número que ya las incluía. Con esto el
+      # conteo deja exactamente la cantidad ingresada y cualquier conciliación
+      # posterior es idempotente (delta cero).
+      Stock::DispatchReconciler.reconcile_due!
+
       stock_item.count!(counted_quantity: counted_quantity, user: user, note: note)
     end
 

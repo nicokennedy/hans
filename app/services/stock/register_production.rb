@@ -20,6 +20,10 @@ module Stock
     def call
       raise InvalidQuantityError, "La cantidad producida debe ser mayor a cero" unless quantity.positive?
 
+      # Mismo criterio que el conteo: primero las salidas vencidas pendientes,
+      # después la producción, así el historial queda en el orden en que pasó.
+      Stock::DispatchReconciler.reconcile_due!
+
       stock_item.apply_movement!(movement_type: :production, quantity: quantity, user: user, note: note)
     end
 
