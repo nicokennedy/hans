@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_05_120001) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_05_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -229,6 +229,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_05_120001) do
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "production_batch_size", precision: 12, scale: 3
     t.index ["stockable_type", "stockable_id"], name: "index_stock_items_on_stockable_type_and_stockable_id", unique: true
   end
 

@@ -24,7 +24,18 @@
               <%= link_to snapshot.name, admin_stock_item_path(snapshot.stock_item), class: "text-decoration-none text-dark fw-bold" %>
             </div>
 
-            <% if snapshot.production_needed.positive? %>
+            <% if snapshot.production_needed.positive? && snapshot.production_batch_size %>
+              <div class="fs-5 fw-bold text-danger">
+                PREPARAR <%= stock_batches_label(snapshot.production_batches_needed) %> → <%= format_quantity(snapshot.production_suggested) %> <%= snapshot.unit %>
+              </div>
+              <div class="small text-muted">
+                Faltan <%= format_quantity(snapshot.production_needed) %> <%= snapshot.unit %> para el mínimo
+                &middot; Lote: <%= format_quantity(snapshot.production_batch_size) %> <%= snapshot.unit %>
+              </div>
+              <div class="small text-muted">
+                Stock disponible estimado después: <%= format_quantity(snapshot.available_quantity + snapshot.production_suggested) %> <%= snapshot.unit %>
+              </div>
+            <% elsif snapshot.production_needed.positive? %>
               <div class="fs-5 fw-bold text-danger">PRODUCIR: <%= format_quantity(snapshot.production_needed) %> <%= snapshot.unit %></div>
             <% else %>
               <div class="fs-6 text-muted"><%= stock_status_text(snapshot.status) %></div>
@@ -49,7 +60,7 @@
           <div class="col-12 col-md-3">
             <div class="d-flex flex-column gap-2">
               <%= form_with url: register_production_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex gap-1" } do %>
-                <%= number_field_tag :quantity, nil, min: 0, step: "any", placeholder: "Cantidad", class: "form-control form-control-sm", required: true %>
+                <%= number_field_tag :quantity, stock_suggested_quantity_value(snapshot), min: 0, step: "any", placeholder: "Cantidad", class: "form-control form-control-sm", required: true %>
                 <%= submit_tag "+ Producción", class: "btn btn-sm btn-dark text-nowrap" %>
               <% end %>
 

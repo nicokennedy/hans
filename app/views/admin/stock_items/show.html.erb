@@ -35,6 +35,19 @@
     </div>
   </div>
 
+  <% if @snapshot.production_needed.positive? && @snapshot.production_batch_size %>
+    <div class="product-card mb-4">
+      <div class="fs-5 fw-bold text-danger">
+        PREPARAR <%= stock_batches_label(@snapshot.production_batches_needed) %> → <%= format_quantity(@snapshot.production_suggested) %> <%= @snapshot.unit %>
+      </div>
+      <div class="small text-muted">
+        Faltan <%= format_quantity(@snapshot.production_needed) %> <%= @snapshot.unit %> para el mínimo
+        &middot; Lote: <%= format_quantity(@snapshot.production_batch_size) %> <%= @snapshot.unit %>
+        &middot; Disponible estimado después: <%= format_quantity(@snapshot.available_quantity + @snapshot.production_suggested) %> <%= @snapshot.unit %>
+      </div>
+    </div>
+  <% end %>
+
   <% if @stock_item.stockable.is_a?(Preparation) && @stock_item.stockable.product_stock_sources.any? %>
     <div class="product-card mb-4">
       <h2 class="h5">Productos que descuentan de este stock</h2>

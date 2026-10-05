@@ -11,6 +11,7 @@ module Stock
       :stock_item, :name, :unit,
       :physical_quantity, :future_committed, :today_dispatch, :today_dispatch_materialized,
       :available_quantity, :minimum_quantity, :production_needed, :status,
+      :production_batch_size, :production_batches_needed, :production_suggested,
       keyword_init: true
     )
 
@@ -88,6 +89,8 @@ module Stock
       available = physical - future - pending_today
       minimum = stock_item.minimum_quantity.to_d
       production_needed = [ minimum - available, BigDecimal(0) ].max
+      batch_size = stock_item.production_batch_size&.to_d
+      batches_needed = batches_for(production_needed, batch_size)
 
       Snapshot.new(
         stock_item: stock_item,
@@ -100,8 +103,23 @@ module Stock
         available_quantity: available,
         minimum_quantity: minimum,
         production_needed: production_needed,
-        status: status_for(available, minimum)
+        status: status_for(available, minimum),
+        production_batch_size: batch_size,
+        production_batches_needed: batches_needed,
+        production_suggested: batches_needed && batches_needed * batch_size
       )
+    end
+
+    # Cuántas tandas completas hacen falta para cubrir el faltante. Sin lote
+    # informado no hay sugerencia de tandas (nil): el panel muestra
+    # "PRODUCIR n" como siempre. production_needed ya contempla físico,
+    # salidas, compromisos y mínimo — acá solo se redondea hacia arriba a
+    # tandas, no se recalcula nada.
+    def batches_for(production_needed, batch_size)
+      return nil if batch_size.nil?
+      return 0 unless production_needed.positive?
+
+      (production_needed / batch_size).ceil
     end
 
     def status_for(available, minimum)

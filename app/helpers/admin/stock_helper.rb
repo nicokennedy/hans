@@ -28,4 +28,17 @@ module Admin::StockHelper
   def stock_status_text(status)
     STATUS_TEXT[status] || ""
   end
+
+  # "1 TANDA" / "2 TANDAS"
+  def stock_batches_label(batches)
+    "#{batches} #{batches == 1 ? 'TANDA' : 'TANDAS'}"
+  end
+
+  # Cantidad con la que se pre-completa "+ Producción": la sugerida por tandas
+  # si hay lote informado y falta producir; si no, vacío (como siempre).
+  # Es solo un valor inicial editable — se puede registrar cualquier cantidad.
+  def stock_suggested_quantity_value(snapshot)
+    suggested = snapshot.production_suggested
+    suggested&.positive? ? format_quantity(suggested) : nil
+  end
 end

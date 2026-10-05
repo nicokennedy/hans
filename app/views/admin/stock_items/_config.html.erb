@@ -1,4 +1,5 @@
 <%# locals: stockable (Product o Preparation) %>
+<% batch_help = "Lote de producción: cantidad que rinde una tanda completa. Se usa para sugerir cuántas tandas preparar." %>
 <div class="product-card mt-4">
   <h2 class="h5">Stock</h2>
 
@@ -21,6 +22,11 @@
         <div class="form-text">En <%= stockable.is_a?(Preparation) ? stockable.yield_unit : "un" %>.</div>
       </div>
       <div class="col-12 col-md-4">
+        <%= label_tag "stock_item_production_batch_size", "Lote de producción (opcional)", class: "form-label" %>
+        <%= number_field_tag "stock_item[production_batch_size]", nil, min: 0, step: "any", class: "form-control" %>
+        <div class="form-text"><%= batch_help %></div>
+      </div>
+      <div class="col-12 col-md-4">
         <%= submit_tag "Habilitar control de stock", class: "btn btn-dark" %>
       </div>
     <% end %>
@@ -35,6 +41,11 @@
       <div class="col-12 col-md-4">
         <%= f.label :minimum_quantity, "Stock mínimo esperado", class: "form-label" %>
         <%= f.number_field :minimum_quantity, min: 0, step: "any", class: "form-control", required: true %>
+      </div>
+      <div class="col-12 col-md-4">
+        <%= f.label :production_batch_size, "Lote de producción (opcional)", class: "form-label" %>
+        <%= f.number_field :production_batch_size, min: 0, step: "any", class: "form-control" %>
+        <div class="form-text"><%= batch_help %></div>
       </div>
       <div class="col-12 col-md-4">
         <div class="form-check">

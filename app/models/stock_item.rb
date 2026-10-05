@@ -15,6 +15,9 @@ class StockItem < ApplicationRecord
 
   validates :minimum_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, presence: true, numericality: {}
+  # Cantidad que rinde una tanda completa. Opcional; solo recomienda cuántas
+  # tandas preparar (ver Stock::Availability) — nunca limita lo que se registra.
+  validates :production_batch_size, numericality: { greater_than: 0 }, allow_nil: true
   validates :stockable_id, uniqueness: { scope: :stockable_type }
 
   scope :active, -> { where(active: true) }

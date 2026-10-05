@@ -70,6 +70,6 @@ class Admin::StockItemsController < ApplicationController
   end
 
   def stock_item_params
-    params.require(:stock_item).permit(:minimum_quantity, :active)
+    params.require(:stock_item).permit(:minimum_quantity, :production_batch_size, :active)
   end
 end
