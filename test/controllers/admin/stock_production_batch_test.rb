@@ -12,7 +12,7 @@ class Admin::StockProductionBatchTest < ActionDispatch::IntegrationTest
   end
 
   def pool(physical:, minimum:, batch: nil)
-    StockItem.create!(stockable: @tapas, active: true, quantity: physical, minimum_quantity: minimum, production_batch_size: batch)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @tapas, active: true, quantity: physical, minimum_quantity: minimum, production_batch_size: batch)
   end
 
   test "con lote: muestra PREPARAR n TANDA -> unidades, el faltante, el lote y el stock estimado después" do

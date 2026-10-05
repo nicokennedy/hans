@@ -50,7 +50,7 @@ class Stock::AlfajorPoolsTest < ActiveSupport::TestCase
   def pool(name, products, minimum:)
     prep = Preparation.create!(name: "#{name} #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "un", stock_only: true)
     products.each { |product| ProductStockSource.create!(product: product, preparation: prep) }
-    StockItem.create!(stockable: prep, active: true, quantity: 100, minimum_quantity: minimum)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: prep, active: true, quantity: 100, minimum_quantity: minimum)
   end
 
   def configure_pools
@@ -170,7 +170,7 @@ class Stock::AlfajorPoolsTest < ActiveSupport::TestCase
 
   test "a product with its own active StockItem keeps resolving to itself (the pool link is ignored)" do
     configure_pools
-    own = StockItem.create!(stockable: @almendras, active: true, quantity: 5, minimum_quantity: 1)
+    own = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @almendras, active: true, quantity: 5, minimum_quantity: 1)
 
     assert_equal({ own => BigDecimal(1) }, Stock::ProductConsumption.call(@almendras).to_h)
   end

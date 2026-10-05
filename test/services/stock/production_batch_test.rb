@@ -13,7 +13,7 @@ class Stock::ProductionBatchTest < ActiveSupport::TestCase
   end
 
   def item(physical:, minimum:, batch: nil, stockable: @product)
-    StockItem.create!(stockable: stockable, active: true, quantity: physical, minimum_quantity: minimum, production_batch_size: batch)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: stockable, active: true, quantity: physical, minimum_quantity: minimum, production_batch_size: batch)
   end
 
   def snapshot(stock_item)
@@ -154,10 +154,10 @@ class Stock::ProductionBatchTest < ActiveSupport::TestCase
 
     other = Product.create!(name: "Otro Batch #{rand(1_000_000)}", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 2)
     [ 0, -5 ].each do |invalid|
-      assert_not StockItem.new(stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: invalid).valid?, "#{invalid} debería ser inválido"
+      assert_not StockItem.new(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: invalid).valid?, "#{invalid} debería ser inválido"
     end
-    assert StockItem.new(stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: nil).valid?
-    assert StockItem.new(stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: BigDecimal("22")).valid?
+    assert StockItem.new(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: nil).valid?
+    assert StockItem.new(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: other, quantity: 0, minimum_quantity: 1, production_batch_size: BigDecimal("22")).valid?
   end
 
   test "costos y recetas no cambian al informar un lote" do

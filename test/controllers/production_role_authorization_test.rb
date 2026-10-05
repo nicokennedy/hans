@@ -27,7 +27,7 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     @product_recipe = ProductRecipe.create!(product: @product, yield_quantity: 10)
     @product_recipe_component = @product_recipe.recipe_components.create!(component: @raw_material, quantity: 1, unit: "kg")
 
-    @stock_item = StockItem.create!(stockable: @preparation, active: true, quantity: 5, minimum_quantity: 2)
+    @stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @preparation, active: true, quantity: 5, minimum_quantity: 2)
   end
 
   # --- Production: allowed access ---

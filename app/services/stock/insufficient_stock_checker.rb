@@ -40,6 +40,8 @@ module Stock
 
       locked_items.filter_map do |stock_item|
         next unless strict_stock_item_ids.include?(stock_item.id)
+        # Un pedido anterior al inicio del control no compite por este stock.
+        next if order.delivery_date.present? && order.delivery_date < stock_item.stock_tracking_started_on
 
         snapshot = availability_by_id[stock_item.id]
         needed = demand[stock_item] || BigDecimal(0)

@@ -64,8 +64,15 @@ module Stock
 
     def self.candidate_orders(now: Time.current)
       today = now.in_time_zone.to_date
-      due = Order.not_canceled.where("delivery_date < ?", today)
-      due = due.or(Order.not_canceled.where(delivery_date: today)) if cutoff_passed?(now: now)
+      # Nada anterior a la fecha de inicio del control más temprana puede
+      # generar una salida, así que ni se recorre (evita revisar toda la
+      # historia de pedidos en cada carga del panel).
+      earliest_start = StockItem.active.minimum(:stock_tracking_started_on)
+      due = Order.none
+      if earliest_start
+        due = Order.not_canceled.where("delivery_date >= ? AND delivery_date < ?", earliest_start, today)
+        due = due.or(Order.not_canceled.where(delivery_date: today)) if cutoff_passed?(now: now) && today >= earliest_start
+      end
 
       # Además de lo vencido, cualquier pedido que YA tenga movimientos de
       # salida registrados — para poder revertirlos si se canceló o si su
@@ -113,6 +120,8 @@ module Stock
 
       return BigDecimal(0) if order.canceled?
       return BigDecimal(0) if order.delivery_date.nil?
+      # Antes de la fecha de inicio del control de este ítem: no cuenta.
+      return BigDecimal(0) if order.delivery_date < stock_item.stock_tracking_started_on
       return BigDecimal(0) if order.delivery_date > today
       return BigDecimal(0) if order.delivery_date == today && !self.class.cutoff_passed?(now: now)
 

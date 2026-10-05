@@ -15,7 +15,7 @@ class Stock::AvailabilityTest < ActiveSupport::TestCase
   end
 
   def build_stock_item(quantity:, minimum:)
-    StockItem.create!(stockable: @brownie, active: true, quantity: quantity, minimum_quantity: minimum)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @brownie, active: true, quantity: quantity, minimum_quantity: minimum)
   end
 
   def build_order(delivery_date, quantity: 1, status: "received")
@@ -148,7 +148,7 @@ class Stock::AvailabilityTest < ActiveSupport::TestCase
 
   test "dashboard only includes active StockItems" do
     active_item = build_stock_item(quantity: 5, minimum: 2)
-    inactive_item = StockItem.create!(stockable: Preparation.create!(name: "Inactive Availability #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg"), active: false, quantity: 5, minimum_quantity: 2)
+    inactive_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: Preparation.create!(name: "Inactive Availability #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg"), active: false, quantity: 5, minimum_quantity: 2)
 
     snapshots = Stock::Availability.dashboard(now: Time.zone.local(@sim_day.year, @sim_day.month, @sim_day.day, 8, 0, 0))
     items = snapshots.map(&:stock_item)

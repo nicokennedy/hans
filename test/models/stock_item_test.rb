@@ -5,13 +5,13 @@ class StockItemTest < ActiveSupport::TestCase
     raw = RawMaterial.create!(name: "RM StockItem #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     preparation = Preparation.create!(name: "Prep StockItem #{rand(1_000_000)}", yield_quantity: 1, yield_unit: yield_unit)
     preparation.recipe_components.create!(component: raw, quantity: 1, unit: yield_unit)
-    StockItem.create!(stockable: preparation, active: true, quantity: quantity, minimum_quantity: minimum)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: preparation, active: true, quantity: quantity, minimum_quantity: minimum)
   end
 
   def build_product_stock_item(quantity: 18, minimum: 20)
     category = Category.create!(name: "StockItemCat#{rand(1_000_000)}", position: 1, active: true)
     product = Product.create!(name: "Product StockItem #{rand(1_000_000)}", category: category, price_cents: 300, cost_cents: 100, active: true, position: 1)
-    StockItem.create!(stockable: product, active: true, quantity: quantity, minimum_quantity: minimum)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: product, active: true, quantity: quantity, minimum_quantity: minimum)
   end
 
   test "unit is derived from the Preparation's yield_unit" do
@@ -26,7 +26,7 @@ class StockItemTest < ActiveSupport::TestCase
 
   test "only one StockItem per stockable" do
     item = build_preparation_stock_item
-    duplicate = StockItem.new(stockable: item.stockable, active: true, quantity: 0, minimum_quantity: 0)
+    duplicate = StockItem.new(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: item.stockable, active: true, quantity: 0, minimum_quantity: 0)
 
     assert_not duplicate.valid?
   end

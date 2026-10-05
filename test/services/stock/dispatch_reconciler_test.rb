@@ -7,7 +7,7 @@ class Stock::DispatchReconcilerTest < ActiveSupport::TestCase
     @raw = RawMaterial.create!(name: "RM Reconciler #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     @brownie = Preparation.create!(name: "Brownie Reconciler #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg")
     @brownie.recipe_components.create!(component: @raw, quantity: 1, unit: "kg")
-    @stock_item = StockItem.create!(stockable: @brownie, active: true, quantity: 10, minimum_quantity: 2)
+    @stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @brownie, active: true, quantity: 10, minimum_quantity: 2)
 
     @mini = Product.create!(name: "Mini Reconciler #{rand(1_000_000)}", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 1)
     @mini_recipe = ProductRecipe.create!(product: @mini, yield_quantity: 1)

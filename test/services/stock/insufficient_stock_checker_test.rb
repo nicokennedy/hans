@@ -11,13 +11,13 @@ class Stock::InsufficientStockCheckerTest < ActiveSupport::TestCase
 
   def build_strict_product(stock_quantity:, minimum: 0, name: "Strict #{rand(1_000_000)}")
     product = Product.create!(name: name, category: @category, price_cents: 500, cost_cents: 200, active: true, position: 1, sell_without_stock: false)
-    StockItem.create!(stockable: product, active: true, quantity: stock_quantity, minimum_quantity: minimum)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: product, active: true, quantity: stock_quantity, minimum_quantity: minimum)
     product
   end
 
   def build_lenient_product(stock_quantity: nil, minimum: 0, name: "Lenient #{rand(1_000_000)}")
     product = Product.create!(name: name, category: @category, price_cents: 500, cost_cents: 200, active: true, position: 2, sell_without_stock: true)
-    StockItem.create!(stockable: product, active: true, quantity: stock_quantity, minimum_quantity: minimum) if stock_quantity
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: product, active: true, quantity: stock_quantity, minimum_quantity: minimum) if stock_quantity
     product
   end
 
@@ -82,7 +82,7 @@ class Stock::InsufficientStockCheckerTest < ActiveSupport::TestCase
     harina = RawMaterial.create!(name: "Harina ChkPool", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     pool = Preparation.create!(name: "Pool ChkPool", yield_quantity: 1, yield_unit: "kg")
     pool.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    StockItem.create!(stockable: pool, active: true, quantity: 5, minimum_quantity: 0)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: pool, active: true, quantity: 5, minimum_quantity: 0)
 
     strict = Product.create!(name: "StrictPool#{rand(1_000_000)}", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 1, sell_without_stock: false)
     ProductRecipe.create!(product: strict, yield_quantity: 1).recipe_components.create!(component: pool, quantity: 1, unit: "kg")

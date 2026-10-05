@@ -14,7 +14,7 @@ class Stock::DemandTest < ActiveSupport::TestCase
     harina = RawMaterial.create!(name: "Harina Demand", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     brownie = Preparation.create!(name: "Brownie Demand", yield_quantity: 1, yield_unit: "kg")
     brownie.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    brownie_stock = StockItem.create!(stockable: brownie, active: true, quantity: 10, minimum_quantity: 2)
+    brownie_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: brownie, active: true, quantity: 10, minimum_quantity: 2)
 
     mini = build_product(name: "Mini Demand")
     ProductRecipe.create!(product: mini, yield_quantity: 100).recipe_components.create!(component: brownie, quantity: 2.8, unit: "kg")
@@ -34,7 +34,7 @@ class Stock::DemandTest < ActiveSupport::TestCase
   test "multiple order_items for the same product accumulate instead of overwriting" do
     category = Category.create!(name: "DemandCat2#{rand(1_000_000)}", position: 1, active: true)
     product = Product.create!(name: "Product Demand Self", category: category, price_cents: 500, cost_cents: 200, active: true, position: 1)
-    stock_item = StockItem.create!(stockable: product, active: true, quantity: 10, minimum_quantity: 1)
+    stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: product, active: true, quantity: 10, minimum_quantity: 1)
 
     demand = Stock::Demand.for_order_items([
       build_order_item(product, 3),
@@ -64,7 +64,7 @@ class Stock::DemandTest < ActiveSupport::TestCase
     harina = RawMaterial.create!(name: "Harina Demand Memo", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     brownie = Preparation.create!(name: "Brownie Demand Memo", yield_quantity: 1, yield_unit: "kg")
     brownie.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    brownie_stock = StockItem.create!(stockable: brownie, active: true, quantity: 10, minimum_quantity: 2)
+    brownie_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: brownie, active: true, quantity: 10, minimum_quantity: 2)
 
     mini = build_product(name: "Mini Demand Memo")
     ProductRecipe.create!(product: mini, yield_quantity: 10).recipe_components.create!(component: brownie, quantity: 1, unit: "kg")

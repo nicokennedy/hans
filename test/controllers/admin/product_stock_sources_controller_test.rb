@@ -63,7 +63,7 @@ class Admin::ProductStockSourcesControllerTest < ActionDispatch::IntegrationTest
 
   test "the stock history page lists the products that deduct from a pool" do
     ProductStockSource.create!(product: @product, preparation: @tapas)
-    item = StockItem.create!(stockable: @tapas, active: true, quantity: 10, minimum_quantity: 5)
+    item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @tapas, active: true, quantity: 10, minimum_quantity: 5)
     sign_in @admin
 
     get admin_stock_item_path(item)

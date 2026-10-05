@@ -48,10 +48,19 @@ module Stock
       # llamada, no un valor en memoria desactualizado.
       stock_items.each(&:reload)
 
-      future_demand = Stock::Demand.for_order_items(future_order_items)
-      today_demand = Stock::Demand.for_order_items(today_order_items)
+      # La demanda depende de la fecha de inicio de cada ítem, así que se
+      # calcula una vez por fecha distinta (en la práctica, una sola).
+      demands = Hash.new do |cache, started_on|
+        cache[started_on] = [
+          Stock::Demand.for_order_items(future_order_items(started_on)),
+          Stock::Demand.for_order_items(today_order_items(started_on))
+        ]
+      end
 
-      stock_items.map { |item| build_snapshot(item, future_demand, today_demand) }
+      stock_items.map do |item|
+        future_demand, today_demand = demands[item.stock_tracking_started_on]
+        build_snapshot(item, future_demand, today_demand)
+      end
     end
 
     private
@@ -66,11 +75,16 @@ module Stock
       now.in_time_zone.to_date
     end
 
-    def future_order_items
-      OrderItem.joins(:order).merge(Order.not_canceled.where("orders.delivery_date > ?", today))
+    # Pedidos con delivery_date anterior a started_on no cuentan para el ítem.
+    def future_order_items(started_on)
+      OrderItem.joins(:order).merge(
+        Order.not_canceled.where("orders.delivery_date > ? AND orders.delivery_date >= ?", today, started_on)
+      )
     end
 
-    def today_order_items
+    def today_order_items(started_on)
+      return OrderItem.none if today < started_on
+
       OrderItem.joins(:order).merge(Order.not_canceled.where(orders: { delivery_date: today }))
     end
 

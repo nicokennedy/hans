@@ -11,14 +11,14 @@ class OrderStockIntegrationTest < ActiveSupport::TestCase
     @raw = RawMaterial.create!(name: "RM OrderStock #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     @brownie = Preparation.create!(name: "Brownie OrderStock #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg")
     @brownie.recipe_components.create!(component: @raw, quantity: 1, unit: "kg")
-    @stock_item = StockItem.create!(stockable: @brownie, active: true, quantity: 10, minimum_quantity: 2)
+    @stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @brownie, active: true, quantity: 10, minimum_quantity: 2)
 
     @mini = Product.create!(name: "Mini OrderStock #{rand(1_000_000)}", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 1)
     ProductRecipe.create!(product: @mini, yield_quantity: 1).recipe_components.create!(component: @brownie, quantity: 1, unit: "kg")
 
     @other_brownie = Preparation.create!(name: "Other Brownie OrderStock #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg")
     @other_brownie.recipe_components.create!(component: @raw, quantity: 1, unit: "kg")
-    @other_stock_item = StockItem.create!(stockable: @other_brownie, active: true, quantity: 10, minimum_quantity: 2)
+    @other_stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: @other_brownie, active: true, quantity: 10, minimum_quantity: 2)
     @other_product = Product.create!(name: "Other OrderStock #{rand(1_000_000)}", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 2)
     ProductRecipe.create!(product: @other_product, yield_quantity: 1).recipe_components.create!(component: @other_brownie, quantity: 1, unit: "kg")
 

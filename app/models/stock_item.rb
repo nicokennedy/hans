@@ -15,6 +15,12 @@ class StockItem < ApplicationRecord
 
   validates :minimum_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, presence: true, numericality: {}
+  # Desde qué fecha de ENTREGA participa del control de stock: los pedidos con
+  # delivery_date anterior no comprometen ni descuentan nada (ver
+  # Stock::Availability y Stock::DispatchReconciler). Dato explícito, no se
+  # deriva de created_at; para ítems nuevos arranca hoy.
+  attribute :stock_tracking_started_on, :date, default: -> { Date.current }
+  validates :stock_tracking_started_on, presence: true
   # Cantidad que rinde una tanda completa. Opcional; solo recomienda cuántas
   # tandas preparar (ver Stock::Availability) — nunca limita lo que se registra.
   validates :production_batch_size, numericality: { greater_than: 0 }, allow_nil: true

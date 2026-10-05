@@ -8,7 +8,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
 
   test "a Product with its own active StockItem resolves to itself with a 1:1 multiplier" do
     scon = build_product(name: "Scon Queso PC")
-    stock_item = StockItem.create!(stockable: scon, active: true, quantity: 18, minimum_quantity: 20)
+    stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: scon, active: true, quantity: 18, minimum_quantity: 20)
 
     map = Stock::ProductConsumption.call(scon)
 
@@ -19,7 +19,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
     harina = RawMaterial.create!(name: "Harina PC", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     brownie = Preparation.create!(name: "Brownie PC", yield_quantity: 1, yield_unit: "kg")
     brownie.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    brownie_stock = StockItem.create!(stockable: brownie, active: true, quantity: 3, minimum_quantity: 2)
+    brownie_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: brownie, active: true, quantity: 3, minimum_quantity: 2)
 
     mini = build_product(name: "Mini Brownie PC")
     mini_recipe = ProductRecipe.create!(product: mini, yield_quantity: 100)
@@ -52,7 +52,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
 
     base = Preparation.create!(name: "Base PC Nested", yield_quantity: 1, yield_unit: "kg")
     base.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    base_stock = StockItem.create!(stockable: base, active: true, quantity: 5, minimum_quantity: 1)
+    base_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: base, active: true, quantity: 5, minimum_quantity: 1)
 
     # Masa Sable NO controla stock -> el consumo de Base debe "pasar a través" de ella
     masa = Preparation.create!(name: "Masa Sable PC Nested", yield_quantity: 2, yield_unit: "kg")
@@ -73,7 +73,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
 
     inner = Preparation.create!(name: "Inner PC Stop", yield_quantity: 1, yield_unit: "kg")
     inner.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    inner_stock = StockItem.create!(stockable: inner, active: true, quantity: 5, minimum_quantity: 1)
+    inner_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: inner, active: true, quantity: 5, minimum_quantity: 1)
 
     outer = Preparation.create!(name: "Outer PC Stop", yield_quantity: 1, yield_unit: "kg")
     outer.recipe_components.create!(component: inner, quantity: 1, unit: "kg")
@@ -93,7 +93,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
 
     base = Preparation.create!(name: "Base PC Inactive", yield_quantity: 1, yield_unit: "kg")
     base.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    StockItem.create!(stockable: base, active: false, quantity: 5, minimum_quantity: 1)
+    StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: base, active: false, quantity: 5, minimum_quantity: 1)
 
     product = build_product
     recipe = ProductRecipe.create!(product: product, yield_quantity: 1)
@@ -114,7 +114,7 @@ class Stock::ProductConsumptionTest < ActiveSupport::TestCase
     harina = RawMaterial.create!(name: "Harina PC Units", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     brownie = Preparation.create!(name: "Brownie PC Units", yield_quantity: 1, yield_unit: "kg")
     brownie.recipe_components.create!(component: harina, quantity: 1, unit: "kg")
-    brownie_stock = StockItem.create!(stockable: brownie, active: true, quantity: 3, minimum_quantity: 2)
+    brownie_stock = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: brownie, active: true, quantity: 3, minimum_quantity: 2)
 
     product = build_product
     recipe = ProductRecipe.create!(product: product, yield_quantity: 10)

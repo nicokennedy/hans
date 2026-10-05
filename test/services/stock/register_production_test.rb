@@ -6,7 +6,7 @@ class Stock::RegisterProductionTest < ActiveSupport::TestCase
     raw = RawMaterial.create!(name: "RM RegisterProduction #{rand(1_000_000)}", purchase_price_cents: 100_000, purchase_quantity: 1, purchase_unit: "kg", base_unit: "kg")
     preparation = Preparation.create!(name: "Prep RegisterProduction #{rand(1_000_000)}", yield_quantity: 1, yield_unit: "kg")
     preparation.recipe_components.create!(component: raw, quantity: 1, unit: "kg")
-    @stock_item = StockItem.create!(stockable: preparation, active: true, quantity: 5, minimum_quantity: 2)
+    @stock_item = StockItem.create!(stock_tracking_started_on: Date.new(2026, 1, 1), stockable: preparation, active: true, quantity: 5, minimum_quantity: 2)
   end
 
   test "increases physical stock and logs a production movement with the user and note" do

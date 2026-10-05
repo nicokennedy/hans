@@ -34,7 +34,8 @@
     <p class="mb-2">
       <strong>Control de stock:</strong> <%= stock_item.active? ? "Activo" : "Desactivado" %> &middot;
       <strong>Unidad:</strong> <%= stock_item.unit %> &middot;
-      <strong>Stock físico actual:</strong> <%= format_quantity(stock_item.quantity) %> <%= stock_item.unit %>
+      <strong>Stock físico actual:</strong> <%= format_quantity(stock_item.quantity) %> <%= stock_item.unit %> &middot;
+      <strong>Control desde:</strong> <%= stock_item.stock_tracking_started_on.strftime("%d/%m/%Y") %>
     </p>
 
     <%= form_with model: stock_item, url: admin_stock_item_path(stock_item), method: :patch, local: true, html: { class: "row g-2 align-items-end mb-3" } do |f| %>
