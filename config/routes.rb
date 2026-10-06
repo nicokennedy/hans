@@ -81,6 +81,8 @@ Rails.application.routes.draw do
       member do
         post :register_production
         post :register_count
+        get :edit_config
+        patch :update_config
       end
     end
 

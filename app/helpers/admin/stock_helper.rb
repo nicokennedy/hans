@@ -41,4 +41,10 @@ module Admin::StockHelper
     suggested = snapshot.production_suggested
     suggested&.positive? ? format_quantity(suggested) : nil
   end
+
+  # "lote de 22 un" / "sin lote" — para el mensaje tras editar la configuración.
+  def stock_batch_config_label(stock_item)
+    batch = stock_item.production_batch_size
+    batch ? "lote de #{format_quantity(batch)} #{stock_item.unit}" : "sin lote"
+  end
 end

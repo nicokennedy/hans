@@ -6,8 +6,8 @@
 class Admin::StockItemsController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin_or_production!, only: [:show, :register_production, :register_count]
-  before_action :require_admin!, only: [:create, :update]
-  before_action :set_stock_item, only: [:show, :update, :register_production, :register_count]
+  before_action :require_admin!, only: [:create, :update, :edit_config, :update_config]
+  before_action :set_stock_item, only: [:show, :update, :edit_config, :update_config, :register_production, :register_count]
 
   def show
     @snapshot = Stock::Availability.for_item(@stock_item)
@@ -39,6 +39,21 @@ class Admin::StockItemsController < ApplicationController
     end
   end
 
+  # Edición de la configuración desde el panel /admin/stock: SOLO mínimo y lote.
+  # El físico se cambia únicamente con "Contar" y la producción con "+ Producción";
+  # esta acción no crea movimientos ni toca el físico, la fecha de control ni el
+  # estado activo (por eso se usa un permit propio, distinto del de #update).
+  def edit_config
+  end
+
+  def update_config
+    if @stock_item.update(config_params)
+      redirect_to admin_stock_path, notice: "Configuración de #{@stock_item.name} actualizada: mínimo #{helpers.format_quantity(@stock_item.minimum_quantity)} #{@stock_item.unit}, #{helpers.stock_batch_config_label(@stock_item)}."
+    else
+      render :edit_config, status: :unprocessable_entity
+    end
+  end
+
   def register_production
     Stock::RegisterProduction.call(stock_item: @stock_item, quantity: params[:quantity], user: current_user, note: params[:note].presence)
     redirect_to admin_stock_path, notice: "Producción registrada: +#{helpers.format_quantity(params[:quantity])} #{@stock_item.unit} de #{@stock_item.name}."
@@ -67,6 +82,10 @@ class Admin::StockItemsController < ApplicationController
 
   def stockable_edit_path(stockable)
     stockable.is_a?(Product) ? edit_admin_product_path(stockable) : edit_admin_preparation_path(stockable)
+  end
+
+  def config_params
+    params.require(:stock_item).permit(:minimum_quantity, :production_batch_size)
   end
 
   def stock_item_params

@@ -64,6 +64,12 @@
             <% else %>
               <div class="fs-6 text-muted"><%= stock_status_text(snapshot.status) %></div>
             <% end %>
+
+            <% if current_user.admin? %>
+              <div class="mt-1">
+                <%= link_to "Editar", edit_config_admin_stock_item_path(snapshot.stock_item), class: "small text-muted", title: "Editar mínimo y lote de producción" %>
+              </div>
+            <% end %>
           </div>
 
           <div class="col-12 col-md-4">

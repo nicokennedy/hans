@@ -1,0 +1,41 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Editar configuración</h1>
+      <p class="text-muted mb-0"><%= @stock_item.name %></p>
+    </div>
+    <%= link_to "← Stock / Producción", admin_stock_path, class: "btn btn-outline-dark" %>
+  </div>
+
+  <div class="product-card" style="max-width: 640px;">
+    <% if @stock_item.errors.any? %>
+      <div class="alert alert-danger">
+        <%= @stock_item.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <%= form_with model: @stock_item, url: update_config_admin_stock_item_path(@stock_item), method: :patch, local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :minimum_quantity, "Stock mínimo esperado (#{@stock_item.unit})", class: "form-label" %>
+        <%= f.number_field :minimum_quantity, min: 0, step: "any", class: "form-control", required: true %>
+        <div class="form-text">Mínimo operativo de este ítem; no se recalcula a partir de los productos que lo usan.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :production_batch_size, "Lote de producción (#{@stock_item.unit}, opcional)", class: "form-label" %>
+        <%= f.number_field :production_batch_size, min: 0, step: "any", class: "form-control" %>
+        <div class="form-text">Cantidad que rinde una tanda completa. Dejalo vacío si no se produce por tandas.</div>
+      </div>
+
+      <p class="small text-muted">
+        Guardar no modifica el stock físico (<strong><%= format_quantity(@stock_item.quantity) %> <%= @stock_item.unit %></strong>),
+        no genera movimientos ni concilia pedidos. El físico se cambia solo con "Contar" y la producción con "+ Producción".
+      </p>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Guardar", class: "btn btn-dark" %>
+        <%= link_to "Cancelar", admin_stock_path, class: "btn btn-outline-dark" %>
+      </div>
+    <% end %>
+  </div>
+</div>
