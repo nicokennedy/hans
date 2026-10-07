@@ -226,6 +226,54 @@ class Admin::OrdersReceiptsTest < ActionDispatch::IntegrationTest
     assert_select "button[data-action=?]", "receipt-export#download", text: "Descargar PNG"
   end
 
+  test "announces the A4 landscape format with both copies side by side" do
+    build_order(@alfa)
+
+    sign_in @admin
+    get_receipts
+
+    assert_select ".small.text-muted", text: /A4 horizontal.*2 copias de cada pedido lado a lado/m
+  end
+
+  test "the shared receipt keeps its short print labels without changing the visible data" do
+    order = build_order(@alfa)
+
+    sign_in @admin
+    get_receipts
+
+    # etiquetas completas siempre presentes (PNG individual y pantalla)...
+    assert_select "#receipt-#{order.id} .hans-receipt-meta .text-muted", text: "Cliente"
+    assert_select "#receipt-#{order.id} .hans-receipt-meta .text-muted", text: "Fecha del pedido"
+    assert_select "#receipt-#{order.id} .hans-receipt-meta .text-muted", text: "Fecha de entrega"
+    # ...y las cortas solo las usa el CSS del layout compacto (data-print-label)
+    assert_select "#receipt-#{order.id} .hans-receipt-meta [data-print-label]", count: 3
+    assert_select "#receipt-#{order.id} [data-print-label=?]", "Pedido"
+    assert_select "#receipt-#{order.id} [data-print-label=?]", "Entrega"
+  end
+
+  test "the individual receipt is rendered without the compact print variant" do
+    order = build_order(@alfa)
+
+    sign_in @admin
+    get admin_order_path(order)
+
+    assert_select "#order-receipt.hans-receipt", count: 1
+    assert_select ".receipt-print-compact", count: 0
+    assert_select "#order-receipt .hans-receipt-item", count: order.order_items.size
+    assert_select "#order-receipt .hans-receipt-total-amount", text: format_money_for(order)
+  end
+
+  test "the PNG capture only uses the compact layout when asked for the print variant" do
+    png_module = Rails.root.join("app/javascript/receipt_png.js").read
+    bulk_controller = Rails.root.join("app/javascript/controllers/bulk_receipts_controller.js").read
+    single_controller = Rails.root.join("app/javascript/controllers/receipt_export_controller.js").read
+
+    assert_includes png_module, 'if (variant === "print") clone.classList.add("receipt-print-compact")'
+    assert_includes bulk_controller, 'variant: "print"'
+    assert_not_includes single_controller, "variant"
+    assert_not_includes single_controller, "receipt-print-compact"
+  end
+
   private
 
   def format_money_for(order)

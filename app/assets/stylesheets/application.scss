@@ -412,6 +412,176 @@ body {
   display: none !important;
 }
 
+// Layout de impresión COMPACTO para el PDF masivo de remitos (A4 horizontal,
+// 2 remitos de 135mm por fila). Se aplica solo al clon temporal de la captura
+// (variant "print" en receipt_png.js); el PNG individual y la vista en pantalla
+// no lo usan. La captura se hace a 4px CSS por mm de papel (ver CSS_PX_PER_MM
+// en receipt_layout.js), así que los tamaños de letra de acá son físicos:
+// 13.5px = 3.4mm ≈ 9.6pt (cuerpo), 10.5px ≈ 7.4pt (etiquetas), 20px ≈ 14pt (marca).
+// Mismos datos y mismo partial que el remito individual: solo cambia la
+// presentación (menos paddings/márgenes, encabezado y fechas en una línea,
+// tabla con columna Producto ancha y columnas numéricas angostas).
+.receipt-export-render.receipt-print-compact.hans-receipt,
+.receipt-export-render.receipt-print-compact .hans-receipt {
+  width: auto;
+  max-width: none;
+  padding: 7px 10px 8px;
+  border: 1px solid #b9b3a7;
+  border-top: 3px solid #2b2b2b;
+  border-radius: 3px;
+  font-size: 13.5px;
+  line-height: 1.2;
+  color: #1f1f1f;
+}
+
+// Encabezado: HANS + "Remito / Pedido HANS" + número, pegados en una línea.
+.receipt-print-compact .hans-receipt-header {
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 4px;
+  margin-bottom: 5px;
+}
+
+.receipt-print-compact .hans-receipt-brand {
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+
+.receipt-print-compact .hans-receipt-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: left;
+  min-width: 0;
+}
+
+.receipt-print-compact .hans-receipt-label {
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.receipt-print-compact .hans-receipt-number {
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+// Cliente y fechas en una sola fila cuando entran. Si el nombre del cliente es
+// largo, la fila hace wrap y las fechas bajan a la línea siguiente (nunca se
+// superponen). Las etiquetas se acortan (data-print-label del partial):
+// "Cliente:", "Pedido:", "Entrega:" — los mismos datos, menos ancho.
+.receipt-print-compact .hans-receipt-meta.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 14px;
+  margin: 0 0 5px;
+}
+
+.receipt-print-compact .hans-receipt-meta > [class*="col-"] {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  width: auto;
+  max-width: 100%;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.receipt-print-compact .hans-receipt-meta > [class*="col-"]:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.receipt-print-compact .hans-receipt-meta .text-muted.small {
+  font-size: 0; // el texto largo queda en el DOM; se muestra la etiqueta corta
+  flex: none;
+}
+
+.receipt-print-compact .hans-receipt-meta .text-muted.small::before {
+  content: attr(data-print-label) ":";
+  font-size: 10.5px;
+}
+
+.receipt-print-compact .hans-receipt-meta .fw-bold {
+  font-size: 13.5px;
+}
+
+// Tabla: Producto ocupa el ancho sobrante; Cant./Unitario/Subtotal angostas y
+// alineadas a la derecha con cifras tabulares.
+.receipt-print-compact .hans-receipt-items {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.receipt-print-compact .hans-receipt-items-head,
+.receipt-print-compact .hans-receipt-item {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 34px 62px 74px;
+  column-gap: 6px;
+  align-items: baseline;
+  flex-wrap: nowrap;
+}
+
+.receipt-print-compact .hans-receipt-items-head {
+  font-size: 10.5px;
+  padding: 3px 0 2px;
+}
+
+.receipt-print-compact .hans-receipt-item {
+  padding: 2px 0;
+  border-top: 1px solid #e6e1d6;
+}
+
+.receipt-print-compact .hans-receipt-items-head .hans-receipt-col-qty,
+.receipt-print-compact .hans-receipt-items-head .hans-receipt-col-unit,
+.receipt-print-compact .hans-receipt-items-head .hans-receipt-col-subtotal,
+.receipt-print-compact .hans-receipt-item .hans-receipt-col-qty,
+.receipt-print-compact .hans-receipt-item .hans-receipt-col-unit,
+.receipt-print-compact .hans-receipt-item .hans-receipt-col-subtotal {
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.receipt-print-compact .hans-receipt-item .hans-receipt-col-product {
+  flex: none;
+  margin-bottom: 0;
+  line-height: 1.15;
+}
+
+.receipt-print-compact .hans-receipt-total {
+  font-size: 15px;
+  padding-top: 1px;
+}
+
+.receipt-print-compact .hans-receipt-total-amount {
+  font-size: 19px;
+}
+
+.receipt-print-compact .hans-receipt-comment {
+  margin-top: 4px;
+  padding-top: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.receipt-print-compact .hans-receipt-comment .text-muted.small {
+  font-size: 10.5px;
+  flex: none;
+}
+
+.receipt-print-compact .hans-receipt-comment .text-muted.small::after {
+  content: ":";
+}
+
 html {
   scroll-behavior: auto !important;
 }

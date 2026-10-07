@@ -48,10 +48,14 @@ const EXPORT_WIDTH = 1100
 // evalúan el ancho de la ventana, no el ancho del elemento — así que
 // ensanchar el elemento original (o solo pasarle windowWidth a
 // html2canvas) no alcanza si el navegador real es angosto.
-function buildExportClone(sourceElement, width = EXPORT_WIDTH) {
+function buildExportClone(sourceElement, width = EXPORT_WIDTH, variant = null) {
   const clone = sourceElement.cloneNode(true)
   clone.removeAttribute("id") // evitar un id duplicado en el documento
   clone.classList.add("receipt-export-render")
+
+  // La impresión masiva en PDF usa un layout compacto propio (encabezado en
+  // una línea, tabla angosta, paddings mínimos). El PNG individual no lo usa.
+  if (variant === "print") clone.classList.add("receipt-print-compact")
 
   // El PNG individual usa el ancho por defecto de la clase CSS (1100px). La
   // impresión masiva en PDF pide un ancho propio (más angosto, para que el
@@ -76,11 +80,12 @@ function buildExportClone(sourceElement, width = EXPORT_WIDTH) {
 
 // Captura el remito como <canvas>. captureElementAsPng (remito individual)
 // y la impresión masiva en PDF (bulk_receipts_controller.js) comparten esta
-// misma captura — así el PDF se ve igual que el PNG, sin un segundo diseño.
-export async function captureElementAsCanvas(element, { width = EXPORT_WIDTH, scale = captureScale() } = {}) {
+// misma captura y el mismo partial/datos; el PDF solo cambia la presentación
+// (variant: "print" -> .receipt-print-compact) para ahorrar papel.
+export async function captureElementAsCanvas(element, { width = EXPORT_WIDTH, scale = captureScale(), variant = null } = {}) {
   const { default: html2canvas } = await import("html2canvas")
 
-  const { wrapper, clone } = buildExportClone(element, width)
+  const { wrapper, clone } = buildExportClone(element, width, variant)
 
   try {
     return await html2canvas(clone, {

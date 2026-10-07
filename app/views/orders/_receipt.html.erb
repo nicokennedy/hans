@@ -11,17 +11,17 @@
 
   <div class="hans-receipt-meta row">
     <div class="col-6 col-md-4">
-      <div class="text-muted small">Cliente</div>
+      <div class="text-muted small" data-print-label="Cliente">Cliente</div>
       <div class="fw-bold"><%= order.customer.name %></div>
     </div>
 
     <div class="col-6 col-md-4">
-      <div class="text-muted small">Fecha del pedido</div>
+      <div class="text-muted small" data-print-label="Pedido">Fecha del pedido</div>
       <div class="fw-bold"><%= order.created_at.strftime("%d/%m/%Y") %></div>
     </div>
 
     <div class="col-6 col-md-4">
-      <div class="text-muted small">Fecha de entrega</div>
+      <div class="text-muted small" data-print-label="Entrega">Fecha de entrega</div>
       <div class="fw-bold"><%= order.delivery_date.strftime("%d/%m/%Y") %></div>
     </div>
   </div>

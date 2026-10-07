@@ -6,15 +6,16 @@ import {
   isAppleTouchDevice,
   openPlaceholderWindow
 } from "receipt_png"
-import { PDF_RECEIPT_WIDTH_PX, PRINT_DEFAULTS, expandCopies, layoutReceipts } from "receipt_layout"
+import { PDF_RECEIPT_WIDTH_PX, PRINT_DEFAULTS, layoutReceipts } from "receipt_layout"
 import { buildPdf } from "pdf_writer"
 
 // Botón "Generar PDF" de la impresión masiva de remitos. Cada remito del día
 // ya viene renderizado (oculto) por el servidor con el MISMO partial que el
 // remito individual (orders/_receipt). Acá solo se capturan con la misma
-// captura que el PNG, se acomodan en hojas A4 (receipt_layout.js, con la
-// altura real de cada uno) y se escribe el PDF (pdf_writer.js).
-const CAPTURE_SCALE = 3 // ≈300 dpi al ancho de una hoja A4
+// captura que el PNG (en su variante compacta de impresión), se acomodan en
+// hojas A4 horizontales (receipt_layout.js: las 2 copias de cada pedido lado a
+// lado, con la altura real de cada uno) y se escribe el PDF (pdf_writer.js).
+const CAPTURE_SCALE = 3 // 3 x 4 px/mm = 12 px/mm ≈ 305 dpi sobre el papel
 const JPEG_QUALITY = 0.95
 
 export default class extends Controller {
@@ -45,7 +46,7 @@ export default class extends Controller {
       const images = await this.captureAll()
       this.buttonTarget.textContent = "Armando PDF…"
 
-      const { pages } = layoutReceipts(expandCopies(images, this.copiesValue))
+      const { pages } = layoutReceipts(images, { copies: this.copiesValue })
       const bytes = buildPdf({
         pageWidth: PRINT_DEFAULTS.pageWidth,
         pageHeight: PRINT_DEFAULTS.pageHeight,
@@ -77,7 +78,7 @@ export default class extends Controller {
     for (const [index, element] of this.receiptTargets.entries()) {
       this.buttonTarget.textContent = `Generando ${index + 1} de ${total}…`
 
-      const canvas = await captureElementAsCanvas(element, { width: PDF_RECEIPT_WIDTH_PX, scale: CAPTURE_SCALE })
+      const canvas = await captureElementAsCanvas(element, { width: PDF_RECEIPT_WIDTH_PX, scale: CAPTURE_SCALE, variant: "print" })
       const blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY)
       images.push({
         index,
@@ -94,7 +95,7 @@ export default class extends Controller {
   }
 
   reportResult(result, receiptCount, pageCount) {
-    const summary = `${receiptCount} remitos x ${this.copiesValue} copias en ${pageCount} ${pageCount === 1 ? "hoja" : "hojas"} A4.`
+    const summary = `${receiptCount} remitos x ${this.copiesValue} copias en ${pageCount} ${pageCount === 1 ? "hoja" : "hojas"} A4 horizontales.`
 
     if (result.method === "new_tab") {
       this.showStatus(`${summary} El PDF se abrió en una nueva pestaña: guardalo o imprimilo desde ahí.`, "success")
