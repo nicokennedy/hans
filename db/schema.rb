@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_05_200000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -29,6 +29,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_05_200000) do
     t.boolean "active"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "customer_payments", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.integer "amount_cents", null: false
+    t.date "paid_on", null: false
+    t.string "payment_method", null: false
+    t.string "reference"
+    t.text "note"
+    t.bigint "user_id", null: false
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.string "request_token"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id", "paid_on"], name: "index_customer_payments_on_customer_id_and_paid_on"
+    t.index ["customer_id"], name: "index_customer_payments_on_customer_id"
+    t.index ["request_token"], name: "index_customer_payments_on_request_token", unique: true
+    t.index ["user_id"], name: "index_customer_payments_on_user_id"
+    t.index ["voided_by_id"], name: "index_customer_payments_on_voided_by_id"
   end
 
   create_table "customers", force: :cascade do |t|
@@ -108,8 +129,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_05_200000) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "customer_payment_id"
+    t.string "application_kind"
+    t.bigint "user_id"
+    t.datetime "voided_at"
+    t.text "void_reason"
+    t.index ["customer_payment_id"], name: "index_payments_on_customer_payment_id"
     t.index ["order_id"], name: "index_payments_on_order_id"
     t.index ["paid_at"], name: "index_payments_on_paid_at"
+    t.index ["user_id"], name: "index_payments_on_user_id"
+    t.index ["voided_at"], name: "index_payments_on_voided_at"
   end
 
   create_table "preparations", force: :cascade do |t|
@@ -264,12 +293,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_05_200000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "customer_payments", "customers"
+  add_foreign_key "customer_payments", "users"
+  add_foreign_key "customer_payments", "users", column: "voided_by_id"
   add_foreign_key "order_events", "orders"
   add_foreign_key "order_events", "users"
   add_foreign_key "order_items", "orders"
   add_foreign_key "order_items", "products"
   add_foreign_key "orders", "customers"
+  add_foreign_key "payments", "customer_payments"
   add_foreign_key "payments", "orders"
+  add_foreign_key "payments", "users"
   add_foreign_key "product_recipes", "products"
   add_foreign_key "product_stock_sources", "preparations"
   add_foreign_key "product_stock_sources", "products"
