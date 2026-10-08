@@ -65,11 +65,12 @@
               <div class="fs-6 text-muted"><%= stock_status_text(snapshot.status) %></div>
             <% end %>
 
-            <% if current_user.admin? %>
-              <div class="mt-1">
+            <div class="mt-2 d-flex flex-wrap align-items-center gap-3">
+              <%= link_to "Ver historial", admin_stock_item_path(snapshot.stock_item, anchor: "stock-history"), class: "btn btn-sm btn-outline-dark", title: "Historial de movimientos de stock" %>
+              <% if current_user.admin? %>
                 <%= link_to "Editar", edit_config_admin_stock_item_path(snapshot.stock_item), class: "small text-muted", title: "Editar mínimo y lote de producción" %>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           </div>
 
           <div class="col-12 col-md-4">
@@ -89,14 +90,16 @@
 
           <div class="col-12 col-md-3">
             <div class="d-flex flex-column gap-2">
-              <%= form_with url: register_production_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex gap-1" } do %>
-                <%= number_field_tag :quantity, stock_suggested_quantity_value(snapshot), min: 0, step: "any", placeholder: "Cantidad", class: "form-control form-control-sm", required: true %>
+              <%= form_with url: register_production_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex flex-wrap gap-1" } do %>
+                <%= number_field_tag :quantity, stock_suggested_quantity_value(snapshot), min: 0, step: "any", placeholder: "Cantidad", class: "form-control form-control-sm flex-grow-1 w-auto", required: true %>
                 <%= submit_tag "+ Producción", class: "btn btn-sm btn-dark text-nowrap" %>
+                <%= text_field_tag :note, nil, placeholder: "Comentario (opcional)", maxlength: 500, autocomplete: "off", "aria-label": "Comentario de la producción (opcional)", class: "form-control form-control-sm w-100" %>
               <% end %>
 
-              <%= form_with url: register_count_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex gap-1" } do %>
-                <%= number_field_tag :counted_quantity, format_quantity(snapshot.physical_quantity), min: 0, step: "any", placeholder: "Conteo", class: "form-control form-control-sm", required: true %>
+              <%= form_with url: register_count_admin_stock_item_path(snapshot.stock_item), method: :post, local: true, html: { class: "d-flex flex-wrap gap-1" } do %>
+                <%= number_field_tag :counted_quantity, format_quantity(snapshot.physical_quantity), min: 0, step: "any", placeholder: "Conteo", class: "form-control form-control-sm flex-grow-1 w-auto", required: true %>
                 <%= submit_tag "Contar", class: "btn btn-sm btn-outline-dark text-nowrap" %>
+                <%= text_field_tag :note, nil, placeholder: "Comentario / motivo (opcional)", maxlength: 500, autocomplete: "off", "aria-label": "Comentario o motivo del ajuste (opcional)", class: "form-control form-control-sm w-100" %>
               <% end %>
             </div>
           </div>

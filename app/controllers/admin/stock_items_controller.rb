@@ -11,7 +11,8 @@ class Admin::StockItemsController < ApplicationController
 
   def show
     @snapshot = Stock::Availability.for_item(@stock_item)
-    @movements = @stock_item.stock_movements.order(created_at: :desc, id: :desc).includes(:order, :user).limit(200)
+    # Historial: solo lectura, con filtros por tipo y fechas y paginación.
+    @history = Stock::MovementHistory.new(@stock_item, filter: params[:kind], from: params[:from], to: params[:to], page: params[:page])
   end
 
   def create
@@ -55,14 +56,14 @@ class Admin::StockItemsController < ApplicationController
   end
 
   def register_production
-    Stock::RegisterProduction.call(stock_item: @stock_item, quantity: params[:quantity], user: current_user, note: params[:note].presence)
+    Stock::RegisterProduction.call(stock_item: @stock_item, quantity: params[:quantity], user: current_user, note: movement_note)
     redirect_to admin_stock_path, notice: "Producción registrada: +#{helpers.format_quantity(params[:quantity])} #{@stock_item.unit} de #{@stock_item.name}."
   rescue Stock::RegisterProduction::InvalidQuantityError => e
     redirect_to admin_stock_path, alert: e.message
   end
 
   def register_count
-    Stock::RegisterAdjustment.call(stock_item: @stock_item, counted_quantity: params[:counted_quantity], user: current_user, note: params[:note].presence)
+    Stock::RegisterAdjustment.call(stock_item: @stock_item, counted_quantity: params[:counted_quantity], user: current_user, note: movement_note)
     redirect_to admin_stock_path, notice: "Conteo registrado para #{@stock_item.name}: stock real = #{helpers.format_quantity(params[:counted_quantity])} #{@stock_item.unit}."
   rescue Stock::RegisterAdjustment::InvalidQuantityError => e
     redirect_to admin_stock_path, alert: e.message
@@ -82,6 +83,11 @@ class Admin::StockItemsController < ApplicationController
 
   def stockable_edit_path(stockable)
     stockable.is_a?(Product) ? edit_admin_product_path(stockable) : edit_admin_preparation_path(stockable)
+  end
+
+  # Comentario / motivo opcional del movimiento (producción o conteo).
+  def movement_note
+    params[:note].to_s.squish.truncate(500).presence
   end
 
   def config_params

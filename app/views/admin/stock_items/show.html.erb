@@ -2,22 +2,26 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h1><%= @stock_item.name %></h1>
-      <p class="text-muted mb-0">Historial de stock</p>
+      <p class="text-muted mb-0">Historial de stock &middot; Unidad: <%= @snapshot.unit %></p>
     </div>
     <%= link_to "← Stock / Producción", admin_stock_path, class: "btn btn-outline-dark" %>
   </div>
 
   <div class="product-card mb-4">
     <div class="row text-center g-3">
-      <div class="col-6 col-md-3">
-        <div class="text-muted small">Stock físico</div>
-        <div class="h5 mb-0"><%= format_quantity(@snapshot.physical_quantity) %> <%= @snapshot.unit %></div>
+      <div class="col-6 col-md">
+        <div class="text-muted small">Stock actual (físico)</div>
+        <div class="h5 mb-0" id="history-current-stock"><%= format_quantity(@snapshot.physical_quantity) %> <%= @snapshot.unit %></div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md">
+        <div class="text-muted small">Stock mínimo</div>
+        <div class="h5 mb-0" id="history-minimum"><%= format_quantity(@snapshot.minimum_quantity) %> <%= @snapshot.unit %></div>
+      </div>
+      <div class="col-6 col-md">
         <div class="text-muted small">Comprometido futuro</div>
         <div class="h5 mb-0"><%= format_quantity(@snapshot.future_committed) %> <%= @snapshot.unit %></div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md">
         <div class="text-muted small">
           Salidas de hoy
           <% if @snapshot.today_dispatch_materialized %>
@@ -28,7 +32,7 @@
         </div>
         <div class="h5 mb-0"><%= format_quantity(@snapshot.today_dispatch) %> <%= @snapshot.unit %></div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md">
         <div class="text-muted small">Disponible</div>
         <div class="h5 mb-0"><%= format_quantity(@snapshot.available_quantity) %> <%= @snapshot.unit %></div>
       </div>
@@ -59,46 +63,142 @@
     </div>
   <% end %>
 
-  <div class="product-card">
-    <h2 class="h5">Movimientos</h2>
+  <div class="mb-4" id="stock-history">
+    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2">
+      <h2 class="h4 mb-0">Historial de movimientos</h2>
+      <div class="small text-muted">Solo movimientos físicos reales. Los pedidos futuros comprometidos no son movimientos: se ven en "Comprometido futuro".</div>
+    </div>
 
-    <% if @movements.empty? %>
-      <p class="text-muted mb-0">Todavía no hay movimientos registrados.</p>
-    <% else %>
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Tipo</th>
-              <th>Cantidad</th>
-              <th>Stock resultante</th>
-              <th>Pedido</th>
-              <th>Usuario</th>
-              <th>Observación</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @movements.each do |movement| %>
-              <tr>
-                <td><%= movement.created_at.strftime("%d/%m %H:%M") %></td>
-                <td><%= stock_movement_type_label(movement.movement_type) %></td>
-                <td class="<%= movement.quantity.positive? ? "text-success" : "text-danger" %>">
-                  <%= movement.quantity.positive? ? "+" : "" %><%= format_quantity(movement.quantity) %>
-                </td>
-                <td><%= format_quantity(movement.resulting_quantity) %> <%= @snapshot.unit %></td>
-                <td>
-                  <% if movement.order.present? %>
-                    <%= link_to movement.order.number, admin_order_path(movement.order) %>
-                  <% end %>
-                </td>
-                <td><%= movement.user&.email %></td>
-                <td><%= movement.note %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+    <div class="product-card mb-3">
+      <div class="stock-history-filters d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Filtrar por tipo">
+        <% Stock::MovementHistory::FILTERS.each do |filter| %>
+          <% active = @history.filter == filter %>
+          <%= link_to admin_stock_item_path(@stock_item, { kind: (filter == "all" ? nil : filter), from: @history.from&.iso8601, to: @history.to&.iso8601 }.compact),
+                class: "btn btn-sm #{active ? 'btn-dark' : 'btn-outline-dark'}", "aria-pressed": active.to_s do %>
+            <%= stock_history_filter_label(filter) %> <span class="opacity-75">(<%= @history.counts[filter] %>)</span>
+          <% end %>
+        <% end %>
       </div>
+
+      <%= form_with url: admin_stock_item_path(@stock_item), method: :get, local: true, html: { class: "row g-2 align-items-end" } do %>
+        <% if @history.filter != "all" %>
+          <%= hidden_field_tag :kind, @history.filter %>
+        <% end %>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0" for="history-from">Desde</label>
+          <%= date_field_tag :from, @history.from&.iso8601, id: "history-from", class: "form-control form-control-sm" %>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small mb-0" for="history-to">Hasta</label>
+          <%= date_field_tag :to, @history.to&.iso8601, id: "history-to", class: "form-control form-control-sm" %>
+        </div>
+        <div class="col-12 col-md-auto d-flex gap-2">
+          <%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %>
+          <% if @history.filtered? %>
+            <%= link_to "Limpiar", admin_stock_item_path(@stock_item), class: "btn btn-sm btn-outline-dark" %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @history.invalid_dates %>
+        <div class="small text-danger mt-2">Alguna fecha no era válida y se ignoró.</div>
+      <% end %>
+    </div>
+
+    <% if @history.entries.empty? %>
+      <div class="product-card">
+        <p class="text-muted mb-0">
+          <%= @history.filtered? ? "No hay movimientos que coincidan con el filtro." : "Todavía no hay movimientos registrados." %>
+        </p>
+      </div>
+    <% else %>
+      <div class="small text-muted mb-2">
+        <%= @history.total_count %> <%= @history.total_count == 1 ? "movimiento" : "movimientos" %>
+        &middot; más recientes primero
+      </div>
+
+      <% @history.entries.each do |entry| %>
+        <% movement = entry.movement %>
+        <% tone = stock_history_tone(movement) %>
+        <article class="stock-move stock-move--<%= tone %>" id="movement-<%= movement.id %>">
+          <header class="stock-move__head">
+            <span class="stock-move__qty"><%= stock_history_quantity(movement, @snapshot.unit) %></span>
+            <span class="stock-move__kind"><%= stock_history_kind_label(entry.kind) %></span>
+            <time class="stock-move__time" datetime="<%= movement.created_at.iso8601 %>"><%= stock_history_time(movement.created_at) %></time>
+          </header>
+
+          <% if (user_label = stock_history_user_label(entry)) %>
+            <div class="stock-move__line"><span class="text-muted">Por:</span> <%= user_label %></div>
+          <% elsif entry.kind != "production" && entry.kind != "adjustment" %>
+            <div class="stock-move__line text-muted">Descuento automático por pedido</div>
+          <% end %>
+
+          <% if movement.note.present? %>
+            <div class="stock-move__line"><span class="text-muted">Comentario:</span> <%= movement.note %></div>
+          <% end %>
+
+          <% if entry.order %>
+            <% order = entry.order %>
+            <div class="stock-move__line">
+              <span class="text-muted">Pedido</span>
+              <strong><%= order.number %></strong> &mdash;
+              <%= link_to "Ver pedido", admin_order_path(order) %>
+              <% if order.canceled? %><span class="badge text-bg-secondary ms-1">Pedido cancelado</span><% end %>
+            </div>
+            <div class="stock-move__line small text-muted">
+              <%= order.customer.name %>
+              &middot; Entrega: <%= order.delivery_date.strftime("%d/%m/%Y") %>
+              <% if order.created_at.to_date != order.delivery_date %>
+                &middot; Pedido registrado: <%= order.created_at.in_time_zone.strftime("%d/%m/%Y") %>
+              <% end %>
+            </div>
+
+            <% if entry.kind == "correction" %>
+              <div class="stock-move__line small">
+                <% if entry.correction_reason == :canceled %>
+                  El pedido figura cancelado: se devuelve al stock lo que se había descontado.
+                <% else %>
+                  El pedido se modificó o se reprogramó después de descontarse: se corrige la diferencia.
+                <% end %>
+                <span class="text-muted">Neto del pedido sobre este stock: <%= format_quantity(entry.order_net) %> <%= @snapshot.unit %>.</span>
+              </div>
+            <% elsif entry.follow_up %>
+              <div class="stock-move__line small text-muted">
+                Ajuste por modificación del pedido (neto del pedido sobre este stock: <%= format_quantity(entry.order_net) %> <%= @snapshot.unit %>).
+              </div>
+            <% end %>
+
+            <% if entry.products.any? %>
+              <ul class="stock-move__products small mb-0">
+                <% entry.products.each do |name, quantity, consumed| %>
+                  <li>
+                    <%= name.strip %> &times; <%= format_quantity(quantity) %>
+                    <% if consumed != quantity %><span class="text-muted">(descuenta <%= format_quantity(consumed) %> <%= @snapshot.unit %>)</span><% end %>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
+          <% end %>
+
+          <div class="stock-move__balance">Stock resultante: <strong><%= format_quantity(movement.resulting_quantity) %> <%= @snapshot.unit %></strong></div>
+        </article>
+      <% end %>
+
+      <% if @history.total_pages > 1 %>
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Paginación del historial">
+          <% if @history.previous_page %>
+            <%= link_to "← Más recientes", stock_history_path(@stock_item, @history, page: @history.previous_page), class: "btn btn-sm btn-outline-dark", rel: "prev" %>
+          <% else %>
+            <span></span>
+          <% end %>
+          <span class="small text-muted">Página <%= @history.page %> de <%= @history.total_pages %></span>
+          <% if @history.next_page %>
+            <%= link_to "Más antiguos →", stock_history_path(@stock_item, @history, page: @history.next_page), class: "btn btn-sm btn-outline-dark", rel: "next" %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </nav>
+      <% end %>
     <% end %>
   </div>
 </div>

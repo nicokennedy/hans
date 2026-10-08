@@ -47,4 +47,63 @@ module Admin::StockHelper
     batch = stock_item.production_batch_size
     batch ? "lote de #{format_quantity(batch)} #{stock_item.unit}" : "sin lote"
   end
+
+  HISTORY_KIND_LABELS = {
+    "production" => "Producción",
+    "sale" => "Venta",
+    "adjustment" => "Ajuste manual",
+    "correction" => "Cancelación / corrección de pedido"
+  }.freeze
+
+  HISTORY_FILTER_LABELS = {
+    "all" => "Todos",
+    "production" => "Producción",
+    "sale" => "Ventas",
+    "adjustment" => "Ajustes",
+    "correction" => "Cancelaciones / correcciones"
+  }.freeze
+
+  def stock_history_kind_label(kind)
+    HISTORY_KIND_LABELS[kind.to_s] || kind.to_s
+  end
+
+  def stock_history_filter_label(filter)
+    HISTORY_FILTER_LABELS[filter.to_s] || filter.to_s
+  end
+
+  # "+10 un" / "-4 un": verde si ingresa, rojo si egresa (ver .stock-move en application.scss).
+  def stock_history_quantity(movement, unit)
+    sign = movement.quantity.positive? ? "+" : "-"
+    "#{sign}#{format_quantity(movement.quantity.abs)} #{unit}"
+  end
+
+  def stock_history_tone(movement)
+    movement.quantity.positive? ? "in" : "out"
+  end
+
+  # Fecha y hora en Argentina (config.time_zone): "08/10/2026 - 09:35".
+  def stock_history_time(time)
+    time.in_time_zone("America/Argentina/Buenos_Aires").strftime("%d/%m/%Y - %H:%M")
+  end
+
+  # Quién hizo el movimiento. Los movimientos anteriores a este historial pueden
+  # no tener usuario: se muestra tal cual, sin asignar ninguno. Las salidas por
+  # pedidos las genera el sistema (conciliación automática), no una persona.
+  def stock_history_user_label(entry)
+    return entry.user.email if entry.user
+    return nil if entry.kind.in?(%w[sale correction])
+
+    "Usuario no registrado"
+  end
+
+  # Link que conserva los filtros actuales y cambia solo lo indicado.
+  def stock_history_path(stock_item, history, overrides = {})
+    query = {
+      kind: (history.filter unless history.filter == "all"),
+      from: history.from&.iso8601,
+      to: history.to&.iso8601
+    }.merge(overrides)
+
+    admin_stock_item_path(stock_item, query.compact_blank)
+  end
 end

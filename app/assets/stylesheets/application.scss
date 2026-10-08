@@ -582,6 +582,83 @@ body {
   content: ":";
 }
 
+// Historial de movimientos de stock (admin/stock_items#show): una tarjeta por
+// movimiento, con borde verde si ingresa y rojo si egresa; se apila bien en
+// celular (sin tabla ancha).
+.stock-move {
+  background: #fff;
+  border: 1px solid #ece7de;
+  border-left: 5px solid #b9b3a7;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.stock-move--in {
+  border-left-color: #2e8b57;
+}
+
+.stock-move--out {
+  border-left-color: #c0392b;
+}
+
+.stock-move__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 4px;
+}
+
+.stock-move__qty {
+  font-size: 1.25rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.stock-move--in .stock-move__qty {
+  color: #2e8b57;
+}
+
+.stock-move--out .stock-move__qty {
+  color: #c0392b;
+}
+
+.stock-move__kind {
+  font-weight: 700;
+}
+
+.stock-move__time {
+  margin-left: auto;
+  color: #666;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.stock-move__line {
+  word-break: break-word;
+}
+
+.stock-move__products {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.stock-move__balance {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #ddd6c9;
+  color: #444;
+}
+
+@media (max-width: 576px) {
+  .stock-move__time {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
 html {
   scroll-behavior: auto !important;
 }
