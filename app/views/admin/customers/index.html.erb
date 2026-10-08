@@ -99,6 +99,7 @@
               </td>
               <td>
                 <div class="d-flex justify-content-end gap-2">
+                  <%= link_to "Cuenta corriente", admin_customer_account_path(customer), class: "btn btn-sm btn-dark" %>
                   <%= link_to "Ver", admin_customer_path(customer), class: "btn btn-sm btn-outline-dark" %>
                   <%= link_to "Editar", edit_admin_customer_path(customer), class: "btn btn-sm btn-outline-dark" %>
                   <%= button_to(

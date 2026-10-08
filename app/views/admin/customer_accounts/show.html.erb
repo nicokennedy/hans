@@ -1,0 +1,192 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+      <h1 class="fw-bold mb-1">Cuenta corriente</h1>
+      <p class="text-muted mb-0 fs-5"><%= @customer.name %></p>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "← Clientes", admin_customers_path, class: "btn btn-outline-dark" %>
+      <% if @summary.credit_cents.positive? %>
+        <%= link_to "Aplicar saldo a favor", new_admin_customer_credit_application_path(@customer), class: "btn btn-outline-primary", id: "apply-credit" %>
+      <% end %>
+      <%= link_to "+ Registrar pago", new_admin_customer_customer_payment_path(@customer), class: "btn btn-dark btn-lg", id: "register-payment" %>
+    </div>
+  </div>
+
+  <div class="product-card mb-4" id="account-summary">
+    <div class="row g-3">
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Total de pedidos</div>
+        <div class="fw-bold fs-5" id="account-orders-count"><%= @summary.orders_count %></div>
+        <% if @summary.canceled_orders_count.positive? %><div class="small text-muted">(+<%= @summary.canceled_orders_count %> cancelados)</div><% end %>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Total facturado</div>
+        <div class="fw-bold fs-5" id="account-invoiced"><%= account_money(@summary.invoiced_cents) %></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Pagos aplicados</div>
+        <div class="fw-bold fs-5 text-success" id="account-applied"><%= account_money(@summary.applied_cents) %></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Saldo pendiente</div>
+        <div class="fw-bold fs-5 text-danger" id="account-pending"><%= account_money(@summary.pending_cents) %></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Saldo a favor</div>
+        <div class="fw-bold fs-5 text-primary" id="account-credit"><%= account_money(@summary.credit_cents) %></div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="text-muted small mb-1">Total recibido</div>
+        <div class="fw-bold fs-5" id="account-received"><%= account_money(@summary.received_cents) %></div>
+        <div class="small text-muted">cada pago, una vez</div>
+      </div>
+    </div>
+
+    <% if @summary.canceled_paid_cents.positive? %>
+      <div class="alert alert-warning small mt-3 mb-0" id="account-canceled-paid">
+        Hay <%= account_money(@summary.canceled_paid_cents) %> pagados sobre pedidos cancelados. No se mueven solos: revisalos manualmente.
+      </div>
+    <% end %>
+    <% if @summary.overpaid_cents.positive? %>
+      <div class="alert alert-warning small mt-3 mb-0" id="account-overpaid">
+        Hay pedidos cuyo total bajó por debajo de lo pagado (<%= account_money(@summary.overpaid_cents) %> de excedente). No se ajusta automáticamente: revisalos.
+      </div>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-4" id="account-orders">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h2 class="fs-5 fw-bold mb-0">Pedidos</h2>
+      <div class="d-flex flex-wrap gap-2" role="group" aria-label="Filtrar pedidos">
+        <% { "all" => "Todos", "pending" => "Con saldo pendiente", "paid" => "Pagados" }.each do |key, label| %>
+          <%= link_to label, account_filter_path(@customer, @summary, key), class: "btn btn-sm #{@summary.filter == key ? 'btn-dark' : 'btn-outline-dark'}" %>
+        <% end %>
+      </div>
+    </div>
+
+    <%= form_with url: admin_customer_account_path(@customer), method: :get, local: true, class: "row g-2 align-items-end mb-3" do %>
+      <% if @summary.filter != "all" %><%= hidden_field_tag :filter, @summary.filter %><% end %>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="account-from">Entrega desde</label>
+        <%= date_field_tag :from, @summary.from&.iso8601, id: "account-from", class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="account-to">Entrega hasta</label>
+        <%= date_field_tag :to, @summary.to&.iso8601, id: "account-to", class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-12 col-md-auto d-flex gap-2">
+        <%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %>
+        <%= link_to "Limpiar", admin_customer_account_path(@customer), class: "btn btn-sm btn-outline-dark" %>
+      </div>
+      <% if @summary.invalid_dates? %><div class="col-12 small text-danger">Alguna fecha no era válida y se ignoró.</div><% end %>
+    <% end %>
+
+    <% orders = @summary.filtered_orders.to_a %>
+    <% if orders.empty? %>
+      <div class="text-muted">No hay pedidos que coincidan con el filtro.</div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr><th>Pedido</th><th>Entrega</th><th class="text-end">Total</th><th class="text-end">Pagado</th><th class="text-end">Saldo</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% orders.each do |order| %>
+              <% label, badge = account_order_status(order) %>
+              <tr>
+                <td class="fw-bold"><%= order.number %></td>
+                <td><%= order.delivery_date.strftime("%d/%m/%Y") %></td>
+                <td class="text-end"><%= account_money(order.total_cents) %></td>
+                <td class="text-end text-success"><%= account_money(order.amount_paid_cents) %></td>
+                <td class="text-end <%= order.balance_due_cents.positive? ? 'text-danger fw-bold' : '' %>"><%= account_money(order.balance_due_cents) %></td>
+                <td><span class="badge <%= badge %>"><%= label %></span></td>
+                <td class="text-end"><%= link_to "Ver pedido", admin_order_path(order), class: "btn btn-sm btn-outline-dark" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="product-card" id="account-history">
+    <h2 class="fs-5 fw-bold mb-3">Historial de pagos</h2>
+    <% if @summary.history.empty? %>
+      <div class="text-muted">Este cliente todavía no tiene pagos registrados.</div>
+    <% end %>
+
+    <% @summary.history.each do |entry| %>
+      <% record = entry[:record] %>
+      <% if entry[:kind] == :individual %>
+        <article class="account-payment account-payment--individual" id="payment-<%= record.id %>">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div><strong class="text-success"><%= account_money(record.amount_cents) %></strong> <span class="badge bg-light text-dark border">Pago por pedido</span></div>
+            <div class="text-muted small"><%= entry[:date].strftime("%d/%m/%Y") %></div>
+          </div>
+          <div class="small"><%= record.payment_method_label %> · Pedido <%= link_to record.order.number, admin_order_path(record.order) %></div>
+          <% if record.note.present? %><div class="small text-muted"><%= record.note %></div><% end %>
+          <div class="small text-muted">Registrado por: <%= record.user&.email || "Usuario no registrado" %></div>
+        </article>
+      <% else %>
+        <% voided = record.voided? %>
+        <article class="account-payment account-payment--global <%= 'account-payment--voided' if voided %>" id="customer-payment-<%= record.id %>">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div>
+              <strong class="<%= voided ? 'text-decoration-line-through text-muted' : 'text-success' %>"><%= account_money(record.amount_cents) %></strong>
+              <span class="badge bg-primary">Pago de cuenta corriente</span>
+              <% if voided %><span class="badge bg-danger">Anulado</span><% end %>
+            </div>
+            <div class="text-muted small"><%= record.paid_on.strftime("%d/%m/%Y") %></div>
+          </div>
+          <div class="small"><%= record.payment_method_label %><% if record.reference.present? %> · Ref: <%= record.reference %><% end %></div>
+          <% if record.note.present? %><div class="small">Comentario: <%= record.note %></div><% end %>
+          <div class="small text-muted">Registrado por <%= record.user.email %> el <%= l(record.created_at, format: "%d/%m/%Y %H:%M") %></div>
+
+          <% applications = record.applications.sort_by { |a| [a.created_at, a.id] } %>
+          <div class="mt-2 small">
+            <div class="fw-bold">Distribución</div>
+            <% if applications.empty? %>
+              <div class="text-muted">Sin aplicar a pedidos.</div>
+            <% end %>
+            <ul class="list-unstyled mb-1">
+              <% applications.each do |application| %>
+                <li class="<%= 'text-decoration-line-through text-muted' if application.voided? %>">
+                  <%= link_to application.order.number, admin_order_path(application.order) %> — <%= account_money(application.amount_cents) %>
+                  <span class="text-muted">(<%= application.credit_application? ? "saldo a favor aplicado el #{application.paid_at.strftime('%d/%m/%Y')}" : "al registrar el pago" %>)</span>
+                  <% if application.voided? %>
+                    <span class="badge bg-secondary">Anulado<%= ": #{application.void_reason}" if application.void_reason.present? && application.credit_application? %></span>
+                  <% elsif application.credit_application? %>
+                    <details class="d-inline">
+                      <summary class="d-inline text-danger" style="cursor:pointer">Revertir</summary>
+                      <%= form_with url: revert_admin_customer_credit_application_path(@customer, application), method: :post, local: true, class: "d-flex gap-1 mt-1" do %>
+                        <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo (obligatorio)", class: "form-control form-control-sm" %>
+                        <%= submit_tag "Revertir", class: "btn btn-sm btn-outline-danger", data: { turbo_confirm: "¿Revertir esta aplicación? El importe vuelve al saldo a favor." } %>
+                      <% end %>
+                    </details>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+            <% unless voided %>
+              <div class="<%= record.unapplied_cents.positive? ? 'text-primary fw-bold' : 'text-muted' %>">Saldo a favor sin aplicar: <%= account_money(record.unapplied_cents) %></div>
+            <% end %>
+          </div>
+
+          <% if voided %>
+            <div class="small text-danger mt-2">Anulado por <%= record.voided_by&.email %> el <%= l(record.voided_at, format: "%d/%m/%Y %H:%M") %>. Motivo: <%= record.void_reason %></div>
+          <% else %>
+            <details class="mt-2">
+              <summary class="small text-danger" style="cursor:pointer">Anular este pago</summary>
+              <%= form_with url: void_admin_customer_customer_payment_path(@customer, record), method: :post, local: true, class: "d-flex flex-wrap gap-2 mt-2" do %>
+                <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo de la anulación (obligatorio)", class: "form-control form-control-sm", style: "max-width: 420px" %>
+                <%= submit_tag "Anular pago", class: "btn btn-sm btn-danger", data: { turbo_confirm: "¿Anular este pago? Se restablecen los saldos de los pedidos. El registro se conserva." } %>
+              <% end %>
+            </details>
+          <% end %>
+        </article>
+      <% end %>
+    <% end %>
+  </div>
+</div>

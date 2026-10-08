@@ -50,6 +50,15 @@ Rails.application.routes.draw do
     end
     resources :customers, only: [:index, :show, :new, :create, :edit, :update] do
       patch :toggle_active, on: :member
+      # Cuenta corriente: estado de cuenta, pagos globales repartidos entre pedidos y
+      # saldo a favor (ver CustomerAccounts::*).
+      resource :account, only: [:show], controller: "customer_accounts"
+      resources :customer_payments, only: [:new, :create] do
+        post :void, on: :member
+      end
+      resources :credit_applications, only: [:new, :create] do
+        post :revert, on: :member
+      end
     end
     resources :categories
     resources :raw_materials, only: [:index, :new, :create, :edit, :update]

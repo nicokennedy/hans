@@ -1,0 +1,33 @@
+<%# locals: pending_orders, allocations (Hash order_id => texto) %>
+<% if pending_orders.empty? %>
+  <div class="text-muted">Este cliente no tiene pedidos pendientes de pago.</div>
+<% else %>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 account-distribution">
+      <thead>
+        <tr>
+          <th>Pedido y entrega</th>
+          <th class="text-end">Saldo</th>
+          <th class="text-end" style="min-width: 120px;">Monto a aplicar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% pending_orders.each do |order| %>
+          <tr data-payment-distribution-target="row" data-order-id="<%= order.id %>" data-order-number="<%= order.number %>" data-balance="<%= order.balance_due_cents %>">
+            <td>
+              <div class="fw-bold"><%= link_to order.number, admin_order_path(order), target: "_blank", rel: "noopener", class: "text-decoration-none text-dark" %></div>
+              <div class="small text-muted">Entrega: <%= order.delivery_date.strftime("%d/%m/%Y") %></div>
+            </td>
+            <td class="text-end text-danger fw-bold">$<%= CustomerAccounts::Money.format_pesos(order.balance_due_cents) %></td>
+            <td class="text-end">
+              <%= text_field_tag "allocations[#{order.id}]", allocations[order.id.to_s] || allocations[order.id],
+                    id: "allocation_#{order.id}", inputmode: "decimal", autocomplete: "off", placeholder: "0",
+                    class: "form-control form-control-sm text-end", "aria-label": "Monto a aplicar al pedido #{order.number}",
+                    data: { payment_distribution_target: "input", order_id: order.id, action: "input->payment-distribution#allocationChanged" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

@@ -67,25 +67,36 @@
     <% if @order.payments.empty? %>
       <div class="text-muted mb-4">Todavía no se registraron pagos para este pedido.</div>
     <% else %>
-      <% @order.payments.sort_by(&:paid_at).reverse_each do |payment| %>
-        <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+      <% @order.payments.sort_by { |p| [p.paid_at, p.id] }.reverse_each do |payment| %>
+        <div class="d-flex justify-content-between align-items-center border-bottom py-3 <%= 'text-muted' if payment.voided? %>">
           <div>
-            <div class="fw-bold"><%= format_money(payment.amount_cents) %></div>
+            <div class="fw-bold <%= 'text-decoration-line-through' if payment.voided? %>"><%= format_money(payment.amount_cents) %>
+              <% if payment.voided? %><span class="badge bg-secondary">Anulado</span><% end %>
+            </div>
             <div class="text-muted small">
               <%= payment.paid_at.strftime("%d/%m/%Y") %> · <%= payment.payment_method_label %>
+              <% if payment.customer_payment_id %>
+                · <%= payment.credit_application? ? "Saldo a favor aplicado" : "Pago de cuenta corriente" %>
+                (<%= link_to "ver cuenta corriente", admin_customer_account_path(@order.customer_id, anchor: "customer-payment-#{payment.customer_payment_id}") %>)
+              <% end %>
             </div>
             <% if payment.note.present? %>
               <div class="text-muted small"><%= payment.note %></div>
             <% end %>
+            <% if payment.voided? && payment.void_reason.present? %>
+              <div class="text-muted small">Motivo de la anulación: <%= payment.void_reason %></div>
+            <% end %>
           </div>
 
-          <%= button_to "Eliminar",
-              admin_order_payment_path(@order, payment),
-              method: :delete,
-              params: orders_context,
-              class: "btn btn-sm btn-outline-danger",
-              form: { class: "d-inline" },
-              data: { turbo_confirm: "¿Eliminar este pago? Se recalculará el saldo del pedido." } %>
+          <% if payment.individual? %>
+            <%= button_to "Eliminar",
+                admin_order_payment_path(@order, payment),
+                method: :delete,
+                params: orders_context,
+                class: "btn btn-sm btn-outline-danger",
+                form: { class: "d-inline" },
+                data: { turbo_confirm: "¿Eliminar este pago? Se recalculará el saldo del pedido." } %>
+          <% end %>
         </div>
       <% end %>
     <% end %>

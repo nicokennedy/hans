@@ -1,0 +1,42 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="fw-bold mb-1">Aplicar saldo a favor</h1>
+      <p class="text-muted mb-0">Cuenta corriente de <strong><%= @customer.name %></strong></p>
+    </div>
+    <%= link_to "← Cuenta corriente", admin_customer_account_path(@customer), class: "btn btn-outline-dark" %>
+  </div>
+
+  <% if @errors.present? %>
+    <div class="alert alert-danger"><% @errors.each do |message| %><div><%= message %></div><% end %></div>
+  <% end %>
+
+  <% if @credit_cents <= 0 %>
+    <div class="product-card">Este cliente no tiene saldo a favor disponible.</div>
+  <% else %>
+    <%= form_with url: admin_customer_credit_applications_path(@customer), method: :post, local: true,
+          data: { controller: "payment-distribution", payment_distribution_fixed_amount_value: @credit_cents,
+                  payment_distribution_confirm_label_value: "Aplicar saldo a favor de #{@customer.name} a pedidos pendientes.", action: "submit->payment-distribution#confirm" } do %>
+      <div class="product-card mb-4">
+        <div class="alert alert-info mb-3">
+          Saldo a favor disponible: <strong>$<%= CustomerAccounts::Money.format_pesos(@credit_cents) %></strong>.
+          Se aplica solo a los pedidos que indiques abajo; no se usa automáticamente al crear pedidos.
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="fs-5 fw-bold mb-0">Pedidos pendientes</h2>
+          <button type="button" class="btn btn-sm btn-outline-dark" data-action="payment-distribution#reset">Restablecer distribución automática</button>
+        </div>
+        <p class="small text-muted" data-payment-distribution-target="autoNote">Propuesta: pedidos más antiguos primero, hasta agotar el saldo a favor.</p>
+
+        <%= render "admin/customer_accounts/distribution_table", pending_orders: @pending_orders, allocations: @allocations %>
+        <%= render "admin/customer_accounts/distribution_summary", received_label: "Saldo a favor disponible", credit_label: "Saldo a favor restante", equation: "Saldo a favor disponible − Aplicado = Saldo a favor restante" %>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= submit_tag "Aplicar saldo a favor", class: "btn btn-dark btn-lg", data: { payment_distribution_target: "submit", disable_with: "Aplicando…" } %>
+        <%= link_to "Cancelar", admin_customer_account_path(@customer), class: "btn btn-outline-dark btn-lg" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

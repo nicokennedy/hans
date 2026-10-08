@@ -59,6 +59,7 @@ class Order < ApplicationRecord
   validate :delivery_date_must_be_available, on: :create, unless: :created_by_admin?
   validate :sufficient_stock_for_items, on: :create, unless: :created_by_admin?
   validate :must_have_order_items, on: :update
+  validate :customer_unchanged_with_account_payments, on: :update
 
   scope :not_canceled, -> { where.not(status: "canceled") }
   # Pedidos que salen en una fecha de entrega, con el mismo criterio operativo
@@ -124,7 +125,7 @@ class Order < ApplicationRecord
   end
 
   def recalculate_payment_state!
-    paid = payments.sum(:amount_cents)
+    paid = payments.active.sum(:amount_cents)
     update_columns(amount_paid_cents: paid, payment_status: derive_payment_status(paid))
   end
 
@@ -157,6 +158,14 @@ class Order < ApplicationRecord
     else
       "paid"
     end
+  end
+
+  # Un pedido con aplicaciones de pagos de cuenta corriente pertenece a la cuenta de ese
+  # cliente: cambiarle el cliente dejaría inconsistente su cuenta (y el saldo a favor).
+  def customer_unchanged_with_account_payments
+    return unless customer_id_changed? && payments.active.where.not(customer_payment_id: nil).exists?
+
+    errors.add(:base, "No se puede cambiar el cliente: el pedido tiene pagos de cuenta corriente aplicados. Anulá primero esos pagos desde la cuenta corriente.")
   end
 
   def must_have_order_items

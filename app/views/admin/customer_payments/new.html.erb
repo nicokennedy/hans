@@ -1,0 +1,66 @@
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="fw-bold mb-1">Registrar pago</h1>
+      <p class="text-muted mb-0">Cuenta corriente de <strong><%= @customer.name %></strong></p>
+    </div>
+    <%= link_to "← Cuenta corriente", admin_customer_account_path(@customer), class: "btn btn-outline-dark" %>
+  </div>
+
+  <% if @errors.present? %>
+    <div class="alert alert-danger" id="payment-errors">
+      <% @errors.each do |message| %><div><%= message %></div><% end %>
+    </div>
+  <% end %>
+
+  <%= form_with url: admin_customer_customer_payments_path(@customer), method: :post, local: true,
+        data: { controller: "payment-distribution", payment_distribution_confirm_label_value: "Registrar pago de cuenta corriente de #{@customer.name}.", action: "submit->payment-distribution#confirm" } do %>
+    <%= hidden_field_tag :request_token, @request_token %>
+
+    <div class="product-card mb-4">
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="amount">Importe recibido ($)</label>
+          <%= text_field_tag :amount, @form[:amount], inputmode: "decimal", autocomplete: "off", required: true, placeholder: "300.000", class: "form-control form-control-lg",
+                data: { payment_distribution_target: "amount", action: "input->payment-distribution#amountChanged" } %>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label" for="paid_on">Fecha del pago</label>
+          <%= date_field_tag :paid_on, (@form[:paid_on].respond_to?(:iso8601) ? @form[:paid_on].iso8601 : @form[:paid_on]), max: Date.current.iso8601, required: true, class: "form-control form-control-lg" %>
+        </div>
+        <div class="col-6 col-md-5">
+          <label class="form-label" for="payment_method">Medio de pago</label>
+          <%= select_tag :payment_method, options_for_select(Order.payment_method_options_for_select, @form[:payment_method]), class: "form-select form-select-lg" %>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="reference">Referencia de transferencia / comprobante <span class="text-muted">(opcional)</span></label>
+          <%= text_field_tag :reference, @form[:reference], maxlength: 200, autocomplete: "off", class: "form-control" %>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="note">Comentario <span class="text-muted">(opcional)</span></label>
+          <%= text_field_tag :note, @form[:note], maxlength: 1000, autocomplete: "off", class: "form-control" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h2 class="fs-5 fw-bold mb-0">Distribución entre pedidos pendientes</h2>
+        <button type="button" class="btn btn-sm btn-outline-dark" data-action="payment-distribution#reset">Restablecer distribución automática</button>
+      </div>
+      <p class="small text-muted" data-payment-distribution-target="autoNote">
+        Propuesta automática: primero el pedido con fecha de entrega más antigua (a igual fecha, el creado primero), sin superar el saldo de cada pedido.
+        Podés cambiar los importes o dejar pedidos sin pagar: lo que no se aplique queda como saldo a favor.
+      </p>
+
+      <%= render "admin/customer_accounts/distribution_table", pending_orders: @pending_orders, allocations: @form[:allocations] %>
+
+      <%= render "admin/customer_accounts/distribution_summary", credit_label: "Saldo a favor generado (sin aplicar)" %>
+    </div>
+
+    <div class="d-flex gap-2">
+      <%= submit_tag "Confirmar pago", class: "btn btn-dark btn-lg", data: { payment_distribution_target: "submit", disable_with: "Registrando…" } %>
+      <%= link_to "Cancelar", admin_customer_account_path(@customer), class: "btn btn-outline-dark btn-lg" %>
+    </div>
+  <% end %>
+</div>
