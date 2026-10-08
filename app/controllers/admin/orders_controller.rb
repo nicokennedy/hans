@@ -1,20 +1,26 @@
 class Admin::OrdersController < ApplicationController
+  include OrdersNavigationContext
+
   before_action :authenticate_user!
   before_action :require_admin_or_production!, only: [:index, :show, :receipts]
   before_action :require_admin!, only: [:new, :create, :edit, :update, :export]
 
-  PAYMENT_STATUS_FILTERS = %w[all pending partial paid].freeze
+  PAYMENT_STATUS_FILTERS = Orders::ListFilters::PAYMENT_STATUSES
 
   # Una copia queda en el comercio y la otra vuelve firmada con el repartidor.
   DELIVERY_NOTE_COPIES = 2
 
   def index
-    if params[:payment_status_filter].present?
+    # El filtro de estado de pago sigue guardándose en la sesión (como antes: persiste
+    # entre pantallas y lo usa el export); cliente, fecha y página viajan en la URL.
+    if params[:payment_status_filter].present? && current_user.admin?
       session[:orders_payment_status_filter] = params[:payment_status_filter]
     end
 
-    @payment_status_filter = current_payment_status_filter
-    @orders = filtered_orders(includes: :customer)
+    @filters = list_filters
+    @payment_status_filter = @filters.payment_status
+    @orders = @filters.paginate(filtered_orders(includes: :customer))
+    @customers = Customer.order(:name).pluck(:name, :id)
   end
 
   # El costo (unit_cost_cents_snapshot) que trae el CSV es información
@@ -22,7 +28,8 @@ class Admin::OrdersController < ApplicationController
   # diferencia de index/show, production no puede acceder ni al botón ni
   # entrando directo a la URL.
   def export
-    @payment_status_filter = current_payment_status_filter
+    @filters = list_filters
+    @payment_status_filter = @filters.payment_status
     orders = filtered_orders(includes: [ :customer, :order_items ])
 
     csv = Orders::CsvExporter.new(orders).call
@@ -93,7 +100,7 @@ class Admin::OrdersController < ApplicationController
       @order.update!(order_params)
     end
 
-    redirect_to admin_order_path(@order), notice: "Pedido actualizado correctamente."
+    redirect_to admin_order_path(@order, orders_context), notice: "Pedido actualizado correctamente."
   rescue ActiveRecord::RecordInvalid => e
     @order = Order.includes(order_items: :product).find(params[:id])
     e.record.errors.full_messages.each { |message| @order.errors.add(:base, message) }
@@ -104,13 +111,12 @@ class Admin::OrdersController < ApplicationController
 
   private
 
-  # Misma resolución session/params que ya usaba index, extraída para que
-  # export lea exactamente el filtro vigente sin duplicar la condición y sin
-  # reescribirlo a partir de sus propios params (export no acepta
-  # payment_status_filter propio: siempre respeta lo que ya está aplicado).
-  def current_payment_status_filter
-    filter = session[:orders_payment_status_filter].presence || "all"
-    PAYMENT_STATUS_FILTERS.include?(filter) ? filter : "all"
+  # Filtros efectivos del listado: lo que trae la URL y, para el estado de pago,
+  # lo último guardado en la sesión si la URL no trae uno (comportamiento previo).
+  # index y export usan exactamente esta misma resolución.
+  def list_filters
+    stored = session[:orders_payment_status_filter]
+    Orders::ListFilters.new(params, payment_fallback: stored, allow_payment: current_user.admin?)
   end
 
   def receipts_date
@@ -132,10 +138,7 @@ class Admin::OrdersController < ApplicationController
   end
 
   def filtered_orders(includes:)
-    orders = Order.includes(includes).order(created_at: :desc)
-    return orders if @payment_status_filter == "all"
-
-    orders.where(payment_status: @payment_status_filter)
+    @filters.apply(Order.includes(includes).order(created_at: :desc, id: :desc))
   end
 
   def order_params

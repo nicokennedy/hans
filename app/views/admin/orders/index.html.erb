@@ -4,18 +4,36 @@
     <div class="d-flex flex-wrap gap-2">
       <%= link_to "Imprimir remitos", receipts_admin_orders_path, class: "btn btn-outline-dark" %>
       <% if current_user.admin? %>
-        <%= link_to "Exportar CSV", export_admin_orders_path, class: "btn btn-outline-dark" %>
+        <%= link_to "Exportar CSV", export_admin_orders_path(@filters.to_query.except(:page)), class: "btn btn-outline-dark" %>
         <%= link_to "Nuevo pedido", new_admin_order_path, class: "btn btn-dark" %>
       <% end %>
     </div>
   </div>
 
-  <% if current_user.admin? %>
-    <div class="product-card mb-4">
-      <%= form_with url: admin_orders_path, method: :get, local: true do %>
-        <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-4">
-            <label class="form-label">Estado de pago</label>
+  <div class="product-card mb-4" id="orders-filters">
+    <%= form_with url: admin_orders_path, method: :get, local: true, data: { controller: "customer-filter", action: "submit->customer-filter#validate" } do %>
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="orders-filter-customer">Cliente</label>
+          <%= hidden_field_tag :customer_id, @filters.customer_id, id: "orders-filter-customer-id", data: { customer_filter_target: "hidden" } %>
+          <%= text_field_tag :customer_name, @filters.customer&.name, name: nil, id: "orders-filter-customer", list: "orders-filter-customers",
+                placeholder: "Todos los clientes", autocomplete: "off", class: "form-control",
+                data: { customer_filter_target: "input", action: "input->customer-filter#sync change->customer-filter#sync" } %>
+          <datalist id="orders-filter-customers" data-customer-filter-target="list">
+            <% @customers.each do |name, id| %>
+              <option value="<%= name %>" data-id="<%= id %>"></option>
+            <% end %>
+          </datalist>
+        </div>
+
+        <div class="col-12 col-md-3">
+          <label class="form-label" for="orders-filter-date">Fecha de entrega</label>
+          <%= date_field_tag :delivery_date, @filters.delivery_date&.iso8601, id: "orders-filter-date", class: "form-control" %>
+        </div>
+
+        <% if current_user.admin? %>
+          <div class="col-12 col-md-3">
+            <label class="form-label" for="payment_status_filter">Estado de pago</label>
             <%= select_tag :payment_status_filter,
                 options_for_select(
                   [["Todos", "all"], ["Pendientes", "pending"], ["Parciales", "partial"], ["Pagados", "paid"]],
@@ -23,18 +41,29 @@
                 ),
                 class: "form-select" %>
           </div>
+        <% end %>
 
-          <div class="col-12 col-md-2">
-            <%= submit_tag "Aplicar", class: "btn btn-dark w-100" %>
-          </div>
+        <div class="col-12 col-md d-flex gap-2">
+          <%= submit_tag "Aplicar filtros", name: nil, class: "btn btn-dark flex-grow-1" %>
+          <%= link_to "Limpiar filtros", admin_orders_path(payment_status_filter: "all"), class: "btn btn-outline-dark flex-grow-1", id: "orders-clear-filters" %>
         </div>
+      </div>
+
+      <% if @filters.invalid_date %>
+        <div class="small text-danger mt-2">La fecha de entrega no era válida y se ignoró.</div>
       <% end %>
-    </div>
-  <% end %>
+    <% end %>
+  </div>
 
   <% if @orders.empty? %>
     <div class="product-card">
       No hay pedidos que coincidan con el filtro seleccionado.
+    </div>
+  <% end %>
+
+  <% if @filters.total_count.to_i > 0 %>
+    <div class="small text-muted mb-2" id="orders-count">
+      <%= @filters.total_count %> <%= @filters.total_count == 1 ? "pedido" : "pedidos" %><%= " · filtrado" if @filters.active? %>
     </div>
   <% end %>
 
@@ -45,7 +74,7 @@
        else "bg-secondary"
        end %>
 
-    <%= link_to admin_order_path(order), class: "text-decoration-none text-dark" do %>
+    <%= link_to admin_order_path(order, @filters.to_query), class: "text-decoration-none text-dark" do %>
       <div class="product-card mb-3">
         <div class="d-flex justify-content-between">
           <div>
@@ -69,5 +98,21 @@
         </div>
       </div>
     <% end %>
+  <% end %>
+
+  <% if @filters.total_pages > 1 %>
+    <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Paginación de pedidos" id="orders-pagination">
+      <% if @filters.page > 1 %>
+        <%= link_to "← Anteriores", admin_orders_path(@filters.to_query(page: @filters.page - 1)), class: "btn btn-sm btn-outline-dark", rel: "prev" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <span class="small text-muted">Página <%= @filters.page %> de <%= @filters.total_pages %></span>
+      <% if @filters.page < @filters.total_pages %>
+        <%= link_to "Siguientes →", admin_orders_path(@filters.to_query(page: @filters.page + 1)), class: "btn btn-sm btn-outline-dark", rel: "next" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
   <% end %>
 </div>

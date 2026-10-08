@@ -1,6 +1,6 @@
 <div class="container py-5">
   <div class="d-flex gap-2 mb-4">
-    <%= link_to "← Volver al pedido", admin_order_path(@order), class: "btn btn-outline-dark" %>
+    <%= link_to "← Volver al pedido", admin_order_path(@order, orders_context), class: "btn btn-outline-dark" %>
   </div>
 
   <div class="product-card">
@@ -14,6 +14,7 @@
     <% end %>
 
     <%= form_with model: [:admin, @order], local: true, data: { controller: "order-items" } do |f| %>
+      <%= orders_context_hidden_fields %>
       <div class="mb-3">
         <%= f.label :customer_id, "Cliente", class: "form-label" %>
         <%= f.collection_select :customer_id,

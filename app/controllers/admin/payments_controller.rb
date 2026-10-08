@@ -1,4 +1,6 @@
 class Admin::PaymentsController < ApplicationController
+  include OrdersNavigationContext
+
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_order
@@ -7,15 +9,15 @@ class Admin::PaymentsController < ApplicationController
     @payment = @order.payments.build(payment_params)
 
     if @payment.save
-      redirect_to admin_order_path(@order), notice: "Pago registrado correctamente."
+      redirect_to admin_order_path(@order, orders_context), notice: "Pago registrado correctamente."
     else
-      redirect_to admin_order_path(@order), alert: @payment.errors.full_messages.join(", ")
+      redirect_to admin_order_path(@order, orders_context), alert: @payment.errors.full_messages.join(", ")
     end
   end
 
   def destroy
     @order.payments.find(params[:id]).destroy!
-    redirect_to admin_order_path(@order), notice: "Pago eliminado correctamente."
+    redirect_to admin_order_path(@order, orders_context), notice: "Pago eliminado correctamente."
   end
 
   private

@@ -14,4 +14,10 @@ module OrdersHelper
   def payment_status_badge_class(payment_status)
     PAYMENT_STATUS_BADGE_CLASSES[payment_status] || "bg-secondary"
   end
+
+  # Campos ocultos con el contexto de navegación del listado (filtros y página), para
+  # que los formularios del pedido (pagos, edición) lo devuelvan al guardar.
+  def orders_context_hidden_fields
+    safe_join(orders_context.map { |key, value| hidden_field_tag(key, value, id: nil) })
+  end
 end
