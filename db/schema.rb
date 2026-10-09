@@ -10,10 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_09_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
+
+  create_table "administration_attachments", force: :cascade do |t|
+    t.string "owner_type", null: false
+    t.bigint "owner_id", null: false
+    t.string "filename", null: false
+    t.string "content_type", null: false
+    t.integer "byte_size", null: false
+    t.string "checksum", null: false
+    t.binary "data", null: false
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_type", "owner_id"], name: "index_administration_attachments_on_owner_type_and_owner_id"
+    t.index ["user_id"], name: "index_administration_attachments_on_user_id"
+  end
 
   create_table "blocked_dates", force: :cascade do |t|
     t.date "date"
@@ -73,6 +88,72 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
     t.jsonb "exceptional_available_dates", default: [], null: false
   end
 
+  create_table "expense_categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_expense_categories_on_lower_name", unique: true
+  end
+
+  create_table "expense_recurrences", force: :cascade do |t|
+    t.bigint "supplier_id"
+    t.bigint "expense_category_id", null: false
+    t.bigint "amount_cents", null: false
+    t.text "notes"
+    t.string "document_type"
+    t.string "frequency", null: false
+    t.date "starts_on", null: false
+    t.date "ends_on"
+    t.integer "max_occurrences"
+    t.integer "due_days", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expense_category_id"], name: "index_expense_recurrences_on_expense_category_id"
+    t.index ["supplier_id"], name: "index_expense_recurrences_on_supplier_id"
+    t.index ["user_id"], name: "index_expense_recurrences_on_user_id"
+    t.check_constraint "amount_cents > 0", name: "expense_recurrences_amount_positive"
+  end
+
+  create_table "expenses", force: :cascade do |t|
+    t.bigint "expense_category_id", null: false
+    t.bigint "expense_recurrence_id"
+    t.date "occurrence_on"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expense_category_id"], name: "index_expenses_on_expense_category_id"
+    t.index ["expense_recurrence_id", "occurrence_on"], name: "index_expenses_on_recurrence_occurrence", unique: true, where: "(expense_recurrence_id IS NOT NULL)"
+    t.index ["expense_recurrence_id"], name: "index_expenses_on_expense_recurrence_id"
+  end
+
+  create_table "obligations", force: :cascade do |t|
+    t.bigint "supplier_id"
+    t.string "source_type", null: false
+    t.bigint "source_id", null: false
+    t.bigint "amount_cents", null: false
+    t.date "accrual_on", null: false
+    t.date "due_on"
+    t.string "document_type"
+    t.string "document_number"
+    t.text "notes"
+    t.bigint "user_id"
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["accrual_on"], name: "index_obligations_on_accrual_on"
+    t.index ["due_on"], name: "index_obligations_on_due_on"
+    t.index ["source_type", "source_id"], name: "index_obligations_on_source_type_and_source_id", unique: true
+    t.index ["supplier_id"], name: "index_obligations_on_supplier_id"
+    t.index ["user_id"], name: "index_obligations_on_user_id"
+    t.index ["voided_by_id"], name: "index_obligations_on_voided_by_id"
+    t.check_constraint "amount_cents > 0", name: "obligations_amount_positive"
+  end
+
   create_table "order_events", force: :cascade do |t|
     t.bigint "order_id", null: false
     t.bigint "user_id", null: false
@@ -119,6 +200,44 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_orders_on_customer_id"
+  end
+
+  create_table "outgoing_payment_applications", force: :cascade do |t|
+    t.bigint "outgoing_payment_id", null: false
+    t.bigint "obligation_id", null: false
+    t.bigint "amount_cents", null: false
+    t.string "kind", null: false
+    t.bigint "user_id"
+    t.datetime "voided_at"
+    t.text "void_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["obligation_id"], name: "index_outgoing_payment_applications_on_obligation_id"
+    t.index ["outgoing_payment_id"], name: "index_outgoing_payment_applications_on_outgoing_payment_id"
+    t.index ["user_id"], name: "index_outgoing_payment_applications_on_user_id"
+    t.check_constraint "amount_cents > 0", name: "outgoing_payment_applications_amount_positive"
+  end
+
+  create_table "outgoing_payments", force: :cascade do |t|
+    t.bigint "supplier_id"
+    t.bigint "amount_cents", null: false
+    t.date "paid_on", null: false
+    t.string "payment_method", null: false
+    t.string "reference"
+    t.text "note"
+    t.bigint "user_id", null: false
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.string "request_token"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["paid_on"], name: "index_outgoing_payments_on_paid_on"
+    t.index ["request_token"], name: "index_outgoing_payments_on_request_token", unique: true
+    t.index ["supplier_id"], name: "index_outgoing_payments_on_supplier_id"
+    t.index ["user_id"], name: "index_outgoing_payments_on_user_id"
+    t.index ["voided_by_id"], name: "index_outgoing_payments_on_voided_by_id"
+    t.check_constraint "amount_cents > 0", name: "outgoing_payments_amount_positive"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -187,6 +306,32 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
     t.string "cost_source", default: "manual", null: false
     t.boolean "sell_without_stock", default: true, null: false
     t.index ["category_id"], name: "index_products_on_category_id"
+  end
+
+  create_table "purchase_items", force: :cascade do |t|
+    t.bigint "purchase_id", null: false
+    t.integer "position", default: 0, null: false
+    t.string "description", null: false
+    t.decimal "quantity", precision: 14, scale: 3, null: false
+    t.string "unit", null: false
+    t.bigint "unit_price_cents", null: false
+    t.bigint "subtotal_cents", null: false
+    t.bigint "raw_material_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["purchase_id"], name: "index_purchase_items_on_purchase_id"
+    t.index ["raw_material_id"], name: "index_purchase_items_on_raw_material_id"
+    t.check_constraint "quantity > 0::numeric AND unit_price_cents >= 0", name: "purchase_items_positive"
+  end
+
+  create_table "purchases", force: :cascade do |t|
+    t.bigint "subtotal_cents", default: 0, null: false
+    t.bigint "discount_cents", default: 0, null: false
+    t.bigint "taxes_cents", default: 0, null: false
+    t.bigint "adjustments_cents", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.check_constraint "discount_cents >= 0 AND taxes_cents >= 0", name: "purchases_adjustments_non_negative"
   end
 
   create_table "push_subscriptions", force: :cascade do |t|
@@ -278,6 +423,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
     t.index ["stock_item_id"], name: "index_stock_movements_on_stock_item_id"
   end
 
+  create_table "suppliers", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "tax_id"
+    t.string "email"
+    t.string "phone"
+    t.string "address"
+    t.text "notes"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_suppliers_on_name"
+    t.index ["tax_id"], name: "index_suppliers_on_tax_id_unique", unique: true, where: "((tax_id IS NOT NULL) AND ((tax_id)::text <> ''::text))"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -293,14 +452,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "administration_attachments", "users"
   add_foreign_key "customer_payments", "customers"
   add_foreign_key "customer_payments", "users"
   add_foreign_key "customer_payments", "users", column: "voided_by_id"
+  add_foreign_key "expense_recurrences", "expense_categories"
+  add_foreign_key "expense_recurrences", "suppliers"
+  add_foreign_key "expense_recurrences", "users"
+  add_foreign_key "expenses", "expense_categories"
+  add_foreign_key "expenses", "expense_recurrences"
+  add_foreign_key "obligations", "suppliers"
+  add_foreign_key "obligations", "users"
+  add_foreign_key "obligations", "users", column: "voided_by_id"
   add_foreign_key "order_events", "orders"
   add_foreign_key "order_events", "users"
   add_foreign_key "order_items", "orders"
   add_foreign_key "order_items", "products"
   add_foreign_key "orders", "customers"
+  add_foreign_key "outgoing_payment_applications", "obligations"
+  add_foreign_key "outgoing_payment_applications", "outgoing_payments"
+  add_foreign_key "outgoing_payment_applications", "users"
+  add_foreign_key "outgoing_payments", "suppliers"
+  add_foreign_key "outgoing_payments", "users"
+  add_foreign_key "outgoing_payments", "users", column: "voided_by_id"
   add_foreign_key "payments", "customer_payments"
   add_foreign_key "payments", "orders"
   add_foreign_key "payments", "users"
@@ -308,6 +482,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_08_150001) do
   add_foreign_key "product_stock_sources", "preparations"
   add_foreign_key "product_stock_sources", "products"
   add_foreign_key "products", "categories"
+  add_foreign_key "purchase_items", "purchases"
+  add_foreign_key "purchase_items", "raw_materials"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "raw_material_cost_changes", "raw_materials"
   add_foreign_key "raw_material_cost_changes", "users", column: "changed_by_user_id"
