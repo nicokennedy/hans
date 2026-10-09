@@ -1,0 +1,72 @@
+# Nombres de atributos del módulo de Administración (para mensajes de error en español).
+es:
+  activerecord:
+    models:
+      supplier: "Proveedor"
+      purchase: "Compra"
+      purchase_item: "Ítem de compra"
+      expense: "Gasto"
+      expense_category: "Categoría de gastos"
+      expense_recurrence: "Gasto recurrente"
+      obligation: "Obligación"
+      outgoing_payment: "Pago"
+      outgoing_payment_application: "Imputación de pago"
+      administration_attachment: "Comprobante"
+    attributes:
+      supplier:
+        name: "El nombre"
+        tax_id: "El CUIT/CUIL"
+        email: "El email"
+        phone: "El teléfono"
+      purchase:
+        discount_cents: "El descuento"
+        taxes_cents: "Los impuestos"
+        adjustments_cents: "Los ajustes"
+      purchase_item:
+        description: "La descripción"
+        quantity: "La cantidad"
+        unit: "La unidad"
+        unit_price_cents: "El precio unitario"
+        purchase: "La compra"
+      expense:
+        expense_category: "La categoría"
+        occurrence_on: "La fecha de la ocurrencia"
+      expense_category:
+        name: "El nombre"
+      expense_recurrence:
+        expense_category: "La categoría"
+        frequency: "La frecuencia"
+        amount_cents: "El importe"
+        starts_on: "La fecha de inicio"
+        ends_on: "La fecha de finalización"
+        max_occurrences: "La cantidad de repeticiones"
+        due_days: "Los días de vencimiento"
+        document_type: "El tipo de comprobante"
+      obligation:
+        amount_cents: "El importe"
+        accrual_on: "La fecha"
+        due_on: "El vencimiento"
+        document_type: "El tipo de comprobante"
+        document_number: "El número de comprobante"
+        supplier_id: "El proveedor"
+        void_reason: "El motivo"
+        source: "El origen"
+      outgoing_payment:
+        amount_cents: "El importe"
+        paid_on: "La fecha del pago"
+        payment_method: "El medio de pago"
+        reference: "La referencia"
+        note: "El comentario"
+        user: "El usuario"
+        void_reason: "El motivo"
+      outgoing_payment_application:
+        amount_cents: "El importe"
+        kind: "El tipo"
+        void_reason: "El motivo"
+      administration_attachment:
+        data: "El archivo"
+        filename: "El nombre del archivo"
+        content_type: "El tipo de archivo"
+        byte_size: "El tamaño"
+        checksum: "La huella del archivo"
+        owner: "El registro asociado"

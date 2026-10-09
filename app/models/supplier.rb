@@ -7,7 +7,7 @@ class Supplier < ApplicationRecord
   before_validation :normalize_fields
 
   validates :name, presence: true, length: { maximum: 200 }
-  validates :tax_id, format: { with: /\A\d{2}-?\d{8}-?\d\z/, message: "debe tener formato de CUIT/CUIL (11 dígitos)" }, allow_blank: true
+  validates :tax_id, format: { with: /\A\d{2}-?\d{8}-?\d\z/, message: "no tiene un formato válido (11 dígitos)" }, allow_blank: true
   validates :tax_id, uniqueness: { case_sensitive: false, message: "ya está cargado en otro proveedor" }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
 

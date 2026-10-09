@@ -81,4 +81,19 @@ class SupplierTest < ActiveSupport::TestCase
     assert_equal(-pesos(10), @supplier.net_balance_cents)
     assert_equal 0, Supplier.new.pending_cents
   end
+
+  test "los mensajes de validación del módulo están en español (sin 'Translation missing')" do
+    invalid = [
+      Supplier.new(name: "", tax_id: "1", email: "x"), PurchaseItem.new, Purchase.new(discount_cents: -1), ExpenseCategory.new, Obligation.new, OutgoingPayment.new,
+      OutgoingPaymentApplication.new, ExpenseRecurrence.new(frequency: "x", max_occurrences: 0, due_days: -1), Expense.new, AdministrationAttachment.new
+    ]
+    messages = invalid.flat_map { |record| record.tap(&:valid?).errors.full_messages }
+
+    assert messages.size > 25
+    assert_empty messages.grep(/ranslation missing|\bes\./), "mensajes sin traducir: #{messages.grep(/ranslation missing/).first(3).inspect}"
+    assert_includes messages, "El nombre no puede estar en blanco"
+    assert_includes messages, "La descripción no puede estar en blanco"
+    assert_includes messages, "La cantidad no es un número"
+    assert_includes messages, "El CUIT/CUIL no tiene un formato válido (11 dígitos)"
+  end
 end
