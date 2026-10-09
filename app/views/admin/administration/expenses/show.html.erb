@@ -1,0 +1,50 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1">Gasto: <%= @expense.expense_category.name %></h1>
+      <div class="text-muted"><%= @obligation.supplier&.name || "Sin proveedor" %> · <%= date_label(@obligation.accrual_on) %> · <%= obligation_status_badge(@obligation) %>
+        <% if @expense.expense_recurrence_id %> · <span class="badge bg-info text-dark">Recurrente (<%= @expense.occurrence_on.strftime("%d/%m/%Y") %>)</span><% end %></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "← Gastos", admin_administration_expenses_path, class: "btn btn-outline-dark" %>
+      <% if !@obligation.voided? && @obligation.balance_cents.positive? %><%= link_to "Registrar pago", new_admin_administration_payment_path(supplier_id: (@obligation.supplier_id || "none"), obligation_id: @obligation.id), class: "btn btn-dark" %><% end %>
+      <% unless @obligation.voided? %><%= link_to "Editar", edit_admin_administration_expense_path(@obligation), class: "btn btn-outline-dark" %><% end %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Importe</div><div class="fs-5 fw-bold" id="expense-amount"><%= fin_money(@obligation.amount_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Pagado</div><div class="fs-5 fw-bold text-success"><%= fin_money(@obligation.paid_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Saldo pendiente</div><div class="fs-5 fw-bold text-danger" id="expense-balance"><%= fin_money(@obligation.voided? ? 0 : @obligation.balance_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Vencimiento</div><div class="fs-5 fw-bold"><%= date_label(@obligation.due_on) %></div></div></div>
+  </div>
+  <% if @obligation.voided? %><div class="alert alert-secondary">Anulado por <%= @obligation.voided_by&.email %> el <%= l(@obligation.voided_at, format: "%d/%m/%Y %H:%M") %>. Motivo: <%= @obligation.void_reason %></div><% end %>
+
+  <div class="product-card mb-4">
+    <div class="small"><span class="text-muted">Comprobante:</span> <%= @obligation.document_label %></div>
+    <% if @obligation.notes.present? %><div class="small"><span class="text-muted">Comentario:</span> <%= @obligation.notes %></div><% end %>
+  </div>
+
+  <%= render "admin/administration/shared/attachments", owner: @expense %>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Pagos imputados</h2>
+    <%= render "admin/administration/shared/applications", applications: @applications %>
+  </div>
+
+  <% unless @obligation.voided? %>
+    <div class="product-card">
+      <h2 class="fs-6 fw-bold mb-2">Anular o eliminar</h2>
+      <details><summary class="small text-danger" style="cursor:pointer">Anular este gasto</summary>
+        <%= form_with url: void_admin_administration_expense_path(@obligation), method: :post, local: true, class: "d-flex flex-wrap gap-2 mt-2" do %>
+          <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo de la anulación (obligatorio)", class: "form-control form-control-sm", style: "max-width: 420px" %>
+          <%= submit_tag "Anular gasto", class: "btn btn-sm btn-danger", data: { turbo_confirm: "¿Anular este gasto? El registro se conserva." } %>
+        <% end %>
+      </details>
+      <% if !@obligation.applications.exists? && !@expense.expense_recurrence_id %>
+        <%= button_to "Eliminar gasto (sin pagos)", admin_administration_expense_path(@obligation), method: :delete, class: "btn btn-sm btn-outline-danger mt-2", form: { data: { turbo_confirm: "¿Eliminar definitivamente este gasto?" } } %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

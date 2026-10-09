@@ -1,0 +1,83 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1">Cuenta corriente</h1>
+      <p class="text-muted fs-5 mb-0"><%= link_to @supplier.name, admin_administration_supplier_path(@supplier), class: "text-decoration-none text-muted" %></p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <% if @advance_cents.positive? %>
+        <%= link_to "Aplicar anticipo", new_admin_administration_supplier_advance_application_path(@supplier), class: "btn btn-outline-primary", id: "apply-advance" %>
+      <% end %>
+      <%= link_to "Exportar CSV", admin_administration_supplier_account_path(@supplier, format: :csv, from: @account.from&.iso8601, to: @account.to&.iso8601), class: "btn btn-outline-dark", id: "export-account" %>
+      <%= link_to "+ Registrar pago", new_admin_administration_payment_path(supplier_id: @supplier.id), class: "btn btn-dark btn-lg", id: "register-payment" %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4" id="account-equation">
+    <div class="row g-3 text-center text-md-start">
+      <div class="col-6 col-md-3"><div class="small text-muted">Total de obligaciones</div><div class="fs-5 fw-bold" id="acc-total"><%= fin_money(@account.total_obligations_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">− Pagos imputados</div><div class="fs-5 fw-bold text-success" id="acc-applied"><%= fin_money(@account.applied_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">= Saldo pendiente de obligaciones</div><div class="fs-5 fw-bold text-danger" id="acc-pending"><%= fin_money(@account.pending_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Anticipos disponibles</div><div class="fs-5 fw-bold text-primary" id="acc-advance"><%= fin_money(@account.advance_cents) %></div></div>
+    </div>
+    <hr>
+    <div class="small">Saldo neto (pendiente − anticipos): <strong id="acc-net"><%= fin_money(@account.net_cents) %></strong>. La deuda pendiente y el crédito a favor se muestran por separado para no confundirlos.</div>
+  </div>
+
+  <div class="product-card mb-4">
+    <%= form_with url: admin_administration_supplier_account_path(@supplier), method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-6 col-md-3"><label class="form-label small mb-0" for="acc-from">Desde</label><%= date_field_tag :from, @account.from&.iso8601, id: "acc-from", class: "form-control form-control-sm" %></div>
+      <div class="col-6 col-md-3"><label class="form-label small mb-0" for="acc-to">Hasta</label><%= date_field_tag :to, @account.to&.iso8601, id: "acc-to", class: "form-control form-control-sm" %></div>
+      <div class="col-12 col-md-auto d-flex gap-2"><%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %><%= link_to "Limpiar", admin_administration_supplier_account_path(@supplier), class: "btn btn-sm btn-outline-dark" %></div>
+      <% if @account.invalid_dates? %><div class="col-12 small text-danger">Alguna fecha no era válida y se ignoró.</div><% end %>
+    <% end %>
+  </div>
+
+  <div class="product-card" id="account-entries">
+    <h2 class="fs-5 fw-bold mb-3">Movimientos</h2>
+    <% if @account.entries.empty? %>
+      <div class="text-muted">No hay movimientos en el rango elegido.</div>
+    <% end %>
+    <% @account.entries.each do |entry| %>
+      <% record = entry.record %>
+      <% if entry.kind == :payment %>
+        <article class="account-payment account-payment--global <%= 'account-payment--voided' if record.voided? %>" id="payment-<%= record.id %>">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div><strong class="<%= record.voided? ? 'text-decoration-line-through text-muted' : 'text-success' %>"><%= fin_money(record.amount_cents) %></strong> <span class="badge bg-success">Pago</span>
+              <% if record.voided? %><span class="badge bg-danger">Anulado</span><% end %></div>
+            <div class="text-muted small"><%= date_label(entry.date) %> · acumulado <%= fin_money(entry.running_cents) %></div>
+          </div>
+          <div class="small"><%= record.method_label %><%= " · Ref: #{record.reference}" if record.reference.present? %> · <%= link_to "Ver pago", admin_administration_payment_path(record) %></div>
+          <ul class="list-unstyled small mb-1 mt-1">
+            <% record.applications.sort_by(&:created_at).each do |app| %>
+              <li class="<%= 'text-decoration-line-through text-muted' if app.voided? %>">
+                <%= link_to app.obligation.document_label, (app.obligation.purchase? ? admin_administration_purchase_path(app.obligation) : admin_administration_expense_path(app.obligation)) %> — <%= fin_money(app.amount_cents) %>
+                <span class="text-muted">(<%= app.advance? ? "anticipo aplicado" : "imputación al pagar" %>)</span>
+                <% if app.advance? && !app.voided? %>
+                  <details class="d-inline"><summary class="d-inline text-danger" style="cursor:pointer">Revertir</summary>
+                    <%= form_with url: revert_admin_administration_supplier_advance_application_path(@supplier, app), method: :post, local: true, class: "d-flex gap-1 mt-1" do %>
+                      <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo (obligatorio)", class: "form-control form-control-sm" %>
+                      <%= submit_tag "Revertir", class: "btn btn-sm btn-outline-danger", data: { turbo_confirm: "¿Revertir esta aplicación? El importe vuelve a ser anticipo." } %>
+                    <% end %></details>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+          <% unless record.voided? %><div class="small <%= record.unapplied_cents.positive? ? 'text-primary fw-bold' : 'text-muted' %>">Anticipo sin aplicar: <%= fin_money(record.unapplied_cents) %></div><% end %>
+        </article>
+      <% else %>
+        <article class="account-payment account-payment--individual <%= 'account-payment--voided' if record.voided? %>">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <div><strong class="<%= record.voided? ? 'text-decoration-line-through text-muted' : 'text-danger' %>"><%= fin_money(record.amount_cents) %></strong>
+              <span class="badge <%= entry.kind == :purchase ? 'bg-secondary' : 'bg-dark' %>"><%= entry.kind == :purchase ? "Compra" : "Gasto" %></span> <%= obligation_status_badge(record) %></div>
+            <div class="text-muted small"><%= date_label(entry.date) %> · acumulado <%= fin_money(entry.running_cents) %></div>
+          </div>
+          <div class="small"><%= record.document_label %> · vence <%= date_label(record.due_on) %> ·
+            <%= link_to "Ver", (record.purchase? ? admin_administration_purchase_path(record) : admin_administration_expense_path(record)) %></div>
+          <% if record.notes.present? %><div class="small text-muted"><%= record.notes %></div><% end %>
+        </article>
+      <% end %>
+    <% end %>
+  </div>
+</div>

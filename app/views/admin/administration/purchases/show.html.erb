@@ -1,0 +1,68 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1">Compra <%= @obligation.document_label %></h1>
+      <div class="text-muted"><%= @obligation.supplier&.name %> · <%= date_label(@obligation.accrual_on) %> · <%= obligation_status_badge(@obligation) %></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "← Compras", admin_administration_purchases_path, class: "btn btn-outline-dark" %>
+      <% if !@obligation.voided? && @obligation.balance_cents.positive? %><%= link_to "Registrar pago", new_admin_administration_payment_path(supplier_id: @obligation.supplier_id, obligation_id: @obligation.id), class: "btn btn-dark" %><% end %>
+      <% unless @obligation.voided? %><%= link_to "Editar", edit_admin_administration_purchase_path(@obligation), class: "btn btn-outline-dark" %><% end %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Total</div><div class="fs-5 fw-bold" id="purchase-amount"><%= fin_money(@obligation.amount_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Pagado</div><div class="fs-5 fw-bold text-success"><%= fin_money(@obligation.paid_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Saldo pendiente</div><div class="fs-5 fw-bold text-danger" id="purchase-balance"><%= fin_money(@obligation.voided? ? 0 : @obligation.balance_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Vencimiento</div><div class="fs-5 fw-bold"><%= date_label(@obligation.due_on) %></div></div></div>
+  </div>
+
+  <% if @obligation.voided? %>
+    <div class="alert alert-secondary">Anulada por <%= @obligation.voided_by&.email %> el <%= l(@obligation.voided_at, format: "%d/%m/%Y %H:%M") %>. Motivo: <%= @obligation.void_reason %></div>
+  <% end %>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Mercadería</h2>
+    <div class="table-responsive"><table class="table align-middle mb-0" id="purchase-items">
+      <thead><tr><th>Descripción</th><th class="text-end">Cantidad</th><th>Unidad</th><th class="text-end">Precio unitario</th><th class="text-end">Subtotal</th></tr></thead>
+      <tbody>
+        <% @purchase.items.each do |item| %>
+          <tr><td><%= item.description %></td><td class="text-end"><%= Finance::Money.format_quantity(item.quantity) %></td><td><%= PurchaseItem.unit_label(item.unit) %></td>
+              <td class="text-end"><%= fin_money(item.unit_price_cents) %></td><td class="text-end fw-bold"><%= fin_money(item.subtotal_cents) %></td></tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="4" class="text-end text-muted">Subtotal de ítems</td><td class="text-end"><%= fin_money(@purchase.subtotal_cents) %></td></tr>
+        <% if @purchase.discount_cents.positive? %><tr><td colspan="4" class="text-end text-muted">Descuento</td><td class="text-end">− <%= fin_money(@purchase.discount_cents) %></td></tr><% end %>
+        <% if @purchase.taxes_cents.positive? %><tr><td colspan="4" class="text-end text-muted">Impuestos</td><td class="text-end">+ <%= fin_money(@purchase.taxes_cents) %></td></tr><% end %>
+        <% unless @purchase.adjustments_cents.zero? %><tr><td colspan="4" class="text-end text-muted">Otros ajustes</td><td class="text-end"><%= @purchase.adjustments_cents.positive? ? "+" : "−" %> <%= fin_money(@purchase.adjustments_cents.abs) %></td></tr><% end %>
+        <tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold"><%= fin_money(@purchase.total_cents) %></td></tr>
+      </tfoot>
+    </table></div>
+    <% if @obligation.notes.present? %><div class="small mt-2"><span class="text-muted">Comentario:</span> <%= @obligation.notes %></div><% end %>
+  </div>
+
+  <%= render "admin/administration/shared/attachments", owner: @purchase %>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Pagos imputados</h2>
+    <%= render "admin/administration/shared/applications", applications: @applications %>
+  </div>
+
+  <% unless @obligation.voided? %>
+    <div class="product-card">
+      <h2 class="fs-6 fw-bold mb-2">Anular o eliminar</h2>
+      <details><summary class="small text-danger" style="cursor:pointer">Anular esta compra</summary>
+        <%= form_with url: void_admin_administration_purchase_path(@obligation), method: :post, local: true, class: "d-flex flex-wrap gap-2 mt-2" do %>
+          <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo de la anulación (obligatorio)", class: "form-control form-control-sm", style: "max-width: 420px" %>
+          <%= submit_tag "Anular compra", class: "btn btn-sm btn-danger", data: { turbo_confirm: "¿Anular esta compra? El registro se conserva." } %>
+        <% end %>
+      </details>
+      <% unless @obligation.applications.exists? %>
+        <%= button_to "Eliminar compra (sin pagos)", admin_administration_purchase_path(@obligation), method: :delete, class: "btn btn-sm btn-outline-danger mt-2", form: { data: { turbo_confirm: "¿Eliminar definitivamente esta compra?" } } %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

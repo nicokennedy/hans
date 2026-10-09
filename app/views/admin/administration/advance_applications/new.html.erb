@@ -1,0 +1,28 @@
+<div class="container py-5">
+  <h1 class="fw-bold mb-1">Aplicar anticipo</h1>
+  <p class="text-muted"><%= @supplier.name %></p>
+  <%= render "admin/administration/shared/nav" %>
+  <%= render "admin/administration/shared/errors", errors: @errors %>
+
+  <% if @advance_cents <= 0 %>
+    <div class="product-card">Este proveedor no tiene anticipos disponibles. <%= link_to "Volver a la cuenta corriente", admin_administration_supplier_account_path(@supplier) %></div>
+  <% else %>
+    <%= form_with url: admin_administration_supplier_advance_applications_path(@supplier), method: :post, local: true,
+          data: { controller: "payment-distribution", payment_distribution_fixed_amount_value: @advance_cents, payment_distribution_confirm_label_value: "Aplicar anticipo de #{@supplier.name} a obligaciones pendientes.", action: "submit->payment-distribution#confirm" } do %>
+      <div class="product-card mb-4">
+        <div class="alert alert-info">Anticipo disponible: <strong><%= fin_money(@advance_cents) %></strong>. Se aplica solo a las obligaciones que indiques; nunca se usa automáticamente.</div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="fs-5 fw-bold mb-0">Obligaciones pendientes</h2>
+          <button type="button" class="btn btn-sm btn-outline-dark" data-action="payment-distribution#reset">Restablecer imputación automática</button>
+        </div>
+        <p class="small text-muted" data-payment-distribution-target="autoNote">Propuesta: primero la que vence antes, hasta agotar el anticipo.</p>
+        <%= render "admin/administration/payments/table", pending: @pending, allocations: @allocations || {} %>
+        <%= render "admin/customer_accounts/distribution_summary", received_label: "Anticipo disponible", credit_label: "Anticipo restante", equation: "Anticipo disponible − Aplicado = Anticipo restante" %>
+      </div>
+      <div class="d-flex gap-2">
+        <%= submit_tag "Aplicar anticipo", class: "btn btn-dark btn-lg", data: { payment_distribution_target: "submit", disable_with: "Aplicando…" } %>
+        <%= link_to "Cancelar", admin_administration_supplier_account_path(@supplier), class: "btn btn-outline-dark btn-lg" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

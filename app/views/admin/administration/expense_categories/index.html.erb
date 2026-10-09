@@ -1,0 +1,25 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Categorías de gastos</h1>
+    <%= link_to "+ Nueva categoría", new_admin_administration_expense_category_path, class: "btn btn-dark" %>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+  <div class="product-card">
+    <div class="table-responsive"><table class="table align-middle mb-0">
+      <thead><tr><th>Categoría</th><th class="text-end">Gastos cargados</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <% @categories.each do |c| %>
+          <tr class="<%= 'text-muted' unless c.active? %>">
+            <td class="fw-bold"><%= c.name %></td><td class="text-end"><%= @usage[c.id].to_i %></td>
+            <td><span class="badge <%= c.active? ? 'bg-success' : 'bg-secondary' %>"><%= c.active? ? "Activa" : "Inactiva" %></span></td>
+            <td class="text-end text-nowrap">
+              <%= link_to "Editar", edit_admin_administration_expense_category_path(c), class: "btn btn-sm btn-outline-dark" %>
+              <%= button_to(c.active? ? "Desactivar" : "Reactivar", toggle_active_admin_administration_expense_category_path(c), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }) %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
+    <div class="small text-muted mt-2">Las categorías con gastos no se borran: se desactivan y los gastos ya cargados las conservan.</div>
+  </div>
+</div>

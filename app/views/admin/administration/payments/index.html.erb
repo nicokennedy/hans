@@ -1,0 +1,44 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Pagos</h1>
+    <%= link_to "+ Registrar pago", new_admin_administration_payment_path, class: "btn btn-dark" %>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+  <div class="product-card mb-4">
+    <%= form_with url: admin_administration_payments_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="p-from">Desde</label><%= date_field_tag :from, params[:from], id: "p-from", class: "form-control form-control-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="p-to">Hasta</label><%= date_field_tag :to, params[:to], id: "p-to", class: "form-control form-control-sm" %></div>
+      <div class="col-12 col-md-4"><label class="form-label small mb-0" for="p-supplier">Proveedor</label>
+        <%= select_tag :supplier_id, options_for_select(@suppliers.map { |s| [s.name, s.id] }, params[:supplier_id]), include_blank: "Todos", id: "p-supplier", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="p-status">Estado</label>
+        <%= select_tag :status, options_for_select([["Vigentes", "active"], ["Anulados", "voided"]], params[:status]), include_blank: "Todos", id: "p-status", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2 d-flex gap-1"><%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %><%= link_to "✕", admin_administration_payments_path, class: "btn btn-sm btn-outline-dark" %></div>
+    <% end %>
+  </div>
+  <div class="product-card">
+    <% if @payments.empty? %>
+      <div class="text-muted">No hay pagos registrados.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Proveedor</th><th>Medio</th><th>Referencia</th><th class="text-end">Importe</th><th class="text-end">Anticipo</th><th>Registró</th><th></th></tr></thead>
+        <tbody>
+          <% @payments.each do |p| %>
+            <tr class="<%= 'text-muted' if p.voided? %>">
+              <td><%= date_label(p.paid_on) %></td><td class="fw-bold"><%= p.supplier&.name || "Gastos sin proveedor" %></td><td><%= p.method_label %></td><td><%= p.reference.presence || "—" %></td>
+              <td class="text-end <%= 'text-decoration-line-through' if p.voided? %>"><%= fin_money(p.amount_cents) %> <%= content_tag(:span, "Anulado", class: "badge bg-danger") if p.voided? %></td>
+              <td class="text-end text-primary"><%= p.voided? ? "—" : fin_money(p.unapplied_cents) %></td><td class="small"><%= p.user.email %></td>
+              <td class="text-end"><%= link_to "Ver", admin_administration_payment_path(p), class: "btn btn-sm btn-outline-dark" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+      <% if @total_pages > 1 %>
+        <nav class="d-flex justify-content-between align-items-center mt-3">
+          <%= @page > 1 ? link_to("← Anteriores", admin_administration_payments_path(request.query_parameters.merge(page: @page - 1)), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+          <span class="small text-muted">Página <%= @page %> de <%= @total_pages %></span>
+          <%= @page < @total_pages ? link_to("Siguientes →", admin_administration_payments_path(request.query_parameters.merge(page: @page + 1)), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+        </nav>
+      <% end %>
+    <% end %>
+  </div>
+</div>

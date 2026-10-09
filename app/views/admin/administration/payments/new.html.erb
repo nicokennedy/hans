@@ -1,0 +1,62 @@
+<div class="container py-5">
+  <h1 class="fw-bold mb-3">Registrar pago</h1>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4">
+    <%= form_with url: new_admin_administration_payment_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="supplier-picker">Proveedor</label>
+        <%= select_tag :supplier_id, options_for_select([["Gastos sin proveedor", "none"]] + @suppliers.map { |s| [s.name, s.id] }, (@no_supplier ? "none" : @supplier&.id)), prompt: "Elegí un proveedor", id: "supplier-picker", class: "form-select", onchange: "this.form.requestSubmit()" %>
+      </div>
+      <div class="col-12 col-md-auto"><%= submit_tag "Elegir", name: nil, class: "btn btn-outline-dark" %></div>
+    <% end %>
+  </div>
+
+  <% if @supplier || @no_supplier %>
+    <%= render "admin/administration/shared/errors", errors: @errors %>
+    <%= form_with url: admin_administration_payments_path, method: :post, local: true, multipart: true,
+          data: { controller: "payment-distribution", payment_distribution_confirm_label_value: "Registrar pago #{@supplier ? "a #{@supplier.name}" : "de gastos sin proveedor"}.", action: "submit->payment-distribution#confirm" } do %>
+      <%= hidden_field_tag :request_token, @request_token %>
+      <%= hidden_field_tag :supplier_id, (@no_supplier ? "none" : @supplier.id) %>
+
+      <div class="product-card mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+          <h2 class="fs-5 fw-bold mb-0"><%= @supplier ? @supplier.name : "Gastos sin proveedor" %></h2>
+          <% if @advance_cents.positive? %><span class="small text-primary">Anticipo disponible: <strong><%= fin_money(@advance_cents) %></strong> (se aplica desde la cuenta corriente)</span><% end %>
+        </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4"><label class="form-label" for="amount">Importe pagado ($) *</label>
+            <%= text_field_tag :amount, @form[:amount], inputmode: "decimal", autocomplete: "off", required: true, class: "form-control form-control-lg", placeholder: "300.000", data: { payment_distribution_target: "amount", action: "input->payment-distribution#amountChanged" } %></div>
+          <div class="col-6 col-md-3"><label class="form-label" for="paid_on">Fecha del pago *</label>
+            <%= date_field_tag :paid_on, @form[:paid_on], max: Date.current.iso8601, required: true, class: "form-control form-control-lg" %></div>
+          <div class="col-6 col-md-5"><label class="form-label" for="payment_method">Medio de pago *</label>
+            <%= select_tag :payment_method, options_for_select(payment_method_options, @form[:payment_method]), class: "form-select form-select-lg" %></div>
+          <div class="col-12 col-md-6"><label class="form-label" for="reference">Referencia o número de operación</label>
+            <%= text_field_tag :reference, @form[:reference], maxlength: 200, class: "form-control" %></div>
+          <div class="col-12 col-md-6"><label class="form-label" for="note">Comentario</label>
+            <%= text_field_tag :note, @form[:note], maxlength: 1000, class: "form-control" %></div>
+          <div class="col-12"><label class="form-label" for="attachment">Comprobante de pago (PDF, JPG, PNG; máx. 3 MB)</label>
+            <%= file_field_tag :attachment, accept: ".pdf,.jpg,.jpeg,.png,.webp", class: "form-control" %></div>
+        </div>
+      </div>
+
+      <div class="product-card mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="fs-5 fw-bold mb-0">Imputación a obligaciones pendientes</h2>
+          <button type="button" class="btn btn-sm btn-outline-dark" data-action="payment-distribution#reset">Restablecer imputación automática</button>
+        </div>
+        <p class="small text-muted" data-payment-distribution-target="autoNote">
+          Propuesta automática: primero la obligación que vence antes (a igual vencimiento, la de fecha de compra más antigua), sin superar su saldo.
+          Podés editar los importes o dejar facturas sin pagar. <%= @supplier ? "Lo que no se impute queda como anticipo del proveedor." : "Un pago sin proveedor debe imputarse completo a gastos." %>
+        </p>
+        <%= render "admin/administration/payments/table", pending: @pending, allocations: @form[:allocations] %>
+        <%= render "admin/customer_accounts/distribution_summary", received_label: "Importe pagado", credit_label: (@supplier ? "Anticipo generado (sin imputar)" : "Sin imputar (debe ser $0)"), equation: "Importe pagado − Importe imputado = Sin imputar" %>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= submit_tag "Confirmar pago", class: "btn btn-dark btn-lg", data: { payment_distribution_target: "submit", disable_with: "Registrando…" } %>
+        <%= link_to "Cancelar", admin_administration_payments_path, class: "btn btn-outline-dark btn-lg" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

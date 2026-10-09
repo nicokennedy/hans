@@ -1,0 +1,29 @@
+<%# locals: index, row (Hash string keys), units %>
+<div class="purchase-item-row border rounded p-2 mb-2" data-purchase-items-target="row">
+  <%= hidden_field_tag "items[#{index}][id]", row["id"], id: nil if row["id"].present? %>
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label class="form-label small mb-0">Descripción</label>
+      <%= text_field_tag "items[#{index}][description]", row["description"], id: nil, class: "form-control form-control-sm", maxlength: 200, placeholder: "Ej. Harina 000" %>
+    </div>
+    <div class="col-4 col-md-2">
+      <label class="form-label small mb-0">Cantidad</label>
+      <%= text_field_tag "items[#{index}][quantity]", row["quantity"], id: nil, inputmode: "decimal", class: "form-control form-control-sm text-end", data: { purchase_items_target: "quantity", action: "input->purchase-items#recalculate" } %>
+    </div>
+    <div class="col-4 col-md-2">
+      <label class="form-label small mb-0">Unidad</label>
+      <%= select_tag "items[#{index}][unit]", options_for_select(units, row["unit"].presence || "kg"), id: nil, class: "form-select form-select-sm" %>
+    </div>
+    <div class="col-4 col-md-2">
+      <label class="form-label small mb-0">Precio unit. ($)</label>
+      <%= text_field_tag "items[#{index}][unit_price]", row["unit_price"], id: nil, inputmode: "decimal", class: "form-control form-control-sm text-end", data: { purchase_items_target: "price", action: "input->purchase-items#recalculate" } %>
+    </div>
+    <div class="col-8 col-md-1 text-end">
+      <label class="form-label small mb-0">Subtotal</label>
+      <div class="fw-bold small" data-purchase-items-target="subtotal">$0</div>
+    </div>
+    <div class="col-4 col-md-1 text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger" data-action="purchase-items#remove" aria-label="Quitar ítem">✕</button>
+    </div>
+  </div>
+</div>

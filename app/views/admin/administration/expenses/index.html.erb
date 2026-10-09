@@ -1,0 +1,58 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Gastos</h1>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Gastos recurrentes", admin_administration_expense_recurrences_path, class: "btn btn-outline-dark" %>
+      <%= link_to "Exportar CSV", admin_administration_expenses_path(request.query_parameters.except("page").merge(format: :csv)), class: "btn btn-outline-dark", id: "export-csv" %>
+      <%= link_to "+ Nuevo gasto", new_admin_administration_expense_path, class: "btn btn-dark" %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4" id="expense-filters">
+    <%= form_with url: admin_administration_expenses_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="f-from">Desde</label><%= date_field_tag :from, @filters[:from]&.iso8601, id: "f-from", class: "form-control form-control-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="f-to">Hasta</label><%= date_field_tag :to, @filters[:to]&.iso8601, id: "f-to", class: "form-control form-control-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="f-category">Categoría</label>
+        <%= select_tag :category_id, options_for_select(@categories.map { |c| [c.name, c.id] }, @filters[:category_id]), include_blank: "Todas", id: "f-category", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="f-supplier">Proveedor</label>
+        <%= select_tag :supplier_id, options_for_select(Supplier.ordered.map { |s| [s.name, s.id] }, @filters[:supplier_id]), include_blank: "Todos", id: "f-supplier", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="f-status">Estado de pago</label>
+        <%= select_tag :status, options_for_select([["Pendiente", "pending"], ["Parcialmente pagado", "partial"], ["Pagado", "paid"], ["Anulado", "voided"]], @filters[:status]), include_blank: "Todos", id: "f-status", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2 d-flex gap-1"><%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %><%= link_to "✕", admin_administration_expenses_path, class: "btn btn-sm btn-outline-dark", title: "Limpiar filtros" %></div>
+    <% end %>
+  </div>
+
+  <div class="small text-muted mb-2" id="expenses-totals"><%= @total_count %> gastos · Total <strong><%= fin_money(@totals[:amount]) %></strong> · Saldo pendiente <strong class="text-danger"><%= fin_money(@totals[:balance]) %></strong></div>
+
+  <div class="product-card">
+    <% if @obligations.empty? %>
+      <div class="text-muted">No hay gastos que coincidan con los filtros.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Proveedor</th><th>Comprobante</th><th class="text-end">Importe</th><th class="text-end">Saldo</th><th>Estado</th><th>Vence</th><th></th></tr></thead>
+        <tbody>
+          <% @obligations.each do |o| %>
+            <tr class="<%= 'text-muted' if o.voided? %>">
+              <td><%= date_label(o.accrual_on) %></td><td><%= o.source.expense_category.name %><%= " ↻" if o.source.expense_recurrence_id %></td><td><%= o.supplier&.name || "—" %></td><td><%= o.document_label %></td>
+              <td class="text-end"><%= fin_money(o.amount_cents) %></td>
+              <td class="text-end <%= !o.voided? && o.balance_cents.positive? ? 'text-danger fw-bold' : '' %>"><%= fin_money(o.voided? ? 0 : o.balance_cents) %></td>
+              <td><%= obligation_status_badge(o) %></td><td><%= date_label(o.due_on) %></td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Ver", admin_administration_expense_path(o), class: "btn btn-sm btn-outline-dark" %>
+                <% if !o.voided? && o.balance_cents.positive? %><%= link_to "Pagar", new_admin_administration_payment_path(supplier_id: (o.supplier_id || "none"), obligation_id: o.id), class: "btn btn-sm btn-dark" %><% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+      <% if @total_pages > 1 %>
+        <nav class="d-flex justify-content-between align-items-center mt-3" id="pagination">
+          <%= @page > 1 ? link_to("← Anteriores", admin_administration_expenses_path(request.query_parameters.merge(page: @page - 1)), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+          <span class="small text-muted">Página <%= @page %> de <%= @total_pages %></span>
+          <%= @page < @total_pages ? link_to("Siguientes →", admin_administration_expenses_path(request.query_parameters.merge(page: @page + 1)), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+        </nav>
+      <% end %>
+    <% end %>
+  </div>
+</div>

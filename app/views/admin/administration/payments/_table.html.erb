@@ -1,0 +1,27 @@
+<%# locals: pending (obligaciones), allocations (Hash id => texto) %>
+<% if pending.empty? %>
+  <div class="text-muted">No hay obligaciones pendientes. Si registrás el pago igual, quedará como anticipo del proveedor.</div>
+<% else %>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Comprobante y vencimiento</th><th class="text-end">Saldo</th><th class="text-end" style="min-width: 120px;">Monto a imputar</th></tr></thead>
+      <tbody>
+        <% pending.each do |o| %>
+          <tr data-payment-distribution-target="row" data-order-id="<%= o.id %>" data-order-number="<%= o.document_label %>" data-balance="<%= o.balance_cents %>">
+            <td>
+              <div class="fw-bold"><%= link_to o.document_label, (o.purchase? ? admin_administration_purchase_path(o) : admin_administration_expense_path(o)), target: "_blank", rel: "noopener", class: "text-decoration-none text-dark" %>
+                <span class="badge <%= o.purchase? ? 'bg-secondary' : 'bg-dark' %>"><%= o.purchase? ? "Compra" : "Gasto" %></span></div>
+              <div class="small text-muted">Compra: <%= date_label(o.accrual_on) %> · Vence: <%= date_label(o.due_on) %><%= " · Vencida" if o.overdue? %></div>
+            </td>
+            <td class="text-end text-danger fw-bold"><%= fin_money(o.balance_cents) %></td>
+            <td class="text-end">
+              <%= text_field_tag "allocations[#{o.id}]", allocations[o.id.to_s] || allocations[o.id], id: "allocation_#{o.id}", inputmode: "decimal", autocomplete: "off", placeholder: "0",
+                    class: "form-control form-control-sm text-end", "aria-label": "Monto a imputar a #{o.document_label}",
+                    data: { payment_distribution_target: "input", order_id: o.id, action: "input->payment-distribution#allocationChanged" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

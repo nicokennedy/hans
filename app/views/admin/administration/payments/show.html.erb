@@ -1,0 +1,54 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1">Pago <%= fin_money(@payment.amount_cents) %> <%= content_tag(:span, "Anulado", class: "badge bg-danger fs-6") if @payment.voided? %></h1>
+      <div class="text-muted"><%= @payment.supplier&.name || "Gastos sin proveedor" %> · <%= date_label(@payment.paid_on) %> · <%= @payment.method_label %></div>
+    </div>
+    <div class="d-flex gap-2">
+      <%= link_to "← Pagos", admin_administration_payments_path, class: "btn btn-outline-dark" %>
+      <% if @payment.supplier %><%= link_to "Cuenta corriente", admin_administration_supplier_account_path(@payment.supplier), class: "btn btn-dark" %><% end %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-3"><div class="small text-muted">Referencia</div><div><%= @payment.reference.presence || "—" %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Imputado a obligaciones</div><div class="fw-bold text-success" id="payment-applied"><%= fin_money(@payment.applied_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Anticipo sin aplicar</div><div class="fw-bold text-primary" id="payment-advance"><%= fin_money(@payment.unapplied_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Registrado por</div><div class="small"><%= @payment.user.email %> · <%= l(@payment.created_at, format: "%d/%m/%Y %H:%M") %></div></div>
+      <% if @payment.note.present? %><div class="col-12"><div class="small text-muted">Comentario</div><div><%= @payment.note %></div></div><% end %>
+    </div>
+  </div>
+
+  <% if @payment.voided? %>
+    <div class="alert alert-secondary">Anulado por <%= @payment.voided_by&.email %> el <%= l(@payment.voided_at, format: "%d/%m/%Y %H:%M") %>. Motivo: <%= @payment.void_reason %></div>
+  <% end %>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Imputación</h2>
+    <% if @payment.applications.empty? %><div class="text-muted">No se imputó a ninguna obligación (todo el pago es anticipo).</div><% end %>
+    <ul class="list-unstyled mb-0">
+      <% @payment.applications.sort_by(&:created_at).each do |app| %>
+        <li class="<%= 'text-decoration-line-through text-muted' if app.voided? %>">
+          <%= link_to app.obligation.document_label, (app.obligation.purchase? ? admin_administration_purchase_path(app.obligation) : admin_administration_expense_path(app.obligation)) %> — <%= fin_money(app.amount_cents) %>
+          <span class="text-muted small">(<%= app.advance? ? "anticipo aplicado" : "al registrar el pago" %>)</span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+
+  <%= render "admin/administration/shared/attachments", owner: @payment %>
+
+  <% unless @payment.voided? %>
+    <div class="product-card">
+      <details><summary class="small text-danger" style="cursor:pointer">Anular este pago (corrección)</summary>
+        <p class="small text-muted mt-2">Para corregir un pago equivocado: anulalo (se conserva el registro y se restablecen los saldos) y cargalo de nuevo.</p>
+        <%= form_with url: void_admin_administration_payment_path(@payment), method: :post, local: true, class: "d-flex flex-wrap gap-2" do %>
+          <%= text_field_tag :reason, nil, required: true, placeholder: "Motivo de la anulación (obligatorio)", class: "form-control form-control-sm", style: "max-width: 420px" %>
+          <%= submit_tag "Anular pago", class: "btn btn-sm btn-danger", data: { turbo_confirm: "¿Anular este pago? Se restablecen los saldos de las obligaciones." } %>
+        <% end %>
+      </details>
+    </div>
+  <% end %>
+</div>

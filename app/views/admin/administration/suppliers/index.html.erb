@@ -1,0 +1,58 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Proveedores</h1>
+    <%= link_to "+ Nuevo proveedor", new_admin_administration_supplier_path, class: "btn btn-dark" %>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4">
+    <%= form_with url: admin_administration_suppliers_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="supplier-q">Buscar</label>
+        <%= text_field_tag :q, @query, id: "supplier-q", placeholder: "Nombre, CUIT, email o teléfono", class: "form-control" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="supplier-status">Estado</label>
+        <%= select_tag :status, options_for_select([["Todos", "all"], ["Activos", "active"], ["Inactivos", "inactive"]], @status), id: "supplier-status", class: "form-select" %>
+      </div>
+      <div class="col-6 col-md-auto d-flex gap-2">
+        <%= submit_tag "Filtrar", name: nil, class: "btn btn-dark" %>
+        <%= link_to "Limpiar", admin_administration_suppliers_path, class: "btn btn-outline-dark" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="product-card">
+    <% if @suppliers.empty? %>
+      <div class="text-muted">No hay proveedores que coincidan.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Proveedor</th><th>CUIT/CUIL</th><th>Contacto</th><th>Estado</th><th class="text-end">Saldo pendiente</th><th class="text-end">Anticipos</th><th></th></tr></thead>
+        <tbody>
+          <% @suppliers.each do |supplier| %>
+            <% balance = @balances[supplier.id] %>
+            <tr>
+              <td class="fw-bold"><%= link_to supplier.name, admin_administration_supplier_path(supplier), class: "text-decoration-none text-dark" %></td>
+              <td><%= supplier.tax_id.presence || "—" %></td>
+              <td class="small"><%= [supplier.phone, supplier.email].compact_blank.join(" · ").presence || "—" %></td>
+              <td><span class="badge <%= supplier.active? ? 'bg-success' : 'bg-secondary' %>"><%= supplier.active? ? "Activo" : "Inactivo" %></span></td>
+              <td class="text-end <%= balance && balance[:pending_cents].positive? ? 'text-danger fw-bold' : '' %>"><%= fin_money(balance ? balance[:pending_cents] : 0) %></td>
+              <td class="text-end text-primary"><%= fin_money(balance ? balance[:advance_cents] : 0) %></td>
+              <td class="text-end">
+                <%= link_to "Cuenta corriente", admin_administration_supplier_account_path(supplier), class: "btn btn-sm btn-dark" %>
+                <%= link_to "Editar", edit_admin_administration_supplier_path(supplier), class: "btn btn-sm btn-outline-dark" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+      <% if @total_pages > 1 %>
+        <nav class="d-flex justify-content-between align-items-center mt-3">
+          <%= @page > 1 ? link_to("← Anteriores", admin_administration_suppliers_path(q: @query, status: @status, page: @page - 1), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+          <span class="small text-muted">Página <%= @page %> de <%= @total_pages %></span>
+          <%= @page < @total_pages ? link_to("Siguientes →", admin_administration_suppliers_path(q: @query, status: @status, page: @page + 1), class: "btn btn-sm btn-outline-dark") : content_tag(:span) %>
+        </nav>
+      <% end %>
+    <% end %>
+  </div>
+</div>

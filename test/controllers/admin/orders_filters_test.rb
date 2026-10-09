@@ -64,9 +64,11 @@ class Admin::OrdersFiltersTest < ActionDispatch::IntegrationTest
     assert_equal numbers(@honey_d10_pending, @other_d10_partial).sort, listed_numbers.sort
     assert_select "#orders-filters input[name=delivery_date][value=?]", D10.iso8601
 
-    # todos los pedidos se crearon hoy: filtrar por la fecha de hoy no trae nada
-    get admin_orders_path, params: { delivery_date: Date.current.iso8601 }
-    assert_equal [], listed_numbers
+    # la fecha de creación no cuenta: un pedido creado el 10/10 pero entregado el 09/10 no aparece al filtrar por el 10/10
+    @honey_d9_pending.update_columns(created_at: Time.zone.local(2026, 10, 10, 12))
+    get admin_orders_path, params: { delivery_date: D10.iso8601 }
+    assert_not_includes listed_numbers, @honey_d9_pending.number
+    assert_equal numbers(@honey_d10_pending, @other_d10_partial).sort, listed_numbers.sort
   end
 
   test "filtra por estado de pago con la lógica existente (pendiente, parcial, pagado)" do

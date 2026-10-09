@@ -60,6 +60,38 @@ Rails.application.routes.draw do
         post :revert, on: :member
       end
     end
+    # Administración: proveedores, compras de mercadería, gastos, pagos a proveedores y
+    # cuentas corrientes (ver Finance::*). Solo admin; sin impacto en stock ni costos.
+    namespace :administration do
+      root "dashboard#show"
+      resources :suppliers do
+        patch :toggle_active, on: :member
+        resource :account, only: [:show], controller: "supplier_accounts"
+        resources :advance_applications, only: [:new, :create] do
+          post :revert, on: :member
+        end
+      end
+      resources :accounts, only: [:index], controller: "supplier_accounts"
+      resources :purchases do
+        post :void, on: :member
+        get :export, on: :collection
+      end
+      resources :expenses do
+        post :void, on: :member
+        get :export, on: :collection
+      end
+      resources :expense_recurrences, except: [:show, :destroy] do
+        post :deactivate, on: :member
+        post :generate, on: :collection
+      end
+      resources :payments, only: [:index, :show, :new, :create] do
+        post :void, on: :member
+      end
+      resources :expense_categories, except: [:show, :destroy] do
+        patch :toggle_active, on: :member
+      end
+      resources :attachments, only: [:show]
+    end
     resources :categories
     resources :raw_materials, only: [:index, :new, :create, :edit, :update]
     resources :preparations, only: [:index, :new, :create, :edit, :update] do

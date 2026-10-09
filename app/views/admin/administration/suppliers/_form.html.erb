@@ -1,0 +1,41 @@
+<%= render "admin/administration/shared/errors", errors: supplier.errors.full_messages %>
+<%= form_with model: supplier, url: (supplier.persisted? ? admin_administration_supplier_path(supplier) : admin_administration_suppliers_path), local: true do |f| %>
+  <div class="product-card mb-4">
+    <div class="row g-3">
+      <div class="col-12 col-md-8">
+        <%= f.label :name, "Nombre o razón social *", class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true, maxlength: 200 %>
+      </div>
+      <div class="col-12 col-md-4">
+        <%= f.label :tax_id, "CUIT/CUIL", class: "form-label" %>
+        <%= f.text_field :tax_id, class: "form-control", placeholder: "30-12345678-9", inputmode: "numeric" %>
+      </div>
+      <div class="col-12 col-md-6">
+        <%= f.label :email, "Email", class: "form-label" %>
+        <%= f.email_field :email, class: "form-control" %>
+      </div>
+      <div class="col-12 col-md-6">
+        <%= f.label :phone, "Teléfono", class: "form-label" %>
+        <%= f.text_field :phone, class: "form-control" %>
+      </div>
+      <div class="col-12">
+        <%= f.label :address, "Dirección", class: "form-label" %>
+        <%= f.text_field :address, class: "form-control" %>
+      </div>
+      <div class="col-12">
+        <%= f.label :notes, "Comentarios", class: "form-label" %>
+        <%= f.text_area :notes, rows: 3, class: "form-control" %>
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          <%= f.check_box :active, class: "form-check-input" %>
+          <%= f.label :active, "Proveedor activo", class: "form-check-label" %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <%= f.submit supplier.persisted? ? "Guardar cambios" : "Crear proveedor", class: "btn btn-dark" %>
+    <%= link_to "Cancelar", (supplier.persisted? ? admin_administration_supplier_path(supplier) : admin_administration_suppliers_path), class: "btn btn-outline-dark" %>
+  </div>
+<% end %>

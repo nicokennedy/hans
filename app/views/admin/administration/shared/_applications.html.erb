@@ -1,0 +1,19 @@
+<%# locals: applications %>
+<% if applications.empty? %>
+  <div class="text-muted">Todavía no tiene pagos imputados.</div>
+<% else %>
+  <div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th>Fecha de pago</th><th>Medio</th><th>Origen</th><th class="text-end">Imputado</th><th></th></tr></thead>
+    <tbody>
+      <% applications.each do |app| %>
+        <% payment = app.outgoing_payment %>
+        <tr class="<%= 'text-muted' if app.voided? %>">
+          <td><%= date_label(payment.paid_on) %></td><td><%= payment.method_label %><%= " · #{payment.reference}" if payment.reference.present? %></td>
+          <td><%= app.advance? ? "Anticipo aplicado" : "Imputación al pagar" %><%= " (anulado)" if app.voided? %></td>
+          <td class="text-end <%= 'text-decoration-line-through' if app.voided? %>"><%= fin_money(app.amount_cents) %></td>
+          <td class="text-end"><%= link_to "Ver pago", admin_administration_payment_path(payment), class: "btn btn-sm btn-outline-dark" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table></div>
+<% end %>

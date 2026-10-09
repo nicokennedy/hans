@@ -1,0 +1,30 @@
+<%# locals: url, method, submit_label %>
+<%= render "admin/administration/shared/errors", errors: @recurrence.errors.full_messages %>
+<%= form_with scope: :expense_recurrence, url: url, method: method, local: true do |f| %>
+  <div class="product-card mb-4">
+    <div class="row g-3">
+      <div class="col-12 col-md-4"><label class="form-label" for="expense_recurrence_expense_category_id">Categoría *</label>
+        <%= select_tag "expense_recurrence[expense_category_id]", options_for_select(@categories.map { |c| [c.name, c.id] }, @recurrence.expense_category_id), prompt: "Elegí una categoría", class: "form-select", id: "expense_recurrence_expense_category_id", required: true %></div>
+      <div class="col-12 col-md-4"><label class="form-label" for="expense_recurrence_supplier_id">Proveedor <span class="text-muted">(opcional)</span></label>
+        <%= select_tag "expense_recurrence[supplier_id]", options_for_select(@suppliers.map { |s| [s.name, s.id] }, @recurrence.supplier_id), include_blank: "Sin proveedor", class: "form-select", id: "expense_recurrence_supplier_id" %></div>
+      <div class="col-12 col-md-4"><label class="form-label" for="expense_recurrence_amount">Importe de cada ocurrencia ($) *</label>
+        <%= text_field_tag "expense_recurrence[amount]", params.dig(:expense_recurrence, :amount) || (@recurrence.amount_cents ? Finance::Money.format_pesos(@recurrence.amount_cents) : ""), inputmode: "decimal", class: "form-control", id: "expense_recurrence_amount", required: true %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_frequency">Frecuencia *</label>
+        <%= select_tag "expense_recurrence[frequency]", options_for_select(ExpenseRecurrence::FREQUENCIES.map { |k, v| [v, k] }, @recurrence.frequency), class: "form-select", id: "expense_recurrence_frequency" %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_starts_on">Fecha de inicio *</label>
+        <%= date_field_tag "expense_recurrence[starts_on]", @recurrence.starts_on&.iso8601, class: "form-control", id: "expense_recurrence_starts_on", required: true %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_ends_on">Finaliza el (opcional)</label>
+        <%= date_field_tag "expense_recurrence[ends_on]", @recurrence.ends_on&.iso8601, class: "form-control", id: "expense_recurrence_ends_on" %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_max_occurrences">o tras N repeticiones</label>
+        <%= number_field_tag "expense_recurrence[max_occurrences]", @recurrence.max_occurrences, min: 1, class: "form-control", id: "expense_recurrence_max_occurrences" %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_due_days">Vence a los N días</label>
+        <%= number_field_tag "expense_recurrence[due_days]", @recurrence.due_days, min: 0, max: 365, class: "form-control", id: "expense_recurrence_due_days" %></div>
+      <div class="col-6 col-md-3"><label class="form-label" for="expense_recurrence_document_type">Tipo de comprobante</label>
+        <%= select_tag "expense_recurrence[document_type]", options_for_select(document_type_options, @recurrence.document_type), include_blank: true, class: "form-select", id: "expense_recurrence_document_type" %></div>
+      <div class="col-12 col-md-6"><label class="form-label" for="expense_recurrence_notes">Comentario</label>
+        <%= text_field_tag "expense_recurrence[notes]", @recurrence.notes, class: "form-control", id: "expense_recurrence_notes" %></div>
+    </div>
+    <div class="small text-muted mt-3">Cada ocurrencia genera un gasto independiente, con su propio vencimiento y estado de pago, que nunca se marca como pagado automáticamente. Podés editar una ocurrencia sin cambiar la serie.</div>
+  </div>
+  <div class="d-flex gap-2"><%= f.submit submit_label, class: "btn btn-dark btn-lg" %><%= link_to "Cancelar", admin_administration_expense_recurrences_path, class: "btn btn-outline-dark btn-lg" %></div>
+<% end %>

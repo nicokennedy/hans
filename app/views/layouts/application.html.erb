@@ -59,6 +59,7 @@
             <%= link_to "Preparaciones", admin_preparations_path, class: nav_link_class("admin/preparations") %>
             <%= link_to "Recetas", admin_recipes_path, class: nav_link_class("admin/recipes") %>
             <%= link_to "Stock", admin_stock_path, class: nav_link_class("admin/stock", "admin/stock_items") %>
+            <%= link_to "Administración", admin_administration_root_path, class: administration_nav_class %>
             <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
             <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
           <% elsif current_user.production? %>

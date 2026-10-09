@@ -1,0 +1,115 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Administración</h1>
+    <div class="d-flex gap-2">
+      <%= link_to "+ Compra", new_admin_administration_purchase_path, class: "btn btn-dark" %>
+      <%= link_to "+ Gasto", new_admin_administration_expense_path, class: "btn btn-outline-dark" %>
+      <%= link_to "+ Pago", new_admin_administration_payment_path, class: "btn btn-outline-dark" %>
+    </div>
+  </div>
+
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4">
+    <%= form_with url: admin_administration_root_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="dash-month">Mes</label>
+        <%= select_tag :month, options_for_select([["Todo el año", "all"]] + Finance::Summary::MONTH_NAMES.each_with_index.map { |name, i| [name, i + 1] }, @summary.month || "all"), id: "dash-month", class: "form-select" %>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label" for="dash-year">Año</label>
+        <%= number_field_tag :year, @summary.year, min: 2000, max: 2100, id: "dash-year", class: "form-control" %>
+      </div>
+      <div class="col-12 col-md-auto"><%= submit_tag "Ver período", name: nil, class: "btn btn-dark" %></div>
+    <% end %>
+    <div class="small text-muted mt-2">
+      Período: <strong><%= @summary.period_label %></strong>. Compras y gastos se miden por su <strong>fecha de compra o devengamiento</strong>; los pagos, por su <strong>fecha de pago</strong>; los vencimientos se controlan aparte.
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4" id="dashboard-kpis">
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="product-card h-100"><div class="small text-muted">Compras de mercadería</div><div class="fs-5 fw-bold" id="kpi-purchases"><%= fin_money(@summary.purchases_cents) %></div><div class="small text-muted">del período</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="product-card h-100"><div class="small text-muted">Gastos generales</div><div class="fs-5 fw-bold" id="kpi-expenses"><%= fin_money(@summary.expenses_cents) %></div><div class="small text-muted">del período</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="product-card h-100"><div class="small text-muted">Pagado en el período</div><div class="fs-5 fw-bold text-success" id="kpi-paid"><%= fin_money(@summary.paid_in_period_cents) %></div><div class="small text-muted">por fecha de pago</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="product-card h-100"><div class="small text-muted">Obligaciones pendientes</div><div class="fs-5 fw-bold text-danger" id="kpi-pending"><%= fin_money(@summary.pending_cents) %></div><div class="small text-muted">total a hoy</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+      <% overdue = @summary.overdue %>
+      <div class="product-card h-100"><div class="small text-muted">Vencidas</div><div class="fs-5 fw-bold text-danger" id="kpi-overdue"><%= fin_money(overdue[:cents]) %></div><div class="small text-muted"><%= overdue[:count] %> obligaciones</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+      <% soon = @summary.due_soon %>
+      <div class="product-card h-100"><div class="small text-muted">Próximas a vencer</div><div class="fs-5 fw-bold text-warning-emphasis" id="kpi-due-soon"><%= fin_money(soon[:cents]) %></div><div class="small text-muted"><%= soon[:count] %> en los próximos <%= Finance::Summary::DUE_SOON_DAYS %> días</div></div>
+    </div>
+  </div>
+  <div class="small text-muted mb-4">Anticipos disponibles a proveedores: <strong id="kpi-advances"><%= fin_money(@summary.advances_cents) %></strong>. Un pago no es un gasto nuevo: los egresos se muestran aparte de las compras y gastos.</div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="product-card h-100" id="expenses-by-category">
+        <h2 class="fs-5 fw-bold mb-3">Gastos por categoría (<%= @summary.period_label %>)</h2>
+        <% rows = @summary.expenses_by_category %>
+        <% if rows.empty? %>
+          <div class="text-muted">No hay gastos en el período.</div>
+        <% else %>
+          <div class="table-responsive"><table class="table align-middle mb-0">
+            <thead><tr><th>Categoría</th><th class="text-end">Gastos</th><th class="text-end">Importe</th></tr></thead>
+            <tbody><% rows.each do |row| %><tr><td><%= row[:category] %></td><td class="text-end"><%= row[:count] %></td><td class="text-end fw-bold"><%= fin_money(row[:cents]) %></td></tr><% end %></tbody>
+          </table></div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="product-card h-100" id="top-suppliers">
+        <h2 class="fs-5 fw-bold mb-3">Proveedores con mayor saldo pendiente</h2>
+        <% top = @summary.top_pending_suppliers %>
+        <% if top.empty? %>
+          <div class="text-muted">No hay saldos pendientes con proveedores.</div>
+        <% else %>
+          <div class="table-responsive"><table class="table align-middle mb-0">
+            <thead><tr><th>Proveedor</th><th class="text-end">Pendiente</th><th class="text-end">Anticipos</th><th class="text-end">Neto</th></tr></thead>
+            <tbody>
+              <% top.each do |row| %>
+                <tr>
+                  <td><%= link_to row[:supplier].name, admin_administration_supplier_account_path(row[:supplier]), class: "text-decoration-none" %></td>
+                  <td class="text-end text-danger fw-bold"><%= fin_money(row[:pending_cents]) %></td>
+                  <td class="text-end text-primary"><%= fin_money(row[:advance_cents]) %></td>
+                  <td class="text-end"><%= fin_money(row[:net_cents]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table></div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="product-card" id="supplier-balances">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="fs-5 fw-bold mb-0">Saldo por proveedor</h2>
+          <%= link_to "Ver cuentas corrientes", admin_administration_accounts_path, class: "btn btn-sm btn-outline-dark" %>
+        </div>
+        <% balances = @summary.supplier_balances %>
+        <% if balances.empty? %>
+          <div class="text-muted">Ningún proveedor tiene saldo pendiente ni anticipos.</div>
+        <% else %>
+          <div class="table-responsive"><table class="table align-middle mb-0">
+            <thead><tr><th>Proveedor</th><th class="text-end">Saldo pendiente</th><th class="text-end">Anticipos disponibles</th><th class="text-end">Saldo neto</th></tr></thead>
+            <tbody><% balances.each do |row| %>
+              <tr><td><%= link_to row[:supplier].name, admin_administration_supplier_account_path(row[:supplier]), class: "text-decoration-none" %></td>
+                  <td class="text-end"><%= fin_money(row[:pending_cents]) %></td><td class="text-end text-primary"><%= fin_money(row[:advance_cents]) %></td><td class="text-end fw-bold"><%= fin_money(row[:net_cents]) %></td></tr>
+            <% end %></tbody>
+          </table></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,33 @@
+<div class="container py-5">
+  <h1 class="fw-bold mb-3">Cuentas corrientes de proveedores</h1>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6"><div class="product-card"><div class="small text-muted">Total pendiente con proveedores</div><div class="fs-4 fw-bold text-danger" id="accounts-pending"><%= fin_money(@total_pending) %></div></div></div>
+    <div class="col-6"><div class="product-card"><div class="small text-muted">Anticipos disponibles</div><div class="fs-4 fw-bold text-primary" id="accounts-advances"><%= fin_money(@total_advances) %></div></div></div>
+  </div>
+
+  <div class="product-card mb-4">
+    <%= form_with url: admin_administration_accounts_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-6"><label class="form-label" for="accounts-q">Buscar proveedor</label><%= text_field_tag :q, @query, id: "accounts-q", class: "form-control" %></div>
+      <div class="col-12 col-md-auto d-flex gap-2"><%= submit_tag "Buscar", name: nil, class: "btn btn-dark" %><%= link_to "Limpiar", admin_administration_accounts_path, class: "btn btn-outline-dark" %></div>
+    <% end %>
+  </div>
+
+  <div class="product-card">
+    <% if @rows.empty? %>
+      <div class="text-muted">No hay proveedores con saldo pendiente ni anticipos.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Proveedor</th><th class="text-end">Saldo pendiente</th><th class="text-end">Anticipos disponibles</th><th class="text-end">Saldo neto</th><th></th></tr></thead>
+        <tbody>
+          <% @rows.each do |row| %>
+            <tr><td class="fw-bold"><%= row[:supplier].name %></td>
+                <td class="text-end text-danger fw-bold"><%= fin_money(row[:pending_cents]) %></td><td class="text-end text-primary"><%= fin_money(row[:advance_cents]) %></td><td class="text-end"><%= fin_money(row[:net_cents]) %></td>
+                <td class="text-end"><%= link_to "Ver cuenta", admin_administration_supplier_account_path(row[:supplier]), class: "btn btn-sm btn-dark" %></td></tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+</div>

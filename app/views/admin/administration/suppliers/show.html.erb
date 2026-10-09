@@ -1,0 +1,78 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="fw-bold mb-1"><%= @supplier.name %></h1>
+      <span class="badge <%= @supplier.active? ? 'bg-success' : 'bg-secondary' %>"><%= @supplier.active? ? "Activo" : "Inactivo" %></span>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Cuenta corriente", admin_administration_supplier_account_path(@supplier), class: "btn btn-dark" %>
+      <%= link_to "+ Registrar pago", new_admin_administration_payment_path(supplier_id: @supplier.id), class: "btn btn-outline-dark" %>
+      <%= link_to "Editar", edit_admin_administration_supplier_path(@supplier), class: "btn btn-outline-dark" %>
+      <%= button_to(@supplier.active? ? "Desactivar" : "Reactivar", toggle_active_admin_administration_supplier_path(@supplier), method: :patch, class: "btn btn-outline-secondary",
+            form: { data: { turbo_confirm: @supplier.active? ? "¿Desactivar este proveedor? Su historial se conserva." : nil } }) %>
+      <% if @supplier.deletable? %>
+        <%= button_to "Eliminar", admin_administration_supplier_path(@supplier), method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "¿Eliminar este proveedor? No tiene movimientos." } } %>
+      <% end %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+
+  <div class="product-card mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-3"><div class="small text-muted">CUIT/CUIL</div><div><%= @supplier.tax_id.presence || "—" %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Teléfono</div><div><%= @supplier.phone.presence || "—" %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Email</div><div><%= @supplier.email.presence || "—" %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Dirección</div><div><%= @supplier.address.presence || "—" %></div></div>
+      <% if @supplier.notes.present? %><div class="col-12"><div class="small text-muted">Comentarios</div><div><%= @supplier.notes %></div></div><% end %>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4" id="supplier-balance">
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Total de obligaciones</div><div class="fs-5 fw-bold"><%= fin_money(@account.total_obligations_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Saldo pendiente</div><div class="fs-5 fw-bold text-danger" id="supplier-pending"><%= fin_money(@account.pending_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Anticipos disponibles</div><div class="fs-5 fw-bold text-primary"><%= fin_money(@account.advance_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="product-card h-100"><div class="small text-muted">Saldo neto</div><div class="fs-5 fw-bold"><%= fin_money(@account.net_cents) %></div></div></div>
+  </div>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Compras y gastos</h2>
+    <% if @obligations.empty? %>
+      <div class="text-muted">Todavía no tiene compras ni gastos.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th class="text-end">Importe</th><th class="text-end">Saldo</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <% @obligations.each do |o| %>
+            <% path = o.purchase? ? admin_administration_purchase_path(o) : admin_administration_expense_path(o) %>
+            <tr>
+              <td><%= date_label(o.accrual_on) %></td><td><%= o.purchase? ? "Compra" : "Gasto" %></td><td><%= o.document_label %></td>
+              <td class="text-end"><%= fin_money(o.amount_cents) %></td><td class="text-end <%= o.balance_cents.positive? && !o.voided? ? 'text-danger fw-bold' : '' %>"><%= fin_money(o.voided? ? 0 : o.balance_cents) %></td>
+              <td><%= obligation_status_badge(o) %></td><td class="text-end"><%= link_to "Ver", path, class: "btn btn-sm btn-outline-dark" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+
+  <div class="product-card">
+    <h2 class="fs-5 fw-bold mb-3">Pagos</h2>
+    <% if @payments.empty? %>
+      <div class="text-muted">Todavía no se registraron pagos.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Medio</th><th>Referencia</th><th class="text-end">Importe</th><th class="text-end">Anticipo sin aplicar</th><th></th></tr></thead>
+        <tbody>
+          <% @payments.each do |p| %>
+            <tr class="<%= 'text-muted' if p.voided? %>">
+              <td><%= date_label(p.paid_on) %></td><td><%= p.method_label %></td><td><%= p.reference.presence || "—" %></td>
+              <td class="text-end <%= 'text-decoration-line-through' if p.voided? %>"><%= fin_money(p.amount_cents) %></td>
+              <td class="text-end"><%= p.voided? ? "Anulado" : fin_money(p.unapplied_cents) %></td>
+              <td class="text-end"><%= link_to "Ver", admin_administration_payment_path(p), class: "btn btn-sm btn-outline-dark" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+</div>

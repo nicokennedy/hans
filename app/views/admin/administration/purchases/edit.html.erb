@@ -1,0 +1,8 @@
+<div class="container py-5">
+  <h1 class="fw-bold mb-3">Editar compra</h1>
+  <%= render "admin/administration/shared/nav" %>
+  <% if @obligation.applications.active.exists? %>
+    <div class="alert alert-info small">Esta compra ya tiene pagos imputados: no se puede cambiar el proveedor ni bajar el total por debajo de lo pagado.</div>
+  <% end %>
+  <%= render "form", url: admin_administration_purchase_path(@obligation), method: :patch, submit_label: "Guardar cambios", creating: false %>
+</div>

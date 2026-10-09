@@ -1,0 +1,35 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="fw-bold mb-0">Gastos recurrentes</h1>
+    <div class="d-flex gap-2">
+      <%= button_to "Generar ocurrencias pendientes", generate_admin_administration_expense_recurrences_path, method: :post, class: "btn btn-outline-dark" %>
+      <%= link_to "+ Nueva recurrencia", new_admin_administration_expense_recurrence_path, class: "btn btn-dark" %>
+    </div>
+  </div>
+  <%= render "admin/administration/shared/nav" %>
+  <div class="small text-muted mb-3">Las ocurrencias que ya corresponden se generan solas al entrar a Administración o a Gastos (sin duplicar nunca). <%= link_to "← Volver a Gastos", admin_administration_expenses_path %></div>
+
+  <div class="product-card">
+    <% if @recurrences.empty? %>
+      <div class="text-muted">Todavía no hay gastos recurrentes.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Categoría</th><th>Proveedor</th><th>Frecuencia</th><th class="text-end">Importe</th><th>Desde</th><th>Hasta</th><th class="text-end">Generados</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <% @recurrences.each do |r| %>
+            <tr class="<%= 'text-muted' unless r.active? %>">
+              <td><%= r.expense_category.name %></td><td><%= r.supplier&.name || "—" %></td><td><%= r.frequency_label %></td><td class="text-end"><%= fin_money(r.amount_cents) %></td>
+              <td><%= date_label(r.starts_on) %></td><td><%= r.ends_on ? date_label(r.ends_on) : (r.max_occurrences ? "#{r.max_occurrences} repeticiones" : "Sin fin") %></td>
+              <td class="text-end"><%= @generated[r.id].to_i %></td>
+              <td><span class="badge <%= r.finished? ? 'bg-secondary' : 'bg-success' %>"><%= r.finished? ? "Finalizada" : "Activa" %></span></td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Editar", edit_admin_administration_expense_recurrence_path(r), class: "btn btn-sm btn-outline-dark" %>
+                <% if r.active? %><%= button_to "Desactivar", deactivate_admin_administration_expense_recurrence_path(r), method: :post, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline", data: { turbo_confirm: "¿Desactivar? Los gastos ya generados se conservan." } } %><% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+</div>

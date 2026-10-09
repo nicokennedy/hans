@@ -1,0 +1,5 @@
+<% if errors.present? %>
+  <div class="alert alert-danger" id="form-errors">
+    <% Array(errors).each do |message| %><div><%= message %></div><% end %>
+  </div>
+<% end %>

@@ -1,0 +1,65 @@
+<%# locals: url, method, submit_label, creating %>
+<%= render "admin/administration/shared/errors", errors: @errors %>
+<%= form_with url: url, method: method, local: true, multipart: true do %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <div class="product-card mb-4">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="expense_category_id">Categoría *</label>
+        <%= select_tag :expense_category_id, options_for_select(@categories.map { |c| [c.name, c.id] }, @form[:expense_category_id]), prompt: "Elegí una categoría", class: "form-select", required: true %>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="supplier_id">Proveedor <span class="text-muted">(opcional)</span></label>
+        <%= select_tag :supplier_id, options_for_select(@suppliers.map { |s| [s.name, s.id] }, @form[:supplier_id]), include_blank: "Sin proveedor", class: "form-select" %>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label" for="amount">Importe bruto ($) *</label>
+        <%= text_field_tag :amount, @form[:amount], inputmode: "decimal", class: "form-control", required: true, placeholder: "120.000" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="accrual_on">Fecha de registro *</label>
+        <%= date_field_tag :accrual_on, @form[:accrual_on], class: "form-control", required: true %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="due_on">Vencimiento</label>
+        <%= date_field_tag :due_on, @form[:due_on], class: "form-control" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="document_type">Tipo de comprobante</label>
+        <%= select_tag :document_type, options_for_select(document_type_options, @form[:document_type]), include_blank: true, class: "form-select" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="document_number">Número</label>
+        <%= text_field_tag :document_number, @form[:document_number], class: "form-control", maxlength: 60 %>
+      </div>
+      <div class="col-12 col-md-8">
+        <label class="form-label" for="notes">Comentario</label>
+        <%= text_field_tag :notes, @form[:notes], class: "form-control" %>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="attachment">Comprobante (PDF, JPG, PNG; máx. 3 MB)</label>
+        <%= file_field_tag :attachment, accept: ".pdf,.jpg,.jpeg,.png,.webp", class: "form-control" %>
+      </div>
+    </div>
+  </div>
+
+  <% if creating %>
+    <div class="product-card mb-4" data-controller="toggle-section">
+      <div class="form-check mb-2">
+        <%= check_box_tag :pay_now, "1", @form[:pay_now] == "1", class: "form-check-input", id: "pay_now", data: { toggle_section_target: "checkbox", action: "toggle-section#toggle" } %>
+        <label class="form-check-label fw-bold" for="pay_now">Registrar el pago ahora</label>
+      </div>
+      <div class="row g-2" data-toggle-section-target="body" <%= "hidden" unless @form[:pay_now] == "1" %>>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="pay_amount">Importe pagado ($)</label><%= text_field_tag :pay_amount, @form[:pay_amount], inputmode: "decimal", class: "form-control form-control-sm" %></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="pay_paid_on">Fecha del pago</label><%= date_field_tag :pay_paid_on, @form[:pay_paid_on].presence || Date.current.iso8601, max: Date.current.iso8601, class: "form-control form-control-sm" %></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="pay_method">Medio de pago</label><%= select_tag :pay_method, options_for_select(payment_method_options, @form[:pay_method]), class: "form-select form-select-sm" %></div>
+        <div class="col-6 col-md-3"><label class="form-label small mb-0" for="pay_reference">Referencia</label><%= text_field_tag :pay_reference, @form[:pay_reference], class: "form-control form-control-sm" %></div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="d-flex gap-2">
+    <%= submit_tag submit_label, class: "btn btn-dark btn-lg", data: { disable_with: "Guardando…" } %>
+    <%= link_to "Cancelar", (creating ? admin_administration_expenses_path : admin_administration_expense_path(@obligation)), class: "btn btn-outline-dark btn-lg" %>
+  </div>
+<% end %>
