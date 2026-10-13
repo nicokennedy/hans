@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_09_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -395,6 +395,76 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_09_100000) do
     t.index ["owner_type", "owner_id"], name: "index_recipe_components_on_owner"
   end
 
+  create_table "retail_order_items", force: :cascade do |t|
+    t.bigint "retail_order_id", null: false
+    t.bigint "product_id"
+    t.string "description"
+    t.string "product_name_snapshot", null: false
+    t.integer "quantity", null: false
+    t.integer "unit_price_cents", null: false
+    t.integer "line_total_cents", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_retail_order_items_on_product_id"
+    t.index ["retail_order_id"], name: "index_retail_order_items_on_retail_order_id"
+  end
+
+  create_table "retail_order_payments", force: :cascade do |t|
+    t.bigint "retail_order_id", null: false
+    t.date "paid_at", null: false
+    t.integer "amount_cents", null: false
+    t.string "payment_method", null: false
+    t.text "notes"
+    t.bigint "user_id"
+    t.boolean "excess_confirmed", default: false, null: false
+    t.string "request_token"
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["request_token"], name: "index_retail_order_payments_on_request_token", unique: true, where: "(request_token IS NOT NULL)"
+    t.index ["retail_order_id"], name: "index_retail_order_payments_on_retail_order_id"
+    t.index ["user_id"], name: "index_retail_order_payments_on_user_id"
+    t.index ["voided_by_id"], name: "index_retail_order_payments_on_voided_by_id"
+  end
+
+  create_table "retail_order_status_changes", force: :cascade do |t|
+    t.bigint "retail_order_id", null: false
+    t.string "from_status"
+    t.string "to_status", null: false
+    t.bigint "user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.index ["retail_order_id"], name: "index_retail_order_status_changes_on_retail_order_id"
+    t.index ["user_id"], name: "index_retail_order_status_changes_on_user_id"
+  end
+
+  create_table "retail_orders", force: :cascade do |t|
+    t.string "buyer_name", null: false
+    t.string "buyer_phone"
+    t.date "delivery_date", null: false
+    t.string "delivery_kind", default: "pickup", null: false
+    t.string "delivery_time_note"
+    t.string "address"
+    t.text "notes"
+    t.string "planned_payment_method"
+    t.integer "shipping_cents", default: 0, null: false
+    t.integer "subtotal_cents", default: 0, null: false
+    t.integer "total_cents", default: 0, null: false
+    t.integer "amount_paid_cents", default: 0, null: false
+    t.string "status", default: "pending", null: false
+    t.string "payment_status", default: "pending", null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_retail_orders_on_created_by_id"
+    t.index ["delivery_date"], name: "index_retail_orders_on_delivery_date"
+    t.index ["payment_status"], name: "index_retail_orders_on_payment_status"
+    t.index ["status"], name: "index_retail_orders_on_status"
+  end
+
   create_table "stock_items", force: :cascade do |t|
     t.string "stockable_type", null: false
     t.bigint "stockable_id", null: false
@@ -418,7 +488,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_09_100000) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "retail_order_id"
     t.index ["order_id"], name: "index_stock_movements_on_order_id"
+    t.index ["retail_order_id"], name: "index_stock_movements_on_retail_order_id"
     t.index ["stock_item_id", "order_id"], name: "index_stock_movements_on_stock_item_id_and_order_id"
     t.index ["stock_item_id"], name: "index_stock_movements_on_stock_item_id"
   end
@@ -487,7 +559,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_09_100000) do
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "raw_material_cost_changes", "raw_materials"
   add_foreign_key "raw_material_cost_changes", "users", column: "changed_by_user_id"
+  add_foreign_key "retail_order_items", "products"
+  add_foreign_key "retail_order_items", "retail_orders"
+  add_foreign_key "retail_order_payments", "retail_orders"
+  add_foreign_key "retail_order_payments", "users"
+  add_foreign_key "retail_order_payments", "users", column: "voided_by_id"
+  add_foreign_key "retail_order_status_changes", "retail_orders"
+  add_foreign_key "retail_order_status_changes", "users"
+  add_foreign_key "retail_orders", "users", column: "created_by_id"
   add_foreign_key "stock_movements", "orders"
+  add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"
   add_foreign_key "stock_movements", "users"
 end
