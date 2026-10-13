@@ -39,12 +39,14 @@ module Stock
       reconciled = 0
       errors = []
 
-      candidate_orders(now: now).find_each do |order|
-        begin
-          call(order, now: now)
-          reconciled += 1
-        rescue => e
-          errors << "Order##{order.id}: #{e.class}: #{e.message}"
+      [candidate_orders(now: now), candidate_retail_orders(now: now)].each do |candidates|
+        candidates.find_each do |order|
+          begin
+            call(order, now: now)
+            reconciled += 1
+          rescue => e
+            errors << "#{order.class.name}##{order.id}: #{e.class}: #{e.message}"
+          end
         end
       end
 
@@ -81,6 +83,21 @@ module Stock
       Order.where(id: due.pluck(:id) | ids_with_existing_dispatch)
     end
 
+    # Mismo criterio que candidate_orders, para los pedidos minoristas (que comparten el
+    # mecanismo: el reconciliador acepta Order o RetailOrder).
+    def self.candidate_retail_orders(now: Time.current)
+      today = now.in_time_zone.to_date
+      earliest_start = StockItem.active.minimum(:stock_tracking_started_on)
+      due = RetailOrder.none
+      if earliest_start
+        due = RetailOrder.not_canceled.where("delivery_date >= ? AND delivery_date < ?", earliest_start, today)
+        due = due.or(RetailOrder.not_canceled.where(delivery_date: today)) if cutoff_passed?(now: now) && today >= earliest_start
+      end
+
+      ids_with_existing_dispatch = StockMovement.dispatch.distinct.pluck(:retail_order_id).compact
+      RetailOrder.where(id: due.pluck(:id) | ids_with_existing_dispatch)
+    end
+
     def initialize(order, now: Time.current)
       @order = order
       @now = now
@@ -99,20 +116,34 @@ module Stock
     end
 
     def current_demand
-      @current_demand ||= Stock::Demand.for_order_items(order.order_items.includes(:product))
+      @current_demand ||= Stock::Demand.for_order_items(demand_items)
+    end
+
+    # Pedido minorista: solo los ítems de catálogo (los manuales no tienen producto ni stock).
+    def retail?
+      order.is_a?(RetailOrder)
+    end
+
+    def demand_items
+      retail? ? order.retail_order_items.catalog.includes(:product) : order.order_items.includes(:product)
+    end
+
+    # Condición de origen para leer/escribir movimientos de ESTE pedido.
+    def origin
+      retail? ? { retail_order: order } : { order: order }
     end
 
     def stock_items_with_existing_dispatch_movements
-      StockItem.where(id: StockMovement.dispatch.where(order: order).select(:stock_item_id)).to_a
+      StockItem.where(id: StockMovement.dispatch.where(origin).select(:stock_item_id)).to_a
     end
 
     def reconcile_one(stock_item)
       target_signed = -objetivo_magnitude(stock_item)
-      already_signed = StockMovement.dispatch.where(stock_item: stock_item, order: order).sum(:quantity)
+      already_signed = StockMovement.dispatch.where(stock_item: stock_item).where(origin).sum(:quantity)
       delta = target_signed - already_signed
       return if delta.zero?
 
-      stock_item.apply_movement!(movement_type: :dispatch, quantity: delta, order: order)
+      stock_item.apply_movement!(movement_type: :dispatch, quantity: delta, **origin)
     end
 
     def objetivo_magnitude(stock_item)

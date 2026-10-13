@@ -1,0 +1,129 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+    <div>
+      <h1 class="fw-bold mb-1">Pedido minorista <%= @order.number %></h1>
+      <div class="text-muted small">Creado el <%= retail_date(@order.created_at.to_date) %><% if @order.created_by %> por <%= @order.created_by.email %><% end %></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Editar", edit_admin_retail_order_path(@order, retail_context), class: "btn btn-dark" %>
+      <% unless @order.canceled? %><%= link_to "Registrar pago", new_admin_retail_order_payment_path(@order, retail_context), class: "btn btn-dark" %><% end %>
+      <%= link_to "Cambiar estado", status_admin_retail_order_path(@order, retail_context), class: "btn btn-outline-dark" %>
+      <%= link_to "Volver al listado", retail_list_path, class: "btn btn-outline-dark" %>
+    </div>
+  </div>
+
+  <div class="product-card mb-4" id="retail-header">
+    <div class="row g-3">
+      <div class="col-12 col-md-4"><div class="small text-muted">Comprador</div><div class="fw-bold fs-5"><%= @order.buyer_name %></div></div>
+      <div class="col-6 col-md-2"><div class="small text-muted">Teléfono</div><div><%= retail_whatsapp_link(@order).presence || "—" %></div></div>
+      <div class="col-6 col-md-2"><div class="small text-muted">Entrega</div><div class="fw-bold"><%= retail_date(@order.delivery_date) %></div></div>
+      <div class="col-6 col-md-2"><div class="small text-muted">Horario</div><div><%= @order.delivery_time_note.presence || "—" %></div></div>
+      <div class="col-6 col-md-2"><div class="small text-muted">Tipo</div><div><%= @order.delivery_kind_label %></div></div>
+      <% if @order.address.present? %><div class="col-12 col-md-6"><div class="small text-muted">Dirección</div><div><%= @order.address %></div></div><% end %>
+      <div class="col-6 col-md-3"><div class="small text-muted">Estado del pedido</div><div><%= retail_status_badge(@order) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Estado de pago</div><div><%= retail_payment_badge(@order) %></div></div>
+      <div class="col-12 col-md-3"><div class="small text-muted">Medio de pago previsto</div><div><%= @order.planned_payment_method_label || "Sin definir" %></div></div>
+      <% if @order.notes.present? %><div class="col-12"><div class="small text-muted">Observaciones</div><div style="white-space: pre-wrap"><%= @order.notes %></div></div><% end %>
+    </div>
+  </div>
+
+  <div class="product-card mb-4" id="retail-items">
+    <h2 class="fs-5 fw-bold mb-3">Productos</h2>
+    <div class="table-responsive"><table class="table align-middle mb-0">
+      <thead><tr><th>Producto</th><th class="text-end">Cantidad</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th></tr></thead>
+      <tbody>
+        <% @items.each do |item| %>
+          <tr>
+            <td><%= item.display_name %> <% if item.manual? %><span class="badge text-bg-secondary">Manual</span><% end %></td>
+            <td class="text-end"><%= item.quantity %></td>
+            <td class="text-end"><%= retail_money(item.unit_price_cents) %></td>
+            <td class="text-end"><%= retail_money(item.line_total_cents) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
+    <div class="text-end mt-3">
+      <div class="small text-muted">Subtotal: <strong id="retail-subtotal"><%= retail_money(@order.subtotal_cents) %></strong></div>
+      <div class="small text-muted">Envío: <strong id="retail-shipping"><%= retail_money(@order.shipping_cents) %></strong></div>
+      <div class="fs-4 fw-bold">Total: <span id="retail-total"><%= retail_money(@order.total_cents) %></span></div>
+    </div>
+  </div>
+
+  <div class="product-card mb-4" id="retail-payments">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h2 class="fs-5 fw-bold mb-0">Pagos</h2>
+      <div class="text-end">
+        <span class="me-3">Pagado: <strong id="retail-paid" class="text-success"><%= retail_money(@order.amount_paid_cents) %></strong></span>
+        <% if @order.excess_cents.positive? %>
+          <span>Excedente / saldo a favor: <strong id="retail-balance" class="text-primary"><%= retail_money(@order.excess_cents) %></strong></span>
+        <% else %>
+          <span>Saldo: <strong id="retail-balance" class="<%= @order.pending_balance_cents.positive? ? 'text-danger' : '' %>"><%= retail_money(@order.pending_balance_cents) %></strong></span>
+        <% end %>
+      </div>
+    </div>
+    <% if @order.canceled? && @order.amount_paid_cents.positive? %>
+      <div class="alert alert-warning small">El pedido está cancelado y tiene pagos registrados por <%= retail_money(@order.amount_paid_cents) %>. No se generan devoluciones automáticas: resolvelo por fuera y, si corresponde, anulá el pago con su motivo.</div>
+    <% end %>
+    <% if @order.delivered? && @order.pending_balance_cents.positive? %>
+      <div class="alert alert-warning small">El pedido figura entregado con saldo pendiente.</div>
+    <% end %>
+    <% if @payments.empty? %>
+      <div class="text-muted">Todavía no hay pagos registrados.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Medio</th><th class="text-end">Importe</th><th>Usuario</th><th>Observaciones</th><th></th></tr></thead>
+        <tbody>
+          <% @payments.each do |payment| %>
+            <tr class="<%= 'text-muted text-decoration-line-through' if payment.voided? %>">
+              <td><%= retail_date(payment.paid_at) %></td>
+              <td><%= payment.payment_method_label %></td>
+              <td class="text-end"><%= retail_money(payment.amount_cents) %></td>
+              <td class="small"><%= payment.user&.email %></td>
+              <td class="small">
+                <%= payment.notes %>
+                <% if payment.excess_confirmed? %><span class="badge text-bg-info">Excedente confirmado</span><% end %>
+                <% if payment.voided? %>
+                  <div class="text-decoration-none">Anulado el <%= retail_date(payment.voided_at.to_date) %> por <%= payment.voided_by&.email || "—" %>: <%= payment.void_reason %></div>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <% unless payment.voided? %>
+                  <%= form_with url: void_admin_retail_order_payment_path(@order, payment, retail_context), method: :post, local: true, class: "d-flex gap-1 justify-content-end" do %>
+                    <%= text_field_tag :reason, nil, placeholder: "Motivo de anulación", required: true, class: "form-control form-control-sm", id: "void-reason-#{payment.id}", style: "max-width: 200px" %>
+                    <%= submit_tag "Anular", class: "btn btn-sm btn-outline-danger", data: { turbo_confirm: "¿Anular este pago? El registro se conserva." } %>
+                  <% end %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-4" id="retail-status-history">
+    <h2 class="fs-5 fw-bold mb-3">Historial de estados</h2>
+    <ul class="list-unstyled small mb-0">
+      <% @status_changes.each do |change| %>
+        <li>
+          <%= change.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M") %> —
+          <% if change.from_status %><%= RetailOrder::STATUS_LABELS[change.from_status] %> → <% end %><strong><%= RetailOrder::STATUS_LABELS[change.to_status] %></strong>
+          <% if change.user %> · <%= change.user.email %><% end %>
+          <% if change.note.present? %> · <%= change.note %><% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+
+  <% unless @order.canceled? %>
+    <div class="product-card mb-4" id="retail-cancel">
+      <h2 class="fs-5 fw-bold mb-2">Cancelar pedido</h2>
+      <div class="small text-muted mb-2">Lo saca de producción y devuelve el stock si ya se había descontado. Los pagos y el historial se conservan.</div>
+      <%= form_with url: status_admin_retail_order_path(@order, retail_context), method: :patch, local: true, class: "d-flex flex-wrap gap-2" do %>
+        <%= hidden_field_tag :to_status, "canceled" %>
+        <%= text_field_tag :note, nil, placeholder: "Motivo (opcional)", class: "form-control", style: "max-width: 320px", id: "cancel-note" %>
+        <%= submit_tag "Cancelar pedido", class: "btn btn-outline-danger", data: { turbo_confirm: "¿Cancelar el pedido minorista #{@order.number}?" } %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

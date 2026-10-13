@@ -92,6 +92,17 @@ Rails.application.routes.draw do
       end
       resources :attachments, only: [:show]
     end
+    # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los
+    # pedidos mayoristas (ver RetailOrder / Retail::*). Solo admin.
+    resources :retail_orders, except: [:destroy] do
+      member do
+        get :status, action: :edit_status
+        patch :status, action: :update_status
+      end
+      resources :payments, only: [:new, :create], controller: "retail_order_payments" do
+        post :void, on: :member
+      end
+    end
     resources :categories
     resources :raw_materials, only: [:index, :new, :create, :edit, :update]
     resources :preparations, only: [:index, :new, :create, :edit, :update] do

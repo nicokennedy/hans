@@ -1,0 +1,10 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <h1 class="fw-bold mb-0">Editar pedido minorista <%= @order.number %></h1>
+    <%= link_to "← Volver al pedido", admin_retail_order_path(@order, retail_context), class: "btn btn-outline-dark" %>
+  </div>
+  <% if @order.payment_status != "pending" || @order.amount_paid_cents.positive? %>
+    <div class="alert alert-info">Este pedido ya tiene pagos registrados (<%= retail_money(@order.amount_paid_cents) %>). Se conservan; si cambia el total, el saldo se recalcula.</div>
+  <% end %>
+  <%= render "form", url: admin_retail_order_path(@order), method: :patch, submit_label: "Guardar cambios", cancel_path: admin_retail_order_path(@order, retail_context) %>
+</div>

@@ -1,0 +1,31 @@
+<%# locals: index, row (Hash string keys), kind ("product" | "manual"), products %>
+<div class="retail-item-row border rounded p-2 mb-2" data-retail-order-target="row">
+  <%= hidden_field_tag "items[#{index}][id]", row["id"], id: nil if row["id"].present? %>
+  <%= hidden_field_tag "items[#{index}][kind]", kind, id: nil %>
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-5">
+      <% if kind == "manual" %>
+        <label class="form-label small mb-0">Producto manual <span class="badge text-bg-secondary">Especial</span></label>
+        <%= text_field_tag "items[#{index}][description]", row["description"], id: nil, class: "form-control form-control-sm", maxlength: 200, placeholder: "Descripción libre (ej. Torta personalizada)", data: { field: "description", action: "input->retail-order#recalculate" } %>
+      <% else %>
+        <label class="form-label small mb-0">Producto</label>
+        <%= select_tag "items[#{index}][product_id]", options_for_select(products.map { |p| [p.name, p.id] }, row["product_id"]), id: nil, prompt: "Elegí un producto", class: "form-select form-select-sm", data: { field: "product", action: "change->retail-order#recalculate" } %>
+      <% end %>
+    </div>
+    <div class="col-3 col-md-2">
+      <label class="form-label small mb-0">Cantidad</label>
+      <%= text_field_tag "items[#{index}][quantity]", row["quantity"], id: nil, inputmode: "numeric", class: "form-control form-control-sm text-end", data: { field: "quantity", action: "input->retail-order#recalculate" } %>
+    </div>
+    <div class="col-4 col-md-2">
+      <label class="form-label small mb-0">Precio unit. ($)</label>
+      <%= text_field_tag "items[#{index}][unit_price]", row["unit_price"], id: nil, inputmode: "decimal", class: "form-control form-control-sm text-end", placeholder: "Precio", data: { field: "price", action: "input->retail-order#recalculate" } %>
+    </div>
+    <div class="col-3 col-md-2 text-end">
+      <label class="form-label small mb-0">Subtotal</label>
+      <div class="fw-bold small" data-field="subtotal">$0</div>
+    </div>
+    <div class="col-2 col-md-1 text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger" data-action="retail-order#remove" aria-label="Quitar ítem">✕</button>
+    </div>
+  </div>
+</div>

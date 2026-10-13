@@ -102,6 +102,20 @@
       font-weight: normal;
     }
 
+    .special-title {
+      margin-top: 18px;
+      margin-bottom: 4px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .special-table td.left-cell {
+      text-align: left;
+      font-size: 12px;
+      white-space: normal;
+      max-width: 260px;
+    }
+
     @media print {
       @page {
         size: landscape;
@@ -134,7 +148,7 @@
     <%= l(@selected_date, format: "%d/%m/%Y") %>
   </div>
 
-  <% if @rows.empty? %>
+  <% if @rows.empty? && @special_items.empty? %>
     <p>No hay pedidos para esta fecha.</p>
   <% else %>
     <table>
@@ -145,7 +159,7 @@
 
           <% @customers.each do |customer| %>
             <th class="customer-col customer-header">
-              <%= customer.name %>
+              <%= customer %>
             </th>
           <% end %>
         </tr>
@@ -164,13 +178,39 @@
 
             <% @customers.each do |customer| %>
               <td class="number-cell">
-                <%= row[:quantities_by_customer][customer.name].nonzero? %>
+                <%= row[:quantities_by_customer][customer].nonzero? %>
               </td>
             <% end %>
           </tr>
         <% end %>
       </tbody>
     </table>
+
+    <% if @special_items.any? %>
+      <div class="special-title">PRODUCTOS ESPECIALES — HANS</div>
+      <table class="special-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cant.</th>
+            <th>Comprador</th>
+            <th>Horario</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @special_items.each do |item| %>
+            <tr>
+              <td class="product-col"><%= item.description %></td>
+              <td class="total-col"><%= item.quantity %></td>
+              <td class="left-cell"><%= item.buyer_name %> (<%= item.delivery_kind_label %>)</td>
+              <td class="left-cell"><%= item.time_note %></td>
+              <td class="left-cell"><%= item.notes %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
   <% end %>
 </body>
 </html>

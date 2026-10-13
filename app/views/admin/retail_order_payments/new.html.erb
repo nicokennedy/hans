@@ -1,0 +1,47 @@
+<div class="container py-5" style="max-width: 640px">
+  <h1 class="fw-bold mb-1">Registrar pago</h1>
+  <div class="text-muted mb-3"><%= @order.number %> — <%= @order.buyer_name %></div>
+
+  <div class="product-card mb-3">
+    <div class="d-flex justify-content-between"><span>Total</span><strong><%= retail_money(@order.total_cents) %></strong></div>
+    <div class="d-flex justify-content-between"><span>Pagado</span><strong class="text-success"><%= retail_money(@order.amount_paid_cents) %></strong></div>
+    <div class="d-flex justify-content-between"><span>Saldo pendiente</span><strong id="pending-balance" class="text-danger"><%= retail_money(@order.pending_balance_cents) %></strong></div>
+  </div>
+
+  <%= render "admin/administration/shared/errors", errors: @errors %>
+  <div class="product-card">
+    <%= form_with url: admin_retail_order_payments_path(@order), method: :post, local: true do %>
+      <% retail_context.each do |key, value| %><%= hidden_field_tag key, value, id: nil %><% end %>
+      <%= hidden_field_tag :request_token, @token %>
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label" for="paid_at">Fecha *</label>
+          <%= date_field_tag :paid_at, @form[:paid_at], class: "form-control", required: true %>
+        </div>
+        <div class="col-6">
+          <label class="form-label" for="amount">Importe ($) *</label>
+          <%= text_field_tag :amount, @form[:amount], class: "form-control text-end", inputmode: "decimal", required: true, autofocus: true %>
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="payment_method">Medio de pago *</label>
+          <%= select_tag :payment_method, options_for_select(retail_payment_method_options, @form[:payment_method]), class: "form-select" %>
+          <div class="form-text">Openpay se registra manualmente: no hay integración automática.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="notes">Observaciones</label>
+          <%= text_field_tag :notes, @form[:notes], class: "form-control", maxlength: 1000 %>
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            <%= check_box_tag :allow_excess, "1", @form[:allow_excess], class: "form-check-input" %>
+            <label class="form-check-label" for="allow_excess">Confirmo que el importe puede superar el saldo pendiente (queda como excedente)</label>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <%= submit_tag "Registrar pago", class: "btn btn-dark", data: { disable_with: "Guardando…" } %>
+        <%= link_to "Cancelar", admin_retail_order_path(@order, retail_context), class: "btn btn-outline-dark" %>
+      </div>
+    <% end %>
+  </div>
+</div>

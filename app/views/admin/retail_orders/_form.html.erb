@@ -1,0 +1,92 @@
+<%# locals: url, method, submit_label, cancel_path %>
+<%= render "admin/administration/shared/errors", errors: @errors %>
+<%= form_with url: url, method: method, local: true, data: { controller: "retail-order", action: "submit->retail-order#prepare" } do %>
+  <% retail_context.each do |key, value| %><%= hidden_field_tag key, value, id: nil %><% end %>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-3">Comprador y entrega</h2>
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="buyer_name">Nombre y apellido *</label>
+        <%= text_field_tag :buyer_name, @form[:buyer_name], class: "form-control", required: true, maxlength: 150, autocomplete: "off" %>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="buyer_phone">Teléfono / WhatsApp</label>
+        <%= text_field_tag :buyer_phone, @form[:buyer_phone], class: "form-control", maxlength: 40, inputmode: "tel" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="delivery_date">Fecha de entrega *</label>
+        <%= date_field_tag :delivery_date, @form[:delivery_date], class: "form-control", required: true %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="delivery_kind">Tipo de entrega *</label>
+        <%= select_tag :delivery_kind, options_for_select(retail_delivery_kind_options, @form[:delivery_kind]), class: "form-select" %>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="delivery_time_note">Horario</label>
+        <%= text_field_tag :delivery_time_note, @form[:delivery_time_note], class: "form-control", maxlength: 120, placeholder: "Ej. 15:30, a la tarde, entre 10 y 12" %>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="address">Dirección</label>
+        <%= text_field_tag :address, @form[:address], class: "form-control", maxlength: 250 %>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="notes">Observaciones</label>
+        <%= text_area_tag :notes, @form[:notes], class: "form-control", rows: 2, maxlength: 2000 %>
+      </div>
+    </div>
+  </div>
+
+  <div class="product-card mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="fs-5 fw-bold mb-0">Productos</h2>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-order#addProduct">+ Agregar producto</button>
+        <button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-order#addManual">+ Agregar producto manual</button>
+      </div>
+    </div>
+    <div class="small text-muted mb-2">El precio se carga siempre a mano (no se usa el precio mayorista). Los productos manuales aparecen en producción pero no descuentan stock.</div>
+
+    <div data-retail-order-target="list">
+      <% rows = @form[:items].presence || [{ "kind" => "product" }] %>
+      <% rows.each_with_index do |row, index| %>
+        <% row = row.to_h.stringify_keys %>
+        <%= render "admin/retail_orders/item_row", index: index, row: row, kind: (row["kind"] == "manual" ? "manual" : "product"), products: @products %>
+      <% end %>
+    </div>
+    <template data-retail-order-target="productTemplate">
+      <%= render "admin/retail_orders/item_row", index: "NEW_INDEX", row: {}, kind: "product", products: @products %>
+    </template>
+    <template data-retail-order-target="manualTemplate">
+      <%= render "admin/retail_orders/item_row", index: "NEW_INDEX", row: {}, kind: "manual", products: @products %>
+    </template>
+
+    <div class="row g-2 mt-3 justify-content-end">
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-0" for="shipping">Envío ($)</label>
+        <%= text_field_tag :shipping, @form[:shipping], inputmode: "decimal", class: "form-control form-control-sm text-end", placeholder: "0", data: { retail_order_target: "shipping", action: "input->retail-order#recalculate" } %>
+      </div>
+    </div>
+    <div class="text-end mt-3">
+      <div class="small text-muted">Subtotal de productos: <strong data-retail-order-target="subtotal">$0</strong></div>
+      <div class="fs-4 fw-bold">Total: <span id="retail-total" data-retail-order-target="total">$0</span></div>
+      <div class="small text-danger" data-retail-order-target="errors" hidden></div>
+    </div>
+  </div>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-2">Pago</h2>
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="planned_payment_method">Medio de pago previsto</label>
+        <%= select_tag :planned_payment_method, options_for_select(retail_payment_method_options, @form[:planned_payment_method]), include_blank: "Sin definir", class: "form-select" %>
+        <div class="form-text">Es solo un dato previsto; el pago se registra aparte con “Registrar pago”.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= submit_tag submit_label, class: "btn btn-dark btn-lg", data: { disable_with: "Guardando…" } %>
+    <%= link_to "Cancelar", cancel_path, class: "btn btn-outline-dark btn-lg" %>
+  </div>
+<% end %>

@@ -137,7 +137,45 @@
             <div class="stock-move__line"><span class="text-muted">Comentario:</span> <%= movement.note %></div>
           <% end %>
 
-          <% if entry.order %>
+          <% if entry.retail_order %>
+            <% retail = entry.retail_order %>
+            <div class="stock-move__line">
+              <span class="text-muted">Pedido minorista</span>
+              <strong><%= retail.number %></strong> &mdash;
+              <%= link_to "Ver pedido", admin_retail_order_path(retail) %>
+              <% if retail.canceled? %><span class="badge text-bg-secondary ms-1">Pedido cancelado</span><% end %>
+            </div>
+            <div class="stock-move__line small text-muted">
+              <%= retail.buyer_name %>
+              &middot; Entrega: <%= retail.delivery_date.strftime("%d/%m/%Y") %>
+            </div>
+
+            <% if entry.kind == "correction" %>
+              <div class="stock-move__line small">
+                <% if entry.correction_reason == :canceled %>
+                  El pedido figura cancelado: se devuelve al stock lo que se había descontado.
+                <% else %>
+                  El pedido se modificó o se reprogramó después de descontarse: se corrige la diferencia.
+                <% end %>
+                <span class="text-muted">Neto del pedido sobre este stock: <%= format_quantity(entry.order_net) %> <%= @snapshot.unit %>.</span>
+              </div>
+            <% elsif entry.follow_up %>
+              <div class="stock-move__line small text-muted">
+                Ajuste por modificación del pedido (neto del pedido sobre este stock: <%= format_quantity(entry.order_net) %> <%= @snapshot.unit %>).
+              </div>
+            <% end %>
+
+            <% if entry.products.any? %>
+              <ul class="stock-move__products small mb-0">
+                <% entry.products.each do |name, quantity, consumed| %>
+                  <li>
+                    <%= name.strip %> &times; <%= format_quantity(quantity) %>
+                    <% if consumed != quantity %><span class="text-muted">(descuenta <%= format_quantity(consumed) %> <%= @snapshot.unit %>)</span><% end %>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
+          <% elsif entry.order %>
             <% order = entry.order %>
             <div class="stock-move__line">
               <span class="text-muted">Pedido</span>

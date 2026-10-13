@@ -7,6 +7,8 @@
 class StockMovement < ApplicationRecord
   belongs_to :stock_item
   belongs_to :order, optional: true
+  # Salida originada por un pedido MINORISTA (nunca ambos: order_id y retail_order_id son excluyentes).
+  belongs_to :retail_order, optional: true
   belongs_to :user, optional: true
 
   # "dispatch" cubre tanto la salida original como cualquier corrección
@@ -22,6 +24,11 @@ class StockMovement < ApplicationRecord
   validates :movement_type, presence: true
   validates :quantity, presence: true, numericality: { other_than: 0 }
   validates :resulting_quantity, presence: true
+  validate :single_origin
+
+  def single_origin
+    errors.add(:base, "Un movimiento no puede pertenecer a un pedido mayorista y a uno minorista a la vez.") if order_id.present? && retail_order_id.present?
+  end
 
   # Solo lectura una vez creado — mismo criterio que RawMaterialCostChange.
   def readonly?

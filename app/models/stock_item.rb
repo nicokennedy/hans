@@ -43,7 +43,7 @@ class StockItem < ApplicationRecord
   # concurrentes sobre el mismo ítem (ej. dashboard + rake task, o dos
   # pedidos tocando el mismo Brownie a la vez) se serializan en vez de
   # pisarse.
-  def apply_movement!(movement_type:, quantity:, order: nil, user: nil, note: nil)
+  def apply_movement!(movement_type:, quantity:, order: nil, retail_order: nil, user: nil, note: nil)
     signed_quantity = quantity.to_d
     return nil if signed_quantity.zero?
 
@@ -54,6 +54,7 @@ class StockItem < ApplicationRecord
         quantity: signed_quantity,
         resulting_quantity: new_quantity,
         order: order,
+        retail_order: retail_order,
         user: user,
         note: note
       )

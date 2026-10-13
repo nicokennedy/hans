@@ -76,16 +76,23 @@ module Stock
     end
 
     # Pedidos con delivery_date anterior a started_on no cuentan para el ítem.
+    # Incluye los ítems de catálogo de pedidos minoristas (los manuales no consumen stock).
     def future_order_items(started_on)
-      OrderItem.joins(:order).merge(
+      wholesale = OrderItem.joins(:order).merge(
         Order.not_canceled.where("orders.delivery_date > ? AND orders.delivery_date >= ?", today, started_on)
       )
+      retail = RetailOrderItem.catalog.joins(:retail_order).merge(
+        RetailOrder.not_canceled.where("retail_orders.delivery_date > ? AND retail_orders.delivery_date >= ?", today, started_on)
+      )
+      wholesale.includes(:product).to_a + retail.includes(:product).to_a
     end
 
     def today_order_items(started_on)
-      return OrderItem.none if today < started_on
+      return [] if today < started_on
 
-      OrderItem.joins(:order).merge(Order.not_canceled.where(orders: { delivery_date: today }))
+      wholesale = OrderItem.joins(:order).merge(Order.not_canceled.where(orders: { delivery_date: today }))
+      retail = RetailOrderItem.catalog.joins(:retail_order).merge(RetailOrder.not_canceled.where(retail_orders: { delivery_date: today }))
+      wholesale.includes(:product).to_a + retail.includes(:product).to_a
     end
 
     def build_snapshot(stock_item, future_demand, today_demand)

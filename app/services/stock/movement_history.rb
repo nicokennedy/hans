@@ -26,7 +26,7 @@ module Stock
     SAME_BATCH_SECONDS = 60
 
     Entry = Struct.new(
-      :movement, :kind, :order, :user, :products, :order_net, :follow_up, :correction_reason,
+      :movement, :kind, :order, :retail_order, :user, :products, :order_net, :follow_up, :correction_reason,
       keyword_init: true
     ) do
       def increase?
@@ -122,33 +122,56 @@ module Stock
     # Más reciente primero; el id desempata los movimientos creados en el mismo
     # instante (la conciliación escribe varios juntos).
     def page_movements
-      scope.includes(:user, order: :customer)
+      scope.includes(:user, :retail_order, order: :customer)
            .order(created_at: :desc, id: :desc)
            .offset((page - 1) * @per_page)
            .limit(@per_page)
            .to_a
     end
 
+    # Los movimientos de salida pueden venir de un pedido mayorista (order_id) o de uno
+    # minorista (retail_order_id). Todo se agrupa por "origen" = [tipo, id].
     def build_entries(movements)
       order_ids = movements.filter_map(&:order_id).uniq
-      nets = order_ids.any? ? StockMovement.dispatch.where(stock_item: stock_item, order_id: order_ids).group(:order_id).sum(:quantity) : {}
-      first_ids = order_ids.any? ? StockMovement.dispatch.where(stock_item: stock_item, order_id: order_ids).group(:order_id).minimum(:id) : {}
-      first_times = order_ids.any? ? StockMovement.dispatch.where(stock_item: stock_item, order_id: order_ids).group(:order_id).minimum(:created_at) : {}
-      items_by_order = order_ids.any? ? OrderItem.where(order_id: order_ids).includes(:product).group_by(&:order_id) : {}
+      retail_ids = movements.filter_map(&:retail_order_id).uniq
+      nets = {}
+      first_ids = {}
+      first_times = {}
+      items_by_source = {}
+
+      if order_ids.any?
+        dispatch = StockMovement.dispatch.where(stock_item: stock_item, order_id: order_ids).group(:order_id)
+        dispatch.sum(:quantity).each { |id, v| nets[[:order, id]] = v }
+        dispatch.minimum(:id).each { |id, v| first_ids[[:order, id]] = v }
+        dispatch.minimum(:created_at).each { |id, v| first_times[[:order, id]] = v }
+        OrderItem.where(order_id: order_ids).includes(:product).group_by(&:order_id).each { |id, v| items_by_source[[:order, id]] = v }
+      end
+
+      if retail_ids.any?
+        dispatch = StockMovement.dispatch.where(stock_item: stock_item, retail_order_id: retail_ids).group(:retail_order_id)
+        dispatch.sum(:quantity).each { |id, v| nets[[:retail, id]] = v }
+        dispatch.minimum(:id).each { |id, v| first_ids[[:retail, id]] = v }
+        dispatch.minimum(:created_at).each { |id, v| first_times[[:retail, id]] = v }
+        RetailOrderItem.catalog.where(retail_order_id: retail_ids).includes(:product).group_by(&:retail_order_id).each { |id, v| items_by_source[[:retail, id]] = v }
+      end
 
       movements.map do |movement|
         kind = self.class.kind_of(movement)
         order = movement.order
+        retail_order = movement.retail_order
+        source = order || retail_order
+        key = order ? [:order, order.id] : (retail_order ? [:retail, retail_order.id] : nil)
 
         Entry.new(
           movement: movement,
           kind: kind,
           order: order,
+          retail_order: retail_order,
           user: movement.user,
-          order_net: order ? nets[order.id] : nil,
-          follow_up: order.present? && kind == "sale" && movement.created_at - first_times[order.id] > SAME_BATCH_SECONDS,
-          correction_reason: kind == "correction" && order ? (order.canceled? ? :canceled : :modified) : nil,
-          products: order && kind == "sale" && first_ids[order.id] == movement.id ? order_products(order, items_by_order[order.id], nets[order.id]) : []
+          order_net: key ? nets[key] : nil,
+          follow_up: key.present? && kind == "sale" && movement.created_at - first_times[key] > SAME_BATCH_SECONDS,
+          correction_reason: kind == "correction" && source ? (source.canceled? ? :canceled : :modified) : nil,
+          products: key && kind == "sale" && first_ids[key] == movement.id ? order_products(source, items_by_source[key], nets[key]) : []
         )
       end
     end

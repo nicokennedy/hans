@@ -5,71 +5,19 @@ class Admin::ProductionController < ApplicationController
   def index
     today = Date.current
 
-    @week_days = (today..6.days.from_now.to_date).map do |date|
-      orders_for_day = Order
-        .includes(:customer, :order_items)
-        .where(delivery_date: date)
-        .where.not(status: "canceled")
+    @week_days = (today..6.days.from_now.to_date).map { |date| ProductionDaySheet.day_summary(date) }
 
-      {
-        date: date,
-        orders_count: orders_for_day.count,
-        items_count: orders_for_day.sum { |order| order.order_items.sum(&:quantity) },
-        customers_count: orders_for_day.map(&:customer_id).uniq.count
-      }
-    end
-
-    past_dates = Order
-      .where.not(status: "canceled")
-      .where("delivery_date < ?", today)
-      .where("delivery_date >= ?", 30.days.ago.to_date)
-      .distinct
-      .order(delivery_date: :desc)
-      .pluck(:delivery_date)
-
-    @past_days = past_dates.map do |date|
-      orders_for_day = Order
-        .includes(:customer, :order_items)
-        .where(delivery_date: date)
-        .where.not(status: "canceled")
-
-      {
-        date: date,
-        orders_count: orders_for_day.count,
-        items_count: orders_for_day.sum { |order| order.order_items.sum(&:quantity) },
-        customers_count: orders_for_day.map(&:customer_id).uniq.count
-      }
-    end
+    past_dates = ProductionDaySheet.dates_with_orders(from: 30.days.ago.to_date, to: today - 1.day)
+    @past_days = past_dates.map { |date| ProductionDaySheet.day_summary(date) }
   end
 
   def show
     @selected_date = Date.parse(params[:id])
 
-    orders = Order
-      .includes(:customer, :order_items)
-      .where(delivery_date: @selected_date)
-      .where.not(status: "canceled")
-
-    @customers = orders.map(&:customer).uniq.sort_by(&:name)
-
-    grouped = Hash.new { |hash, key| hash[key] = Hash.new(0) }
-
-    orders.each do |order|
-      order.order_items.each do |item|
-        grouped[item.product_name_snapshot][order.customer.name] += item.quantity
-      end
-    end
-
-    internal_categories_by_product_name = Product.where(name: grouped.keys).pluck(:name, :internal_category).to_h
-
-    @rows = grouped.map do |product_name, quantities_by_customer|
-      {
-        product_name: product_name,
-        total: quantities_by_customer.values.sum,
-        quantities_by_customer: quantities_by_customer,
-        internal_category: internal_categories_by_product_name[product_name]
-      }
-    end.sort_by { |row| [ row[:internal_category].to_s.downcase, row[:product_name].to_s.downcase ] }
+    sheet = ProductionDaySheet.for(@selected_date)
+    @customers = sheet.customers
+    @rows = sheet.rows
+    @special_items = sheet.special_items
   end
 
   def print

@@ -52,6 +52,7 @@
           <% if current_user.admin? %>
             <%= link_to "Panel", admin_root_path, class: nav_link_class("admin/dashboard") %>
             <%= link_to "Pedidos", admin_orders_path, class: nav_link_class("admin/orders") %>
+            <%= link_to "Pedidos Minoristas", admin_retail_orders_path, class: nav_link_class("admin/retail_orders", "admin/retail_order_payments") %>
             <%= link_to "Producción", admin_production_index_path, class: nav_link_class("admin/production") %>
             <%= link_to "Clientes", admin_customers_path, class: nav_link_class("admin/customers") %>
             <%= link_to "Productos", admin_products_path, class: nav_link_class("admin/products", "admin/product_recipes") %>
