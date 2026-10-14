@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -180,8 +180,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
     t.integer "line_cost_cents"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "restriction_override_by_id"
+    t.datetime "restriction_override_at"
     t.index ["order_id"], name: "index_order_items_on_order_id"
     t.index ["product_id"], name: "index_order_items_on_product_id"
+    t.index ["restriction_override_by_id"], name: "index_order_items_on_restriction_override_by_id"
   end
 
   create_table "orders", force: :cascade do |t|
@@ -271,6 +274,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
     t.index ["name"], name: "index_preparations_on_name"
   end
 
+  create_table "product_customer_accesses", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "customer_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_product_customer_accesses_on_customer_id"
+    t.index ["product_id", "customer_id"], name: "index_product_customer_accesses_unique", unique: true
+    t.index ["product_id"], name: "index_product_customer_accesses_on_product_id"
+  end
+
   create_table "product_recipes", force: :cascade do |t|
     t.bigint "product_id", null: false
     t.decimal "yield_quantity", precision: 12, scale: 3, null: false
@@ -305,7 +318,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
     t.string "public_category"
     t.string "cost_source", default: "manual", null: false
     t.boolean "sell_without_stock", default: true, null: false
+    t.string "customer_visibility", default: "all", null: false
     t.index ["category_id"], name: "index_products_on_category_id"
+    t.index ["customer_visibility"], name: "index_products_on_customer_visibility"
   end
 
   create_table "purchase_items", force: :cascade do |t|
@@ -540,6 +555,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
   add_foreign_key "order_events", "users"
   add_foreign_key "order_items", "orders"
   add_foreign_key "order_items", "products"
+  add_foreign_key "order_items", "users", column: "restriction_override_by_id"
   add_foreign_key "orders", "customers"
   add_foreign_key "outgoing_payment_applications", "obligations"
   add_foreign_key "outgoing_payment_applications", "outgoing_payments"
@@ -550,6 +566,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_13_100000) do
   add_foreign_key "payments", "customer_payments"
   add_foreign_key "payments", "orders"
   add_foreign_key "payments", "users"
+  add_foreign_key "product_customer_accesses", "customers"
+  add_foreign_key "product_customer_accesses", "products"
   add_foreign_key "product_recipes", "products"
   add_foreign_key "product_stock_sources", "preparations"
   add_foreign_key "product_stock_sources", "products"
