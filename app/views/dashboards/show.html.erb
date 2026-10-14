@@ -61,7 +61,7 @@
   <% categories.each do |category| %>
     <% next if selected_category_id.present? && category.id.to_s != selected_category_id %>
 
-    <% products = category.products.active.order(:position, :name) %>
+    <% products = category.products.active.available_to(current_user.customer).order(:position, :name) %>
 
     <% if normalized_search_query.present? %>
       <% products = products.select { |product| product.name.downcase.include?(normalized_search_query) } %>

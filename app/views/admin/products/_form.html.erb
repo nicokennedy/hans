@@ -66,6 +66,8 @@
       </div>
     </div>
 
+    <%= render "customer_access", f: f %>
+
     <div class="d-flex gap-2">
       <%= f.submit "Guardar", class: "btn btn-dark" %>
       <%= link_to "Cancelar", admin_products_path, class: "btn btn-outline-dark" %>

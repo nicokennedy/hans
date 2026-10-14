@@ -60,6 +60,7 @@
           <th>Precio</th>
           <th>Costo</th>
           <th>Activo</th>
+          <th>Disponibilidad</th>
           <th></th>
         </tr>
       </thead>
@@ -77,6 +78,19 @@
                 <span class="badge bg-success">Sí</span>
               <% else %>
                 <span class="badge bg-secondary">No</span>
+              <% end %>
+            </td>
+            <td>
+              <% if product.selected_customers? %>
+                <% names = product.authorized_customers.map(&:name).sort_by(&:downcase) %>
+                <details class="product-access-details">
+                  <summary><span class="badge bg-warning text-dark">Restringido (<%= names.size %> <%= names.size == 1 ? "cliente" : "clientes" %>)</span></summary>
+                  <ul class="small mb-0 ps-3 mt-1">
+                    <% names.each do |name| %><li><%= name %></li><% end %>
+                  </ul>
+                </details>
+              <% else %>
+                <span class="badge bg-light text-dark border">Todos</span>
               <% end %>
             </td>
             <td class="text-end">

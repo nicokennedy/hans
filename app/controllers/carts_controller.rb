@@ -1,13 +1,21 @@
 class CartsController < ApplicationController
+  include CartAvailability
+
   before_action :authenticate_user!
   before_action :require_customer!
 
   def show
     @cart_items = cart_items
+
+    removed = purge_unavailable_cart_products!(@cart_items)
+    if removed.any?
+      @cart_items = cart_items
+      flash.now[:alert] = "#{unavailable_cart_message(removed)} Lo quitamos del carrito."
+    end
   end
 
   def add
-    @product = Product.active.find(params[:product_id])
+    @product = Product.active.available_to(current_user.customer).find(params[:product_id])
     current_cart[@product.id.to_s] = current_cart[@product.id.to_s].to_i + 1
 
     respond_to do |format|
@@ -31,7 +39,7 @@ class CartsController < ApplicationController
 
       if quantity <= 0
         current_cart.delete(@product.id.to_s)
-      else
+      elsif @product.available_to?(current_user.customer)
         current_cart[@product.id.to_s] = quantity
       end
     end
@@ -60,7 +68,7 @@ class CartsController < ApplicationController
 
   def cart_items
     product_ids = current_cart.keys
-    products = Product.where(id: product_ids).includes(:category).index_by(&:id)
+    products = Product.where(id: product_ids).includes(:category, :product_customer_accesses).index_by(&:id)
 
     current_cart.map do |product_id, quantity|
       product = products[product_id.to_i]

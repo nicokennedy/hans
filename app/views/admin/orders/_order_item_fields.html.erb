@@ -3,10 +3,7 @@
   <div style="width: 220px;">
     <label class="form-label small">Producto</label>
     <%= select_tag "#{field_prefix}[][product_id]",
-        options_for_select(
-          products.map { |p| [ p.name, p.id, { "data-price-amount": p.price_amount } ] },
-          item.product_id
-        ),
+        options_for_select(product_option_choices(products), item.product_id),
         include_blank: "Seleccionar producto",
         class: "form-select form-select-sm",
         data: { action: "change->order-items#fillPrice" } %>

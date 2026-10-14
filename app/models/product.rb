@@ -17,6 +17,37 @@ class Product < ApplicationRecord
   # cuando se vende, aparte de su receta (ver ProductStockSource).
   has_many :product_stock_sources, dependent: :destroy
 
+  # Visibilidad por cliente: "all" (default, todos los clientes) o "selected" (solo los
+  # clientes de product_customer_accesses). Solo controla quién puede VER y PEDIR el producto
+  # en el circuito mayorista; no toca recetas, costos, stock ni producción.
+  enum :customer_visibility, { all_customers: "all", selected_customers: "selected" }, default: "all", validate: true
+  has_many :product_customer_accesses, dependent: :destroy
+  has_many :authorized_customers, through: :product_customer_accesses, source: :customer
+  validate :selected_customers_present
+  before_save :clear_authorized_customers_unless_selected
+
+  # Productos que un cliente puede ver/pedir: los de todos + los restringidos a ese cliente.
+  # Se SUMA a los demás filtros (activo, categoría, stock…), no los reemplaza.
+  scope :available_to, lambda { |customer|
+    customer_id = customer.respond_to?(:id) ? customer.id : customer
+    where(
+      "products.customer_visibility = 'all' OR EXISTS (SELECT 1 FROM product_customer_accesses pca WHERE pca.product_id = products.id AND pca.customer_id = ?)",
+      customer_id
+    )
+  }
+
+  # Ids repetidos (formulario manipulado) se ignoran: una sola fila por producto y cliente.
+  def authorized_customer_ids=(ids)
+    super(Array(ids).reject(&:blank?).map(&:to_i).uniq)
+  end
+
+  def available_to?(customer)
+    return true if all_customers?
+    return false if customer.nil?
+
+    authorized_customer_ids.include?(customer.id)
+  end
+
   # "manual": cost_cents se carga/edita a mano (default — todo producto nace
   # así). "recipe": cost_cents lo gobierna la ProductRecipe activa (Fase
   # 4/5) — ver Costing::ActivateProductRecipe/SyncProductCost.
@@ -86,6 +117,23 @@ class Product < ApplicationRecord
   end
 
   private
+
+  def selected_customers_present
+    return unless selected_customers? && authorized_customer_ids.empty?
+
+    errors.add(:base, "Elegí al menos un cliente para un producto restringido.")
+  end
+
+  def clear_authorized_customers_unless_selected
+    return if selected_customers?
+
+    if new_record?
+      self.authorized_customers = []
+    else
+      product_customer_accesses.destroy_all
+      association(:authorized_customers).reset
+    end
+  end
 
   # Solo bloquea un UPDATE normal sobre un producto recipe-sourced ya
   # existente (el camino real de un form/inline/importer editando a mano).

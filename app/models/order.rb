@@ -60,6 +60,8 @@ class Order < ApplicationRecord
   validate :sufficient_stock_for_items, on: :create, unless: :created_by_admin?
   validate :must_have_order_items, on: :update
   validate :customer_unchanged_with_account_payments, on: :update
+  validate :items_available_to_customer_on_create, on: :create
+  validate :items_available_to_new_customer, on: :update
 
   scope :not_canceled, -> { where.not(status: "canceled") }
   # Pedidos que salen en una fecha de entrega, con el mismo criterio operativo
@@ -166,6 +168,34 @@ class Order < ApplicationRecord
     return unless customer_id_changed? && payments.active.where.not(customer_payment_id: nil).exists?
 
     errors.add(:base, "No se puede cambiar el cliente: el pedido tiene pagos de cuenta corriente aplicados. Anulá primero esos pagos desde la cuenta corriente.")
+  end
+
+  # Visibilidad de productos por cliente (ver Product#available_to?). Se valida en el servidor
+  # para todo pedido nuevo, venga del carrito del cliente o del admin: manipular un product_id
+  # no lo saltea. Un solo error por producto; no se guarda nada si alguno no está habilitado.
+  def items_available_to_customer_on_create
+    order_items.each do |item|
+      next unless item.adds_unauthorized_product?
+
+      errors.add(:base, unavailable_product_message(item.product))
+    end
+  end
+
+  # Al reasignar el pedido a otro cliente, sus productos deben estar habilitados para el
+  # nuevo cliente (salvo excepción administrativa registrada en el ítem).
+  def items_available_to_new_customer
+    return unless customer_id_changed? && customer
+
+    order_items.includes(:product).each do |item|
+      next if item.restriction_override_by_id.present? || item.product.available_to?(customer)
+
+      errors.add(:base, unavailable_product_message(item.product))
+    end
+  end
+
+  def unavailable_product_message(product)
+    audience = new_record? && !created_by_admin? ? "tu cliente" : "este cliente"
+    "#{product.name}: este producto no está disponible para #{audience}."
   end
 
   def must_have_order_items

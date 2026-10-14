@@ -59,7 +59,7 @@ class Admin::OrdersController < ApplicationController
     @order = Order.new
     @order.order_items.build
     @customers = Customer.active.order(:name)
-    @products = Product.active.ordered.includes(:category)
+    @products = Product.active.ordered.includes(:category, :product_customer_accesses)
   end
 
   def create
@@ -69,7 +69,7 @@ class Admin::OrdersController < ApplicationController
 
     if @order.errors.any?
       @customers = Customer.active.order(:name)
-      @products = Product.active.ordered.includes(:category)
+      @products = Product.active.ordered.includes(:category, :product_customer_accesses)
       render :new, status: :unprocessable_entity
       return
     end
@@ -79,24 +79,25 @@ class Admin::OrdersController < ApplicationController
     redirect_to admin_order_path(@order), notice: "Pedido creado correctamente."
   rescue ActiveRecord::RecordInvalid
     @customers = Customer.active.order(:name)
-    @products = Product.active.ordered.includes(:category)
+    @products = Product.active.ordered.includes(:category, :product_customer_accesses)
     render :new, status: :unprocessable_entity
   end
 
   def edit
     @order = Order.includes(:customer, order_items: :product).find(params[:id])
     @customers = Customer.active.order(:name)
-    @products = Product.active.ordered.includes(:category)
+    @products = Product.active.ordered.includes(:category, :product_customer_accesses)
   end
 
   def update
     @order = Order.includes(order_items: :product).find(params[:id])
     @customers = Customer.active.order(:name)
-    @products = Product.active.ordered.includes(:category)
+    @products = Product.active.ordered.includes(:category, :product_customer_accesses)
 
     ActiveRecord::Base.transaction do
       update_order_items
       add_new_order_items
+      grant_exception_for_customer_change
       @order.update!(order_params)
     end
 
@@ -105,7 +106,7 @@ class Admin::OrdersController < ApplicationController
     @order = Order.includes(order_items: :product).find(params[:id])
     e.record.errors.full_messages.each { |message| @order.errors.add(:base, message) }
     @customers = Customer.active.order(:name)
-    @products = Product.active.ordered.includes(:category)
+    @products = Product.active.ordered.includes(:category, :product_customer_accesses)
     render :edit, status: :unprocessable_entity
   end
 
@@ -181,6 +182,7 @@ class Admin::OrdersController < ApplicationController
 
       item = order.order_items.build(product: product, quantity: item_params[:quantity])
       item.unit_price_amount = item_params[:unit_price_amount] if item_params[:unit_price_amount].present?
+      grant_restriction_exception(item)
     end
 
     order
@@ -223,7 +225,9 @@ class Admin::OrdersController < ApplicationController
       duplicate = @order.order_items.where.not(id: item.id).find_by(product_id: new_product.id)
 
       if duplicate
-        duplicate.update!(quantity: duplicate.quantity + item_params[:quantity].to_i)
+        duplicate.quantity = duplicate.quantity + item_params[:quantity].to_i
+        grant_restriction_exception(duplicate)
+        duplicate.save!
         item.destroy!
       else
         item.assign_product(new_product)
@@ -232,10 +236,40 @@ class Admin::OrdersController < ApplicationController
     end
   end
 
+  # Al reasignar el pedido a otro cliente con la excepción marcada, deja registrados los ítems
+  # que ese cliente no tiene habilitados (sin la casilla, Order rechaza el cambio).
+  def grant_exception_for_customer_change
+    return unless restriction_exception_requested?
+
+    new_customer = Customer.find_by(id: order_params[:customer_id])
+    return if new_customer.nil? || new_customer.id == @order.customer_id
+
+    @order.order_items.reload.includes(:product).each do |item|
+      next if item.restriction_override_by_id.present? || item.product.available_to?(new_customer)
+
+      item.update!(restriction_override_by: current_user, restriction_override_at: Time.current)
+    end
+  end
+
   def apply_order_item_changes(item, item_params)
     item.quantity = item_params[:quantity]
     item.unit_price_amount = item_params[:unit_price_amount] if item_params[:unit_price_amount].present?
+    grant_restriction_exception(item)
     item.save!
+  end
+
+  # Excepción administrativa EXPLÍCITA para cargar un producto no habilitado para el cliente
+  # (casilla del formulario): solo se registra en los ítems que realmente la necesitan, con
+  # quién y cuándo. Sin la casilla, el modelo rechaza el producto (ver OrderItem).
+  def restriction_exception_requested?
+    params[:allow_restricted_exception] == "1"
+  end
+
+  def grant_restriction_exception(item)
+    return unless restriction_exception_requested? && item.adds_unauthorized_product?
+
+    item.restriction_override_by = current_user
+    item.restriction_override_at = Time.current
   end
 
   # Agrega una o más líneas nuevas a un pedido existente (vía "Agregar otra
@@ -254,11 +288,15 @@ class Admin::OrdersController < ApplicationController
       existing_item = @order.order_items.find_by(product_id: product.id)
 
       if existing_item
-        existing_item.update!(quantity: existing_item.quantity + quantity)
+        existing_item.quantity = existing_item.quantity + quantity
+        grant_restriction_exception(existing_item)
+        existing_item.save!
       else
         attributes = { product: product, quantity: quantity }
         attributes[:unit_price_amount] = item_params[:unit_price_amount] if item_params[:unit_price_amount].present?
-        @order.order_items.create!(attributes)
+        new_item = @order.order_items.build(attributes)
+        grant_restriction_exception(new_item)
+        new_item.save!
       end
     end
   end

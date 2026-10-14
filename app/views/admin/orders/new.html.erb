@@ -25,7 +25,15 @@
           :id,
           :name,
           { prompt: "Seleccionar cliente" },
-          class: "form-select", required: true %>
+          class: "form-select", required: true,
+          data: { order_items_target: "customer", action: "change->order-items#applyVisibility" } %>
+      </div>
+
+      <div class="form-check mb-3" data-order-items-target="exceptionBox">
+        <%= check_box_tag :allow_restricted_exception, "1", params[:allow_restricted_exception] == "1", class: "form-check-input", id: "allow_restricted_exception",
+          data: { order_items_target: "exception", action: "change->order-items#applyVisibility" } %>
+        <label class="form-check-label" for="allow_restricted_exception">Mostrar también productos no habilitados para este cliente (excepción administrativa)</label>
+        <div class="form-text">Por defecto solo se ofrecen los productos habilitados para el cliente elegido. Si cargás uno no habilitado, queda registrado quién lo autorizó y cuándo.</div>
       </div>
 
       <div class="mb-3">

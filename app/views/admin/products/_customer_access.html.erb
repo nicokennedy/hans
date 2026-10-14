@@ -1,0 +1,40 @@
+<%# locals: f %>
+<% customers = Customer.order(:name).to_a %>
+<% selected_ids = f.object.authorized_customer_ids.map(&:to_i) %>
+<fieldset class="border rounded p-3 mb-4" id="customer-access" data-controller="customer-access">
+  <legend class="h6 fw-bold px-2 float-none w-auto mb-0">Disponibilidad por cliente</legend>
+  <div class="form-text mb-3">Controla quién puede ver y pedir este producto en el catálogo mayorista. No afecta stock, producción, recetas ni precios.</div>
+
+  <div class="form-check">
+    <%= f.radio_button :customer_visibility, "all_customers", checked: f.object.all_customers?, class: "form-check-input", id: "product_visibility_all",
+      data: { customer_access_target: "radio", action: "customer-access#toggle" } %>
+    <label class="form-check-label" for="product_visibility_all">Todos los clientes</label>
+  </div>
+  <div class="form-check mb-3">
+    <%= f.radio_button :customer_visibility, "selected_customers", checked: f.object.selected_customers?, class: "form-check-input", id: "product_visibility_selected",
+      data: { customer_access_target: "radio", action: "customer-access#toggle" } %>
+    <label class="form-check-label" for="product_visibility_selected">Solo clientes seleccionados</label>
+  </div>
+
+  <div data-customer-access-target="panel" <%= "hidden" unless f.object.selected_customers? %>>
+    <%= hidden_field_tag "product[authorized_customer_ids][]", "", id: nil %>
+    <div class="mb-2"><strong data-customer-access-target="summary"></strong></div>
+    <div class="mb-2" data-customer-access-target="chips" aria-live="polite"></div>
+
+    <input type="search" class="form-control mb-2" placeholder="Buscar cliente por nombre…" autocomplete="off" aria-label="Buscar cliente"
+      data-customer-access-target="search" data-action="input->customer-access#filter">
+
+    <div class="border rounded p-2" style="max-height: 260px; overflow-y: auto;">
+      <% customers.each do |customer| %>
+        <% next unless customer.active? || selected_ids.include?(customer.id) %>
+        <div class="form-check py-1" data-customer-access-target="row" data-id="<%= customer.id %>" data-name="<%= customer.name %>">
+          <%= check_box_tag "product[authorized_customer_ids][]", customer.id, selected_ids.include?(customer.id), id: "product_customer_#{customer.id}", class: "form-check-input",
+            data: { action: "customer-access#change" } %>
+          <label class="form-check-label" for="product_customer_<%= customer.id %>"><%= customer.name %><% unless customer.active? %> <span class="text-muted small">(inactivo)</span><% end %></label>
+        </div>
+      <% end %>
+      <div class="text-muted small p-2" data-customer-access-target="empty" hidden>No hay clientes con ese nombre.</div>
+    </div>
+    <div class="form-text">Un producto restringido necesita al menos un cliente.</div>
+  </div>
+</fieldset>

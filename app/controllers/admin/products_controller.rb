@@ -111,7 +111,7 @@ class Admin::ProductsController < ApplicationController
   private
 
   def filtered_products
-    products = Product.includes(:category)
+    products = Product.includes(:category, :authorized_customers)
     if params[:q].present?
       query = Product.sanitize_sql_like(params[:q].strip)
       products = products.where("products.name ILIKE ?", "%#{query}%")
@@ -149,7 +149,9 @@ class Admin::ProductsController < ApplicationController
       :internal_category,
       :position,
       :active,
-      :sell_without_stock
+      :sell_without_stock,
+      :customer_visibility,
+      { authorized_customer_ids: [] }
     ]
     permitted << :cost_amount unless @product&.recipe?
 
