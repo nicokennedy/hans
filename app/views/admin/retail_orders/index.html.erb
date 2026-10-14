@@ -1,7 +1,10 @@
 <div class="container py-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="fw-bold mb-0">Pedidos Minoristas</h1>
-    <%= link_to "+ Nuevo pedido minorista", new_admin_retail_order_path(retail_context), class: "btn btn-dark btn-lg", id: "new-retail-order" %>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Exportar Excel", export_admin_retail_orders_path(retail_context.except(:page)), class: "btn btn-outline-dark btn-lg", id: "export-retail-xlsx", title: "Descarga los pedidos con los filtros aplicados" %>
+      <%= link_to "+ Nuevo pedido minorista", new_admin_retail_order_path(retail_context), class: "btn btn-dark btn-lg", id: "new-retail-order" %>
+    </div>
   </div>
 
   <div class="product-card mb-4" id="retail-filters">

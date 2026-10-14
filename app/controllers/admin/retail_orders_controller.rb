@@ -15,6 +15,18 @@ class Admin::RetailOrdersController < ApplicationController
     flash.now[:alert] = "Alguna fecha del filtro no es válida y se ignoró." if @filters.invalid_date
   end
 
+  # Excel (.xlsx) con los pedidos que coinciden con los filtros del listado (sin paginar).
+  # Solo lectura: no modifica pedidos, pagos, stock ni producción.
+  def export
+    filters = Retail::ListFilters.new(params)
+    orders = filters.apply(RetailOrder.all)
+
+    send_data Retail::ExcelExporter.new(orders).call,
+      filename: Retail::ExcelExporter.filename,
+      type: Retail::ExcelExporter::CONTENT_TYPE,
+      disposition: "attachment"
+  end
+
   def show
     @payments = @order.retail_order_payments.includes(:user, :voided_by).to_a
     @status_changes = @order.retail_order_status_changes.includes(:user).to_a

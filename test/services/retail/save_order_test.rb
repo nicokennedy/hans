@@ -67,7 +67,8 @@ class Retail::SaveOrderTest < ActiveSupport::TestCase
       order = create_retail(attributes: { delivery_date: date.iso8601 })
       assert_equal date, order.delivery_date
     end
-    assert_nil DeliveryDateValidator.reason(Date.new(2026, 10, 14)) # miércoles: válido mayorista
+    next_wednesday = (Date.current + 14).then { |date| date + ((3 - date.wday) % 7) } # miércoles lejano: válido mayorista
+    assert_nil DeliveryDateValidator.reason(next_wednesday)
     assert DeliveryDateValidator.reason(@sunday).present?, "la regla mayorista no cambió"
   end
 

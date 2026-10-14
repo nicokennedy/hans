@@ -95,6 +95,7 @@ Rails.application.routes.draw do
     # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los
     # pedidos mayoristas (ver RetailOrder / Retail::*). Solo admin.
     resources :retail_orders, except: [:destroy] do
+      get :export, on: :collection
       member do
         get :status, action: :edit_status
         patch :status, action: :update_status
