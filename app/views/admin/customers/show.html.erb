@@ -6,9 +6,9 @@
     </div>
 
     <div class="d-flex gap-2">
-      <%= link_to "← Clientes", admin_customers_path, class: "btn btn-outline-dark" %>
+      <%= link_to "← Clientes", admin_customers_path(customers_list_params), class: "btn btn-outline-dark" %>
       <%= link_to "Cuenta corriente", admin_customer_account_path(@customer), class: "btn btn-dark" %>
-      <%= link_to "Editar cliente", edit_admin_customer_path(@customer), class: "btn btn-outline-dark" %>
+      <%= link_to "Editar cliente", edit_admin_customer_path(@customer, customers_list_params), class: "btn btn-outline-dark" %>
     </div>
   </div>
 

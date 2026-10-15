@@ -11,6 +11,7 @@
 <% end %>
 
 <%= form_with model: [:admin, customer] do |form| %>
+  <%= hidden_field_tag :q, customers_list_params[:q], id: nil if customers_list_params[:q] %>
   <div class="product-card mb-4">
     <h2 class="h4 mb-4">Datos del cliente</h2>
 
@@ -80,6 +81,6 @@
 
   <div class="d-flex gap-2">
     <%= form.submit customer.new_record? ? "Crear cliente" : "Guardar cambios", class: "btn btn-dark" %>
-    <%= link_to "Cancelar", admin_customers_path, class: "btn btn-outline-dark" %>
+    <%= link_to "Cancelar", admin_customers_path(customers_list_params), class: "btn btn-outline-dark" %>
   </div>
 <% end %>

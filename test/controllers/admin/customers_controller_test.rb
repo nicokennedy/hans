@@ -125,6 +125,97 @@ class Admin::CustomersControllerTest < ActionDispatch::IntegrationTest
       "expected the same query count with 1 or 9 customers, got #{small_query_count} vs #{large_query_count} (possible N+1)"
   end
 
+  test "the search finds customers by partial name ignoring case and accents" do
+    Customer.create!(name: "Coco Olavarría", active: true)
+    Customer.create!(name: "Café Gémez", active: true)
+
+    sign_in @admin
+    get admin_customers_path, params: { q: "olavarria" }
+
+    assert_response :success
+    assert_select "tbody td.fw-bold", count: 1
+    assert_select "tbody td.fw-bold", text: "Coco Olavarría"
+    assert_match "1 cliente encontrado", response.body
+
+    get admin_customers_path, params: { q: "CAFE gem" }
+    assert_select "tbody td.fw-bold", text: "Café Gémez"
+    assert_select "tbody td.fw-bold", count: 1
+  end
+
+  test "the search also matches contact, commercial email, phone digits and access email" do
+    Customer.create!(name: "Uno", contact_name: "Martín Pérez", active: true)
+    Customer.create!(name: "Dos", email: "compras@dos.com.ar", active: true)
+    Customer.create!(name: "Tres", phone: "+54 11 5512-3456", active: true)
+    cuatro = Customer.create!(name: "Cuatro", active: true)
+    User.create!(email: "portal@cuatro.com", password: "password123", role: "customer", customer: cuatro)
+
+    sign_in @admin
+    { "martin perez" => "Uno", "COMPRAS@DOS" => "Dos", "1155 123" => "Tres", "5512-34" => "Tres", "portal@cuatro" => "Cuatro" }.each do |query, name|
+      get admin_customers_path, params: { q: query }
+      assert_select "tbody td.fw-bold", { count: 1, text: name }, "#{query.inspect} should only find #{name}"
+    end
+  end
+
+  test "the search runs over every customer and treats LIKE wildcards literally" do
+    Customer.create!(name: "Cien % Natural", active: true)
+
+    sign_in @admin
+    get admin_customers_path, params: { q: "%" }
+    assert_select "tbody td.fw-bold", count: 1
+    assert_select "tbody td.fw-bold", text: "Cien % Natural"
+  end
+
+  test "a search without results shows a clear message and a way to clear it" do
+    sign_in @admin
+    get admin_customers_path, params: { q: "no existe" }
+
+    assert_response :success
+    assert_select "table", count: 0
+    assert_select "#customers-empty", text: /No se encontraron clientes para «no existe»\./
+    assert_select "a[href=?]", admin_customers_path, text: "Limpiar búsqueda"
+    assert_select "#customer-search-input[value=?]", "no existe"
+  end
+
+  test "an empty search lists every customer and hides the clear button" do
+    Customer.create!(name: "Otro", active: true)
+
+    sign_in @admin
+    get admin_customers_path, params: { q: "   " }
+
+    assert_select "tbody td.fw-bold", count: 2
+    assert_select "#customer-search a", text: "Limpiar", count: 0
+  end
+
+  test "each row opens the customer like Ver and the search travels to the detail and back" do
+    sign_in @admin
+    get admin_customers_path, params: { q: "ala" }
+
+    detail = admin_customer_path(@customer, q: "ala")
+    assert_select "tr.table-row-link[data-controller='row-link'][data-row-link-url-value=?]", detail
+    assert_select "a[href=?]", detail, text: "Ver"
+    assert_select "a[href=?]", edit_admin_customer_path(@customer, q: "ala"), text: "Editar"
+    assert_select "form[action=?] input[name='q'][value='ala']", toggle_active_admin_customer_path(@customer)
+
+    get detail
+    assert_select "a[href=?]", admin_customers_path(q: "ala"), text: "← Clientes"
+    assert_select "form input[type=hidden][name='q'][value='ala']"
+  end
+
+  test "toggling a customer keeps the current search" do
+    sign_in @admin
+    patch toggle_active_admin_customer_path(@customer), params: { q: "ala" }
+
+    assert_redirected_to admin_customers_path(q: "ala")
+    assert_not @customer.reload.active?
+  end
+
+  test "the period filter keeps the current search" do
+    sign_in @admin
+    get admin_customers_path, params: { q: "ala" }
+
+    assert_select "form[action=?] input[type=hidden][name='q'][value='ala']", admin_customers_path
+  end
+
   private
 
   def count_queries

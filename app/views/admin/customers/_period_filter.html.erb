@@ -1,5 +1,6 @@
 <div class="product-card mb-4">
   <%= form_with url: request.path, method: :get, local: true do %>
+    <%= hidden_field_tag :q, customers_list_params[:q], id: nil if customers_list_params[:q] %>
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-3">
         <label class="form-label">Período</label>

@@ -1342,3 +1342,13 @@ body.with-sidebar .app-content {
   appearance: none;
   display: none;
 }
+
+/* Filas de tabla clickeables (ver row_link_controller.js): cursor de enlace y un
+   hover sutil, con el mismo mecanismo de sombreado que usa .table-hover de Bootstrap. */
+.table-row-link {
+  cursor: pointer;
+}
+
+.table-row-link:hover > td {
+  box-shadow: inset 0 0 0 9999px rgba(43, 43, 43, 0.04);
+}

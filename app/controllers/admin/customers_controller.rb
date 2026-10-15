@@ -6,8 +6,10 @@ class Admin::CustomersController < ApplicationController
   before_action :set_customer, only: [:show, :edit, :update, :toggle_active]
   before_action :set_user, only: [:edit, :update]
 
+  helper_method :customers_list_params
+
   def index
-    @customers = Customer.includes(:users).order(:name)
+    @customers = Customer.search(search_query).includes(:users).order(:name).load
 
     range = @collections_period.from..@collections_period.to
     @invoiced_by_customer = Order.not_canceled.where(delivery_date: range).group(:customer_id).sum(:total_cents)
@@ -60,7 +62,7 @@ class Admin::CustomersController < ApplicationController
       @user.save!
     end
 
-    redirect_to admin_customers_path, notice: "Cliente actualizado correctamente."
+    redirect_to admin_customers_path(customers_list_params), notice: "Cliente actualizado correctamente."
   rescue ActiveRecord::RecordInvalid
     render :edit, status: :unprocessable_entity
   end
@@ -68,10 +70,20 @@ class Admin::CustomersController < ApplicationController
   def toggle_active
     @customer.update!(active: !@customer.active?)
     status = @customer.active? ? "reactivado" : "desactivado"
-    redirect_to admin_customers_path, notice: "Cliente #{status} correctamente."
+    redirect_to admin_customers_path(customers_list_params), notice: "Cliente #{status} correctamente."
   end
 
   private
+
+  # Texto del buscador del listado. Viaja como ?q= al detalle, la edición y las acciones
+  # de la fila para volver al listado con la misma búsqueda.
+  def search_query
+    @search_query ||= params[:q].to_s.squish.first(Customer::SEARCH_MAX_LENGTH)
+  end
+
+  def customers_list_params
+    { q: search_query.presence }.compact
+  end
 
   def set_customer
     @customer = Customer.find(params[:id])
