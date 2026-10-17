@@ -1,0 +1,27 @@
+<div class="container py-5" id="expired-file-link">
+  <div class="product-card mx-auto" style="max-width: 640px;">
+    <h1 class="fs-3 fw-bold mb-3">Este enlace de remito ya no está disponible</h1>
+
+    <p>
+      Los remitos se generan en el navegador en el momento y el enlace de la pestaña donde se abrieron es
+      <strong>temporal</strong>: solo funciona en ese dispositivo y mientras HANS siga abierto ahí.
+      No sirve para abrirlo desde otra computadora o celular, ni para compartirlo.
+    </p>
+
+    <p class="mb-4">
+      Para verlo de nuevo, generalo otra vez desde HANS. Funciona desde cualquier dispositivo con tu usuario.
+      Para mandarlo a otra persona, compartí el <strong>archivo</strong> (PNG o PDF), no el enlace.
+    </p>
+
+    <div class="d-flex flex-column flex-sm-row gap-2">
+      <% if current_user&.admin_or_production? %>
+        <%= link_to "Imprimir remitos por fecha", receipts_admin_orders_path, class: "btn btn-dark" %>
+        <%= link_to "Ver pedidos", admin_orders_path, class: "btn btn-outline-dark" %>
+      <% elsif user_signed_in? %>
+        <%= link_to "Ir al inicio", root_path, class: "btn btn-dark" %>
+      <% else %>
+        <%= link_to "Ingresar a HANS", new_user_session_path, class: "btn btn-dark" %>
+      <% end %>
+    </div>
+  </div>
+</div>

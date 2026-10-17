@@ -98,7 +98,7 @@ export default class extends Controller {
     const summary = `${receiptCount} remitos x ${this.copiesValue} copias en ${pageCount} ${pageCount === 1 ? "hoja" : "hojas"} A4 horizontales.`
 
     if (result.method === "new_tab") {
-      this.showStatus(`${summary} El PDF se abrió en una nueva pestaña: guardalo o imprimilo desde ahí.`, "success")
+      this.showStatus(`${summary} El PDF se abrió en una nueva pestaña: guardalo o imprimilo desde ahí. Para otro dispositivo, compartí el archivo, no el enlace de esa pestaña (es temporal).`, "success")
     } else if (result.method === "blocked") {
       this.showStatus("El navegador bloqueó la apertura del PDF. Permití las ventanas emergentes para HANS e intentá de nuevo.", "error")
     } else {

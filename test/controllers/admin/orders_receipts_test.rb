@@ -42,6 +42,15 @@ class Admin::OrdersReceiptsTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?] input[type=date][name=date][value=?]", receipts_admin_orders_path, DATE.iso8601
   end
 
+  test "shows the stable link to open the same receipts screen from another device" do
+    build_order(@alfa)
+    sign_in @admin
+    get_receipts
+
+    stable_url = receipts_admin_orders_url(date: DATE.iso8601)
+    assert_select "#receipts-stable-link a[href=?]", stable_url, text: stable_url
+  end
+
   test "only includes orders whose delivery_date is the selected date" do
     on_date = build_order(@alfa)
     day_before = build_order(@beta, date: DATE - 1)

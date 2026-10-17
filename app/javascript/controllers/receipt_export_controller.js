@@ -54,7 +54,7 @@ export default class extends Controller {
 
   reportResult(result) {
     if (result.method === "new_tab") {
-      this.showStatus("La imagen se abrió en una nueva pestaña. Mantenela presionada para guardarla o compartirla.", "success")
+      this.showStatus("La imagen se abrió en una nueva pestaña. Mantenela presionada para guardarla o compartirla como archivo: el enlace de esa pestaña es temporal y no abre en otro dispositivo.", "success")
     } else if (result.method === "blocked") {
       this.showStatus("El navegador bloqueó la apertura de la imagen. Permití las ventanas emergentes para HANS e intentá de nuevo.", "error")
     } else {

@@ -148,7 +148,10 @@ export function deliverBlob(blob, filename, { preOpenedWindow } = {}) {
     }
 
     if (target === preOpenedWindow) target.location.href = url
-    setTimeout(() => URL.revokeObjectURL(url), 60000)
+    // La URL blob: solo existe mientras esta página de HANS siga abierta; liberarla
+    // antes (antes era a los 60 s) hacía que recargar la pestaña del archivo diera 404
+    // (el navegador termina pidiendo https://<host>/<uuid>, ver ExpiredFileLinksController).
+    window.addEventListener("pagehide", () => URL.revokeObjectURL(url), { once: true })
     return { method: "new_tab" }
   }
 

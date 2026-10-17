@@ -144,4 +144,10 @@ Rails.application.routes.draw do
       post :test, on: :member
     end
   end
+
+  # https://<host>/<uuid>: lo que queda de una URL blob: temporal de un remito generado en el
+  # navegador cuando se comparte, se recarga o se abre en otro dispositivo (ver
+  # ExpiredFileLinksController). Solo UUID en la raíz, así no tapa ninguna otra ruta.
+  get "/:link_id", to: "expired_file_links#show", as: :expired_file_link,
+      constraints: { link_id: /\h{8}-\h{4}-\h{4}-\h{4}-\h{12}/ }
 end
