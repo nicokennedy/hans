@@ -11,6 +11,12 @@ module CustomerAccountsHelper
   end
 
   def account_filter_path(customer, summary, filter)
-    admin_customer_account_path(customer, { filter: (filter unless filter == "all"), from: summary.from&.iso8601, to: summary.to&.iso8601 }.compact)
+    admin_customer_account_path(customer, customers_context.list_query.merge({ via: customers_context.via, filter: (filter unless filter == "all"), from: summary.from&.iso8601, to: summary.to&.iso8601 }.compact))
+  end
+
+  # Campos ocultos con el contexto de Clientes, para que los formularios de la cuenta
+  # corriente (pagos, saldo a favor, anulaciones, filtros) lo devuelvan al guardar.
+  def customers_context_hidden_fields(query = customers_context.account_query)
+    safe_join(query.map { |key, value| hidden_field_tag(key, value, id: nil) })
   end
 end

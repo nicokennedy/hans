@@ -7,7 +7,7 @@
 
     <div class="d-flex gap-2">
       <%= link_to "← Clientes", admin_customers_path(customers_list_params), class: "btn btn-outline-dark" %>
-      <%= link_to "Cuenta corriente", admin_customer_account_path(@customer), class: "btn btn-dark" %>
+      <%= link_to "Cuenta corriente", admin_customer_account_path(@customer, customers_list_params.merge(via: "customer")), class: "btn btn-dark" %>
       <%= link_to "Editar cliente", edit_admin_customer_path(@customer, customers_list_params), class: "btn btn-outline-dark" %>
     </div>
   </div>
@@ -78,7 +78,7 @@
                 <td>$<%= number_with_delimiter(order.balance_due_cents / 100) %></td>
                 <td><span class="badge <%= payment_badge_class %>"><%= order.payment_status_label %></span></td>
                 <td class="text-end">
-                  <%= link_to "Ver pedido", admin_order_path(order), class: "btn btn-sm btn-outline-dark" %>
+                  <%= link_to "Ver pedido", admin_order_path(order, customers_context.order_query("customer")), class: "btn btn-sm btn-outline-dark" %>
                 </td>
               </tr>
             <% end %>

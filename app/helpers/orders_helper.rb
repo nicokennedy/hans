@@ -20,4 +20,17 @@ module OrdersHelper
   def orders_context_hidden_fields
     safe_join(orders_context.map { |key, value| hidden_field_tag(key, value, id: nil) })
   end
+
+  # "Volver" del pedido: a la cuenta corriente o a la ficha del cliente si se entró desde
+  # Clientes (siempre del cliente del propio pedido); si no, al listado de Pedidos con sus filtros.
+  def order_back_link(order)
+    case customers_context.back_to
+    when "account"
+      link_to "← Cuenta corriente", admin_customer_account_path(order.customer, customers_context.account_query), class: "btn btn-outline-dark", id: "back-to-orders"
+    when "customer"
+      link_to "← Cliente", admin_customer_path(order.customer, customers_context.list_query), class: "btn btn-outline-dark", id: "back-to-orders"
+    else
+      link_to "← Volver", admin_orders_path(orders_list_context), class: "btn btn-outline-dark", id: "back-to-orders"
+    end
+  end
 end

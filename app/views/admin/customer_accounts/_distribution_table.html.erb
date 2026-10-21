@@ -15,7 +15,7 @@
         <% pending_orders.each do |order| %>
           <tr data-payment-distribution-target="row" data-order-id="<%= order.id %>" data-order-number="<%= order.number %>" data-balance="<%= order.balance_due_cents %>">
             <td>
-              <div class="fw-bold"><%= link_to order.number, admin_order_path(order), target: "_blank", rel: "noopener", class: "text-decoration-none text-dark" %></div>
+              <div class="fw-bold"><%= link_to order.number, admin_order_path(order, customers_context.order_query("account")), target: "_blank", rel: "noopener", class: "text-decoration-none text-dark" %></div>
               <div class="small text-muted">Entrega: <%= order.delivery_date.strftime("%d/%m/%Y") %></div>
             </td>
             <td class="text-end text-danger fw-bold">$<%= CustomerAccounts::Money.format_pesos(order.balance_due_cents) %></td>

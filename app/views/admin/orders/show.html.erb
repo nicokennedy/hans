@@ -1,6 +1,6 @@
 <div class="container py-5">
   <div class="d-flex flex-wrap gap-2 mb-4">
-    <%= link_to "← Volver", admin_orders_path(orders_context), class: "btn btn-outline-dark", id: "back-to-orders" %>
+    <%= order_back_link(@order) %>
 
     <% if current_user.admin? %>
       <%= link_to "Editar pedido",

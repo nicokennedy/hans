@@ -4,7 +4,7 @@
       <h1 class="fw-bold mb-1">Aplicar saldo a favor</h1>
       <p class="text-muted mb-0">Cuenta corriente de <strong><%= @customer.name %></strong></p>
     </div>
-    <%= link_to "← Cuenta corriente", admin_customer_account_path(@customer), class: "btn btn-outline-dark" %>
+    <%= link_to "← Cuenta corriente", admin_customer_account_path(@customer, customers_context.account_query), class: "btn btn-outline-dark" %>
   </div>
 
   <% if @errors.present? %>
@@ -17,6 +17,7 @@
     <%= form_with url: admin_customer_credit_applications_path(@customer), method: :post, local: true,
           data: { controller: "payment-distribution", payment_distribution_fixed_amount_value: @credit_cents,
                   payment_distribution_confirm_label_value: "Aplicar saldo a favor de #{@customer.name} a pedidos pendientes.", action: "submit->payment-distribution#confirm" } do %>
+      <%= customers_context_hidden_fields %>
       <div class="product-card mb-4">
         <div class="alert alert-info mb-3">
           Saldo a favor disponible: <strong>$<%= CustomerAccounts::Money.format_pesos(@credit_cents) %></strong>.
@@ -35,7 +36,7 @@
 
       <div class="d-flex gap-2">
         <%= submit_tag "Aplicar saldo a favor", class: "btn btn-dark btn-lg", data: { payment_distribution_target: "submit", disable_with: "Aplicando…" } %>
-        <%= link_to "Cancelar", admin_customer_account_path(@customer), class: "btn btn-outline-dark btn-lg" %>
+        <%= link_to "Cancelar", admin_customer_account_path(@customer, customers_context.account_query), class: "btn btn-outline-dark btn-lg" %>
       </div>
     <% end %>
   <% end %>

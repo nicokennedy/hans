@@ -2,6 +2,7 @@
 # repartido entre varios pedidos. Convive con los pagos por pedido de siempre.
 class Admin::CustomerPaymentsController < ApplicationController
   include CustomerAccountParams
+  include CustomersNavigationContext
 
   before_action :authenticate_user!
   before_action :require_admin!
@@ -31,7 +32,7 @@ class Admin::CustomerPaymentsController < ApplicationController
     end
 
     if result.ok?
-      redirect_to admin_customer_account_path(@customer), notice: success_message(result)
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), notice: success_message(result)
     else
       @errors = result.errors
       @form = { paid_on: paid_on || params[:paid_on], payment_method: params[:payment_method], amount: params[:amount].to_s, reference: params[:reference].to_s, note: params[:note].to_s, allocations: (raw_allocations || {}).to_h }
@@ -44,9 +45,9 @@ class Admin::CustomerPaymentsController < ApplicationController
     result = CustomerAccounts::VoidPayment.call(customer_payment: payment, user: current_user, reason: params[:reason])
 
     if result.ok?
-      redirect_to admin_customer_account_path(@customer), notice: "Pago anulado. Los saldos de los pedidos se restablecieron."
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), notice: "Pago anulado. Los saldos de los pedidos se restablecieron."
     else
-      redirect_to admin_customer_account_path(@customer), alert: result.errors.join(" ")
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), alert: result.errors.join(" ")
     end
   end
 

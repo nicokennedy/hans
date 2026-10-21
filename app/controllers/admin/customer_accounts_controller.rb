@@ -2,6 +2,8 @@
 # acciones (+ Registrar pago, aplicar saldo a favor, anular). Solo admin, igual que los
 # pagos por pedido.
 class Admin::CustomerAccountsController < ApplicationController
+  include CustomersNavigationContext
+
   before_action :authenticate_user!
   before_action :require_admin!
 

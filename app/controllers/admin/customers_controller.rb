@@ -1,5 +1,6 @@
 class Admin::CustomersController < ApplicationController
   include CollectionsPeriodFilterable
+  include CustomersNavigationContext
 
   before_action :authenticate_user!
   before_action :require_admin!

@@ -25,7 +25,8 @@ class Admin::CustomerAccountsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", admin_customer_account_path(@customer), text: "Cuenta corriente"
 
     get admin_customer_path(@customer)
-    assert_select "a[href=?]", admin_customer_account_path(@customer), text: "Cuenta corriente"
+    # Desde la ficha, "Volver" de la cuenta corriente regresa a la ficha (ver NavigationContextTest).
+    assert_select "a[href=?]", admin_customer_account_path(@customer, via: "customer"), text: "Cuenta corriente"
   end
 
   test "permisos: solo admin entra a la cuenta corriente y a sus acciones; production, clientes y visitantes no" do
@@ -90,7 +91,7 @@ class Admin::CustomerAccountsTest < ActionDispatch::IntegrationTest
     assert_select "a#register-payment", text: "+ Registrar pago"
     numbers = css_select("#account-orders tbody tr td:first-child").map { |td| td.text.strip }
     assert_equal [a.number, b.number, c.number], numbers
-    assert_select "#account-orders a[href=?]", admin_order_path(a), text: "Ver pedido"
+    assert_select "#account-orders a[href=?]", admin_order_path(a, back_to: "account"), text: "Ver pedido"
     assert_select "#account-history .account-payment", count: 2
   end
 

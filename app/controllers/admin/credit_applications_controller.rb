@@ -1,6 +1,7 @@
 # Aplicación explícita del saldo a favor de un cliente a sus pedidos pendientes.
 class Admin::CreditApplicationsController < ApplicationController
   include CustomerAccountParams
+  include CustomersNavigationContext
 
   before_action :authenticate_user!
   before_action :require_admin!
@@ -23,7 +24,7 @@ class Admin::CreditApplicationsController < ApplicationController
     end
 
     if result.ok?
-      redirect_to admin_customer_account_path(@customer), notice: "Saldo a favor aplicado. Te quedan $#{CustomerAccounts::Money.format_pesos(result.credit_cents)} de saldo a favor."
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), notice: "Saldo a favor aplicado. Te quedan $#{CustomerAccounts::Money.format_pesos(result.credit_cents)} de saldo a favor."
     else
       @errors = result.errors
       @allocations = (raw || {}).to_h
@@ -36,9 +37,9 @@ class Admin::CreditApplicationsController < ApplicationController
     result = CustomerAccounts::RevertCreditApplication.call(payment: payment, user: current_user, reason: params[:reason])
 
     if result.ok?
-      redirect_to admin_customer_account_path(@customer), notice: "Aplicación revertida: el importe volvió al saldo a favor y el pedido recuperó su saldo."
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), notice: "Aplicación revertida: el importe volvió al saldo a favor y el pedido recuperó su saldo."
     else
-      redirect_to admin_customer_account_path(@customer), alert: result.errors.join(" ")
+      redirect_to admin_customer_account_path(@customer, customers_context.account_query), alert: result.errors.join(" ")
     end
   end
 
