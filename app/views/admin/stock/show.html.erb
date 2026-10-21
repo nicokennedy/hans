@@ -4,7 +4,13 @@
       <h1>Stock / Producción</h1>
       <p class="text-muted mb-0">Qué producir hoy, según stock disponible y pedidos comprometidos.</p>
     </div>
-    <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+    <div class="d-flex flex-wrap justify-content-end gap-2">
+      <% if @snapshots.any? %>
+        <%= link_to "Exportar stock a Excel", export_admin_stock_path, class: "btn btn-dark", id: "export-stock-xlsx",
+              title: "Descarga una planilla para el conteo físico (no modifica el stock)", data: { turbo: false } %>
+      <% end %>
+      <%= link_to "← Admin", admin_root_path, class: "btn btn-outline-dark" %>
+    </div>
   </div>
 
   <% if @snapshots.empty? %>

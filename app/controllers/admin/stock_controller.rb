@@ -9,4 +9,15 @@ class Admin::StockController < ApplicationController
   def show
     @snapshots = Stock::Availability.dashboard
   end
+
+  # Planilla .xlsx para el control físico (ver Stock::ExcelExporter). Usa las mismas fotos que
+  # el panel (incluida su conciliación automática de salidas vencidas, que es idempotente y
+  # ya corrió al abrir el panel); exportar no registra producciones, conteos ni ajustes.
+  def export
+    now = Time.current
+    send_data Stock::ExcelExporter.new(Stock::Availability.dashboard(now: now), generated_at: now).call,
+      filename: Stock::ExcelExporter.filename(now),
+      type: Stock::ExcelExporter::CONTENT_TYPE,
+      disposition: "attachment"
+  end
 end

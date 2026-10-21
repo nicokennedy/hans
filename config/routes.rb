@@ -129,7 +129,9 @@ Rails.application.routes.draw do
     # RecipeComponent.resolve_component). show es el panel diario; las
     # acciones de producción/conteo son las únicas que puede usar el perfil
     # production (ver Admin::StockController/Admin::StockItemsController).
-    resource :stock, only: [:show], controller: "stock"
+    resource :stock, only: [:show], controller: "stock" do
+      get :export
+    end
     resources :stock_items, only: [:show, :create, :update] do
       member do
         post :register_production
