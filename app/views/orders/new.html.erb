@@ -131,6 +131,9 @@ function initDeliveryDatePicker() {
   // cliente no las bloquee por caer en un día de semana normalmente no
   // habilitado.
   const exceptionalDates = <%= delivery_setting.exceptional_dates.map { |d| d.strftime("%Y-%m-%d") }.to_json.html_safe %>
+  // Fechas puntuales sin entregas (BlockedDate, misma fuente que DeliveryDateValidator): se
+  // deshabilitan aunque caigan en un día habitual y ganan sobre una excepción habilitada.
+  const blockedDates = <%= BlockedDate.upcoming_dates.map { |d| d.strftime("%Y-%m-%d") }.to_json.html_safe %>
   const hasErrors = <%= @order&.errors&.any? ? "true" : "false" %>
   const minDate = new Date()
   minDate.setDate(minDate.getDate() + 1)
@@ -147,7 +150,9 @@ function initDeliveryDatePicker() {
         const isoYear = date.getFullYear()
         const isoMonth = String(date.getMonth() + 1).padStart(2, "0")
         const isoDay = String(date.getDate()).padStart(2, "0")
-        if (exceptionalDates.includes(isoYear + "-" + isoMonth + "-" + isoDay)) return false
+        const iso = isoYear + "-" + isoMonth + "-" + isoDay
+        if (blockedDates.includes(iso)) return true
+        if (exceptionalDates.includes(iso)) return false
 
         if (disabledDays.includes(date.getDay())) return true
 

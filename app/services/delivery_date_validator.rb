@@ -39,7 +39,7 @@ class DeliveryDateValidator
   end
 
   def reason
-    return "Fecha bloqueada manualmente" if blocked_date?
+    return blocked_date.message if blocked_date
     return unavailable_weekday_message if unavailable_weekday?
     return "Cerró el horario de pedidos para esta fecha" if cutoff_passed?
 
@@ -50,8 +50,12 @@ class DeliveryDateValidator
 
   attr_reader :date, :now, :settings
 
-  def blocked_date?
-    BlockedDate.where(date: date, active: true).exists?
+  # Un bloqueo puntual gana sobre todo lo demás (también sobre una fecha habilitada por
+  # excepción) y muestra su propio motivo, ej. "No habrá entregas el sábado 7 de noviembre".
+  def blocked_date
+    return @blocked_date if defined?(@blocked_date)
+
+    @blocked_date = BlockedDate.for_date(date)
   end
 
   # Una fecha puntual habilitada por excepción (ver DeliverySetting#exceptional_dates,
