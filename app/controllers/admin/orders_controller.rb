@@ -20,6 +20,8 @@ class Admin::OrdersController < ApplicationController
     @filters = list_filters
     @payment_status_filter = @filters.payment_status
     @orders = @filters.paginate(filtered_orders(includes: :customer))
+    # Resumen de todos los pedidos filtrados (no solo la página); solo admin ve importes.
+    @summary = Collections::OrdersSummary.new(@filters.apply(Order.all)) if current_user.admin?
     @customers = Customer.order(:name).pluck(:name, :id)
   end
 

@@ -1,6 +1,7 @@
 module Orders
   # Filtros del listado Admin → Pedidos recibidos: cliente, fecha de entrega
-  # (delivery_date, nunca created_at), estado de pago y página. Se leen SIEMPRE de
+  # (delivery_date, nunca created_at; un día o un rango con delivery_date_to), estado de
+  # pago y página. Se leen SIEMPRE de
   # query params de la URL (y se vuelven a escribir en los links al pedido), así el
   # contexto sobrevive a pagos, ediciones y recargas sin depender del referer.
   #
@@ -11,7 +12,7 @@ module Orders
     PAYMENT_STATUSES = %w[all pending partial paid].freeze
     PER_PAGE = 50
 
-    attr_reader :customer_id, :delivery_date, :payment_status, :invalid_date, :total_count
+    attr_reader :customer_id, :delivery_date, :delivery_date_to, :payment_status, :invalid_date, :total_count
 
     # params: ActionController::Parameters o Hash.
     # payment_fallback: filtro de pago previo (el que guarda la sesión) cuando la
@@ -20,6 +21,7 @@ module Orders
       @invalid_date = false
       @customer_id = parse_customer(params[:customer_id])
       @delivery_date = parse_date(params[:delivery_date])
+      @delivery_date_to = parse_date(params[:delivery_date_to])
       @payment_status = allow_payment ? parse_payment(params[:payment_status_filter].presence || payment_fallback) : "all"
       @requested_page = parse_page(params[:page])
     end
@@ -29,12 +31,20 @@ module Orders
     end
 
     def active?
-      customer_id.present? || delivery_date.present? || payment_status != "all"
+      customer_id.present? || delivery_date.present? || delivery_date_to.present? || payment_status != "all"
     end
 
     def apply(scope)
       scope = scope.where(customer_id: customer_id) if customer_id
-      scope = scope.where(delivery_date: delivery_date) if delivery_date
+      # Mismo criterio que Pedidos Minoristas: solo "desde" es ese día; "desde" y "hasta",
+      # el rango; solo "hasta", todo lo anterior hasta ese día.
+      if delivery_date && delivery_date_to
+        scope = scope.where(delivery_date: [delivery_date, delivery_date_to].min..[delivery_date, delivery_date_to].max)
+      elsif delivery_date
+        scope = scope.where(delivery_date: delivery_date)
+      elsif delivery_date_to
+        scope = scope.where("orders.delivery_date <= ?", delivery_date_to)
+      end
       scope = scope.where(payment_status: payment_status) unless payment_status == "all"
       scope
     end
@@ -61,6 +71,7 @@ module Orders
       {
         customer_id: customer_id,
         delivery_date: delivery_date&.iso8601,
+        delivery_date_to: delivery_date_to&.iso8601,
         payment_status_filter: (payment_status unless payment_status == "all"),
         page: (page if page.to_i > 1)
       }.compact

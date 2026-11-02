@@ -23,6 +23,8 @@
     <div class="form-text">Con solo “desde” se muestra ese día; con “desde” y “hasta”, el rango.</div>
   </div>
 
+  <%= render "admin/shared/orders_summary", summary: @summary, from: @filters.date_from, to: @filters.date_to %>
+
   <div class="small text-muted mb-2"><%= @filters.total_count %> pedidos · ordenados por entrega más cercana</div>
 
   <div class="product-card">

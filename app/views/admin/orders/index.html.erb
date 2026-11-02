@@ -26,13 +26,18 @@
           </datalist>
         </div>
 
-        <div class="col-12 col-md-3">
+        <div class="col-6 col-md-2">
           <label class="form-label" for="orders-filter-date">Fecha de entrega</label>
           <%= date_field_tag :delivery_date, @filters.delivery_date&.iso8601, id: "orders-filter-date", class: "form-control" %>
         </div>
 
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="orders-filter-date-to">Hasta</label>
+          <%= date_field_tag :delivery_date_to, @filters.delivery_date_to&.iso8601, id: "orders-filter-date-to", class: "form-control" %>
+        </div>
+
         <% if current_user.admin? %>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-2">
             <label class="form-label" for="payment_status_filter">Estado de pago</label>
             <%= select_tag :payment_status_filter,
                 options_for_select(
@@ -49,11 +54,17 @@
         </div>
       </div>
 
+      <div class="form-text">Con solo la fecha de entrega se muestra ese día; con “Hasta”, el rango.</div>
+
       <% if @filters.invalid_date %>
         <div class="small text-danger mt-2">La fecha de entrega no era válida y se ignoró.</div>
       <% end %>
     <% end %>
   </div>
+
+  <% if @summary %>
+    <%= render "admin/shared/orders_summary", summary: @summary, from: @filters.delivery_date, to: @filters.delivery_date_to %>
+  <% end %>
 
   <% if @orders.empty? %>
     <div class="product-card">

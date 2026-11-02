@@ -1,0 +1,32 @@
+<%# Resumen financiero del listado filtrado (todas las páginas). Mismo diseño que el resumen de Clientes. %>
+<div class="product-card mb-4" id="orders-summary">
+  <h2 class="fs-5 fw-bold mb-3">Resumen del período (<%= orders_summary_period_label(from, to) %>)</h2>
+
+  <div class="row gy-3">
+    <div class="col-6 col-md-3">
+      <div class="text-muted small mb-1">Cantidad de pedidos</div>
+      <div class="fw-bold fs-5" id="orders-summary-count"><%= summary.orders_count %></div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="text-muted small mb-1">Facturado</div>
+      <div class="fw-bold fs-5" id="orders-summary-invoiced"><%= orders_summary_money(summary.invoiced_cents) %></div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="text-muted small mb-1">Cobrado</div>
+      <div class="fw-bold fs-5" id="orders-summary-collected"><%= orders_summary_money(summary.collected_cents) %></div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="text-muted small mb-1">Pendiente</div>
+      <div class="fw-bold fs-5" id="orders-summary-pending"><%= orders_summary_money(summary.pending_cents) %></div>
+    </div>
+  </div>
+
+  <% if summary.canceled_count.positive? %>
+    <div class="small text-muted mt-2" id="orders-summary-canceled">
+      <%= summary.canceled_count %> <%= summary.canceled_count == 1 ? "pedido cancelado no incluido" : "pedidos cancelados no incluidos" %> en el resumen.
+    </div>
+  <% end %>
+</div>

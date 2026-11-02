@@ -12,6 +12,7 @@ class Admin::RetailOrdersController < ApplicationController
     @filters = Retail::ListFilters.new(params)
     scope = Retail::ListFilters.order_by_nearest(@filters.apply(RetailOrder.all))
     @orders = @filters.paginate(scope).to_a
+    @summary = Collections::OrdersSummary.new(@filters.apply(RetailOrder.all))
     flash.now[:alert] = "Alguna fecha del filtro no es válida y se ignoró." if @filters.invalid_date
   end
 
