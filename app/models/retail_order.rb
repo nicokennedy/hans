@@ -39,11 +39,12 @@ class RetailOrder < ApplicationRecord
 
   DELIVERY_KIND_LABELS = { "pickup" => "Retiro", "delivery" => "Delivery" }.freeze
 
-  PAYMENT_METHODS = %w[transfer cash_on_delivery openpay].freeze
+  PAYMENT_METHODS = %w[transfer cash_on_delivery openpay other].freeze
   PAYMENT_METHOD_LABELS = {
     "transfer" => "Transferencia",
     "cash_on_delivery" => "Efectivo contra entrega",
-    "openpay" => "Openpay"
+    "openpay" => "Openpay",
+    "other" => "Otro"
   }.freeze
 
   MAX_CENTS = 2_000_000_000

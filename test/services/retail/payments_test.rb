@@ -32,6 +32,13 @@ class Retail::PaymentsTest < ActiveSupport::TestCase
     assert_equal "Openpay", @order.retail_order_payments.first.payment_method_label
   end
 
+  test "Otro es un medio de pago válido" do
+    assert pay_retail(@order, "10.000", method: "other").ok?
+    @order.reload
+    assert_equal "paid", @order.payment_status
+    assert_equal "Otro", @order.retail_order_payments.first.payment_method_label
+  end
+
   test "guarda fecha, importe, medio, observaciones y usuario" do
     result = Retail::RegisterPayment.call(order: @order, user: @admin, amount: "2.500,50", paid_at: "2026-10-10", payment_method: "transfer", notes: "Seña")
     payment = result.record
