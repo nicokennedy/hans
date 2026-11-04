@@ -6,8 +6,8 @@
 |---|---|
 | 0. Suite de tests confiable | Hecha (ver `docs/KNOWN_TEST_FAILURES.md`) |
 | 1. Confirmación de pedidos minoristas | Hecha: origen manual/tienda, pendiente → confirmado / rechazado, solo los confirmados cuentan para producción, stock y el resumen financiero |
-| 2. Catálogo minorista, precios y fotos | Hecha: administrador en Tienda Minorista → Productos / Categorías. Las fotos quedan bloqueadas en producción hasta conectar Cloudflare R2 (ver abajo) |
-| 3. Reglas de retiro y delivery | Pendiente |
+| 2. Catálogo minorista, precios y fotos | Hecha: administrador en Tienda Minorista → Productos / Categorías. Fotos en Cloudflare R2 (conectado y habilitado en producción) |
+| 3. Reglas de retiro y delivery | Hecha: Tienda Minorista → Entregas (ver abajo) |
 | 4. Tienda pública, carrito, checkout y WhatsApp | Pendiente |
 | 5. Opcionales (stock, pago online, automatizaciones) | Pendiente |
 
@@ -46,9 +46,76 @@ Administrador en **Tienda Minorista** (menú lateral, solo admin): `/admin/tiend
   `detail` hasta 1200 px (galería). Nunca se sirve el original en el catálogo.
   En una Mac de desarrollo hace falta `brew install vips` para ver las miniaturas.
 
+## Etapa 3 — Retiro y envío
+
+Administrador en **Tienda Minorista → Entregas** (`/admin/tienda-minorista/entregas`, solo admin).
+Todo es independiente del reparto mayorista: `DeliverySetting`, `BlockedDate`, cortes y días
+mayoristas no se usan ni se modifican.
+
+### Modalidades (nombres que ve el cliente)
+
+| Modalidad (`delivery_kind`) | Nombre | Costo | Días y franja inicial |
+|---|---|---|---|
+| `pickup` | **Retiro por zona Plaza del Agua** | $0 — Gratis | Lunes a viernes 14:00 a 17:00 hs · sábados 11:00 a 13:00 hs |
+| `delivery` | **Envío a domicilio** | Según la zona | Lunes a sábado 8:30 a 13:00 hs (franja de entrega, no turno exacto) |
+
+Domingos sin servicio. La dirección del punto de retiro **no está definida**: se carga en
+"Reglas generales" (mientras esté vacía, el cliente ve solo el nombre de la modalidad).
+
+### Zonas de envío (iniciales)
+
+| Zona | Cobertura (orientativa) | Costo |
+|---|---|---|
+| Zona 1 | Costa, Independencia, Colón, Vértiz | $5.000 |
+| Zona 2 | Centro, zona Facultad | $6.000 |
+| Zona 3 | Constitución, barrios privados, Champagnat hasta Allio | $7.000 |
+
+El cliente elige la zona a mano (no hay geolocalización ni validación de direcciones). El costo
+sale siempre de la zona, en el servidor. Cada pedido guarda la zona (`delivery_zone_id`), su
+nombre (`delivery_zone_name`), la franja (`delivery_window_label`) y el costo aplicado
+(`shipping_cents`, la columna que ya existía): cambiar un precio o renombrar una zona no modifica
+pedidos ya creados. Una zona usada por pedidos no se borra: se desactiva.
+
+### Anticipación mínima
+
+**Días calendario, no horas**: primera fecha = fecha de hoy en Argentina
+(`America/Argentina/Buenos_Aires`) + anticipación (inicial: 2). Después se aplican los días
+habilitados y las fechas sin servicio. Lunes (a cualquier hora) → miércoles; viernes o sábado →
+lunes. Se pueden elegir fechas hasta 90 días hacia adelante (`RetailFulfillment::HORIZON_DAYS`).
+
+### Qué se configura desde el administrador
+
+- Anticipación mínima (0 a 30 días) e indicaciones del punto de retiro.
+- Días habilitados y franja (desde/hasta) de cada modalidad, por día de la semana.
+- Zonas: nombre, cobertura, costo, activa, orden.
+- Fechas sin servicio: solo retiro, solo envío o ambas, con motivo opcional (lo ve el cliente).
+- Simulador "Qué vería un cliente hoy": próximas fechas por modalidad y cálculo de envío y total
+  con la misma validación que usará el checkout.
+
+### Para la Etapa 4 (tienda pública y checkout)
+
+- `RetailFulfillment::Options.call` → Hash listo para JSON con modalidades, costo, franjas por día,
+  fechas habilitadas (ya filtradas) y zonas activas con su precio, para armar el paso de entrega.
+- `RetailFulfillment::Quote.call(service:, date:, zone_id:, address:, subtotal_cents:)` → valida y
+  calcula envío y total (para mostrar el resumen antes de confirmar).
+- `Retail::PlaceStoreOrder.call(attributes:, items:, request_token:)` → **la única entrada para crear
+  pedidos de la tienda**: vuelve a validar fecha, zona y dirección en el servidor, ignora cualquier
+  importe que mande el cliente, guarda zona/franja/costo y crea el pedido "Pendiente de
+  confirmación" (idempotente por `request_token`). Los ítems con precio de catálogo minorista se
+  arman en la Etapa 4 (nunca con precios del cliente).
+- `Retail::SaveOrder` sigue siendo el camino del equipo: los pedidos manuales pueden tener cualquier
+  fecha y otro costo de envío (pedidos especiales, solo admin). En el formulario hay una "Zona de
+  envío" opcional que completa el envío con el precio de la zona.
+
+### Pedidos existentes
+
+La migración solo agrega columnas opcionales: los pedidos anteriores quedan sin zona ni franja,
+con su envío, total, estado y pagos intactos, y no se les aplica la anticipación.
+
 ## Fotografías: Cloudflare R2 + Active Storage
 
-**Estado:** integración lista, **no habilitada en producción** (todavía no hay cuenta ni credenciales).
+**Estado:** conectado y habilitado en producción (`RETAIL_PHOTOS_ENABLED=true`, verificado con
+`retail_catalog:check_storage`). Lo que sigue documenta cómo funciona y cómo se conectó.
 Sin R2, producción usa `:local` y **bloquea la subida de fotos** (`RetailCatalog::PhotoStorage`):
 el disco de Heroku se borra en cada deploy/reinicio y no se aceptan fotos que se perderían. HANS
 arranca igual y el resto del catálogo funciona. Desarrollo y tests usan disco local.
