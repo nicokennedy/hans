@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 class PushNotificationJobTest < ActiveJob::TestCase
   setup do
@@ -6,7 +7,7 @@ class PushNotificationJobTest < ActiveJob::TestCase
     @product = Product.create!(name: "PushJobProd", category: @category, price_cents: 500, cost_cents: 200, active: true, position: 1)
     @customer = Customer.create!(name: "PushJobCustomer", active: true)
 
-    @order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    @order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     @order.order_items.build(product: @product, quantity: 2)
     @order.save!
 
@@ -146,6 +147,8 @@ class PushNotificationJobTest < ActiveJob::TestCase
       PushNotificationJob.perform_now(@order.id)
     end
 
-    assert_equal tags.uniq, tags
+    # Dos envíos del mismo pedido, con el mismo tag (así el navegador reemplaza la notificación en vez de duplicarla).
+    assert_equal 2, tags.size
+    assert_equal 1, tags.uniq.size
   end
 end

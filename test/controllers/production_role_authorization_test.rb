@@ -8,7 +8,7 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     @product = Product.create!(name: "Alfajor ProdRoleTest", category: @category, internal_category: "Alfajores", price_cents: 500, cost_cents: 200, active: true, position: 1)
     @customer = Customer.create!(name: "Cliente ProdRoleTest", active: true)
 
-    @order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    @order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     @order.order_items.build(product: @product, quantity: 2)
     @order.save!
 
@@ -132,7 +132,7 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Order.count" do
       post admin_orders_path, params: {
-        order: { customer_id: @customer.id, delivery_date: Date.tomorrow, status: "received" },
+        order: { customer_id: @customer.id, delivery_date: next_delivery_date, status: "received" },
         order_items: [ { product_id: @product.id, quantity: "1" } ]
       }
     end
@@ -411,7 +411,8 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
     get admin_orders_path
 
     assert_response :success
-    assert_no_match "Nuevo pedido", response.body
+    # El layout trae el aviso "Nuevo pedido recibido" (notificaciones): lo que no debe estar es el botón.
+    assert_select "a", text: "Nuevo pedido", count: 0
     assert_no_match "Saldo:", response.body
   end
 
@@ -594,7 +595,7 @@ class ProductionRoleAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "customer cannot view another customer's order" do
     other_customer = Customer.create!(name: "Otro Cliente ProdRoleTest", active: true)
-    other_order = Order.new(customer: other_customer, delivery_date: Date.tomorrow)
+    other_order = Order.new(customer: other_customer, delivery_date: next_delivery_date)
     other_order.order_items.build(product: @product, quantity: 1)
     other_order.save!
 

@@ -6,7 +6,7 @@ class Admin::OrdersHelperTest < ActionView::TestCase
     @active_product = Product.create!(name: "Producto Activo", category: @category, price_cents: 100, cost_cents: 50, active: true, position: 1)
     @inactive_product = Product.create!(name: "Producto Inactivo", category: @category, price_cents: 200, cost_cents: 80, active: false, position: 2)
     @customer = Customer.create!(name: "Cliente Test", active: true)
-    @order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+    @order = Order.create!(customer: @customer, delivery_date: next_delivery_date)
   end
 
   test "includes the item's own product even when it is inactive" do
@@ -23,7 +23,8 @@ class Admin::OrdersHelperTest < ActionView::TestCase
 
     html = order_item_product_options(item, Product.active.ordered)
 
-    assert_equal 1, html.scan(@active_product.name).size
+    # Se cuentan las opciones (el nombre también aparece en atributos data- de visibilidad).
+    assert_equal 1, html.scan(%(value="#{@active_product.id}")).size
   end
 
   test "does not add inactive products other than the item's own" do

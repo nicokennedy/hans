@@ -4,6 +4,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   test "should get index" do
+    sign_in User.create!(email: "production-index-admin@example.com", password: "password123", role: "admin")
     get admin_production_index_url
     assert_response :success
   end
@@ -13,7 +14,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
     category = Category.create!(name: "Alfajores", position: 1, active: true)
     product = Product.create!(name: "Alfajor Clásico", category: category, price_cents: 300, cost_cents: 100, active: true, position: 1)
     customer = Customer.create!(name: "Cliente Test", active: true)
-    order = Order.new(customer: customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: customer, delivery_date: next_delivery_date)
     order.order_items.build(product: product, quantity: 2)
     order.save!
 
@@ -33,7 +34,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
     sign_in admin
 
     with_whatsapp_number(nil) do
-      get admin_production_path(Date.tomorrow)
+      get admin_production_path(next_delivery_date)
 
       assert_response :success
       assert_no_match "wa.me", response.body
@@ -50,7 +51,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
 
     customer_uno = Customer.create!(name: "Café Uno", active: true)
     customer_dos = Customer.create!(name: "Café Dos", active: true)
-    delivery_date = Date.tomorrow
+    delivery_date = next_delivery_date
 
     order1 = Order.new(customer: customer_uno, delivery_date: delivery_date)
     order1.order_items.build(product: torta, quantity: 3)
@@ -104,7 +105,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
   test "customer names stay vertical and the table scrolls horizontally with many customers" do
     category = Category.create!(name: "Varios", position: 1, active: true)
     product = Product.create!(name: "Medialuna", category: category, internal_category: "Panificados", price_cents: 100, cost_cents: 40, active: true, position: 1)
-    delivery_date = Date.tomorrow
+    delivery_date = next_delivery_date
 
     12.times do |i|
       customer = Customer.create!(name: "Café Número #{i}", active: true)
@@ -132,7 +133,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
 
     customer_uno = Customer.create!(name: "Café Uno", active: true)
     customer_dos = Customer.create!(name: "Café Dos", active: true)
-    delivery_date = Date.tomorrow
+    delivery_date = next_delivery_date
 
     order1 = Order.new(customer: customer_uno, delivery_date: delivery_date)
     order1.order_items.build(product: torta, quantity: 3)
@@ -174,7 +175,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
   test "print keeps customer names vertical and centered, with visible cell borders" do
     category = Category.create!(name: "Varios", position: 1, active: true)
     product = Product.create!(name: "Medialuna", category: category, internal_category: "Panificados", price_cents: 100, cost_cents: 40, active: true, position: 1)
-    delivery_date = Date.tomorrow
+    delivery_date = next_delivery_date
 
     customer = Customer.create!(name: "Café Con Un Nombre Bastante Largo Para Probar", active: true)
     order = Order.new(customer: customer, delivery_date: delivery_date)
@@ -196,7 +197,7 @@ class Admin::ProductionControllerTest < ActionDispatch::IntegrationTest
   test "print works with many customers and long names without breaking the table" do
     category = Category.create!(name: "Varios", position: 1, active: true)
     product = Product.create!(name: "Medialuna", category: category, internal_category: "Panificados", price_cents: 100, cost_cents: 40, active: true, position: 1)
-    delivery_date = Date.tomorrow
+    delivery_date = next_delivery_date
 
     12.times do |i|
       customer = Customer.create!(name: "Café Con Nombre Bastante Largo Numero #{i}", active: true)

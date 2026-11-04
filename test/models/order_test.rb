@@ -11,7 +11,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "recalculates total from all order items on create" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 2)
     order.order_items.build(product: @other_product, quantity: 1)
 
@@ -21,7 +21,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "recalculates total after an item is destroyed directly, without counting stale in-memory items" do
-    order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.create!(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.create!(product: @product, quantity: 2)
     removable_item = order.order_items.create!(product: @other_product, quantity: 1)
 
@@ -36,7 +36,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "prevents an update from leaving the order without any items" do
-    order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.create!(customer: @customer, delivery_date: next_delivery_date)
     item = order.order_items.create!(product: @product, quantity: 1)
 
     item.destroy!
@@ -45,7 +45,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "recalculate_payment_state! derives pending, partial and paid from registered payments" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 2)
     order.save! # total_cents = 600
 
@@ -59,7 +59,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "editing order items after payments exist keeps payment_status consistent with the new total" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     item = order.order_items.build(product: @product, quantity: 2)
     order.save! # total_cents = 600
 
@@ -75,10 +75,10 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "not_canceled excludes canceled orders" do
-    kept = Order.create!(customer: @customer, delivery_date: Date.tomorrow, status: "confirmed")
+    kept = Order.create!(customer: @customer, delivery_date: next_delivery_date, status: "confirmed")
     kept.order_items.create!(product: @product, quantity: 1)
 
-    canceled = Order.create!(customer: @customer, delivery_date: Date.tomorrow, status: "canceled")
+    canceled = Order.create!(customer: @customer, delivery_date: next_delivery_date, status: "canceled")
     canceled.order_items.create!(product: @product, quantity: 1)
 
     result = Order.where(id: [kept.id, canceled.id]).not_canceled
@@ -87,8 +87,8 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "cash_on_delivery shows Efectivo contraentrega and cash_later shows Cuenta corriente, each with its own distinct label" do
-    cash_on_delivery_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "cash_on_delivery")
-    cash_later_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "cash_later")
+    cash_on_delivery_order = Order.create!(customer: @customer, delivery_date: next_delivery_date, payment_method_selected: "cash_on_delivery")
+    cash_later_order = Order.create!(customer: @customer, delivery_date: next_delivery_date, payment_method_selected: "cash_later")
 
     assert_equal "Efectivo contraentrega", cash_on_delivery_order.payment_method_selected_label
     assert_equal "Cuenta corriente", cash_later_order.payment_method_selected_label
@@ -97,8 +97,8 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "bank_transfer shows Transferencia bancaria, and a blank payment method returns nil" do
-    order = Order.create!(customer: @customer, delivery_date: Date.tomorrow, payment_method_selected: "bank_transfer")
-    blank_order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.create!(customer: @customer, delivery_date: next_delivery_date, payment_method_selected: "bank_transfer")
+    blank_order = Order.create!(customer: @customer, delivery_date: next_delivery_date)
 
     assert_equal "Transferencia bancaria", order.payment_method_selected_label
     assert_nil blank_order.payment_method_selected_label
@@ -123,21 +123,24 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "creating an order broadcasts exactly one order_created event and enqueues exactly one push job" do
-    assert_broadcast_on("orders_channel", type: "order_created") do
-      assert_enqueued_with(job: PushNotificationJob) do
-        order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    # assert_broadcast_on compara el mensaje completo (trae también id, número, cliente, url...):
+    # se verifica que haya exactamente una emisión y que sea de tipo order_created.
+    assert_broadcasts("orders_channel", 1) do
+      assert_enqueued_jobs(1, only: PushNotificationJob) do
+        order = Order.new(customer: @customer, delivery_date: next_delivery_date)
         order.order_items.build(product: @product, quantity: 1)
         order.save!
         @created_order_for_cleanup = order
       end
     end
+    assert_equal "order_created", JSON.parse(broadcasts("orders_channel").last)["type"]
   ensure
     @created_order_for_cleanup&.order_items&.destroy_all
     @created_order_for_cleanup&.destroy
   end
 
   test "the push job is enqueued with the order's id, not a serialized record" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 1)
 
     assert_enqueued_with(job: PushNotificationJob) { order.save! }
@@ -151,12 +154,12 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "editing an existing order (delivery date) does not broadcast a new order_created event" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 1)
     order.save!
 
     assert_no_broadcasts("orders_channel") do
-      order.update!(delivery_date: Date.tomorrow + 1.day)
+      order.update!(delivery_date: next_delivery_date + 1.day)
     end
   ensure
     order.order_items.destroy_all
@@ -164,7 +167,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "changing status does not broadcast a new order_created event" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 1)
     order.save!
 
@@ -177,7 +180,7 @@ class OrderTest < ActiveSupport::TestCase
   end
 
   test "registering a payment does not broadcast a new order_created event" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 1)
     order.save!
 
@@ -200,12 +203,13 @@ class OrderTest < ActiveSupport::TestCase
 
   test "receipt_filename sanitizes the customer name and includes the order number" do
     weird_customer = Customer.create!(name: "Café Ñandú & Cía. S.A.", active: true)
-    order = Order.new(customer: weird_customer, delivery_date: Date.tomorrow)
+    order = Order.new(customer: weird_customer, delivery_date: next_delivery_date)
     order.order_items.build(product: @product, quantity: 1)
     order.save!
 
     assert_equal "remito-#{order.number}-cafe-nandu-cia-s-a.png", order.receipt_filename
-    assert_match(/\A[a-z0-9\-\.]+\z/, order.receipt_filename)
+    # El número de pedido va en mayúsculas (HANS-...): el nombre del cliente sí queda normalizado.
+    assert_match(/\A[A-Za-z0-9\-\.]+\z/, order.receipt_filename)
   ensure
     order.order_items.destroy_all
     order.destroy

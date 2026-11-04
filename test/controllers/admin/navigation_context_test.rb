@@ -5,7 +5,8 @@ require "test_helper"
 class Admin::NavigationContextTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  DAY = Date.new(2026, 10, 6)
+  # La ficha del cliente muestra por defecto los pedidos del mes en curso: la fecha tiene que caer en este mes.
+  DAY = Date.current
 
   setup do
     @admin = User.create!(email: "nav-admin@example.com", password: "password123", role: "admin")
@@ -98,7 +99,7 @@ class Admin::NavigationContextTest < ActionDispatch::IntegrationTest
   end
 
   test "B: from the account, Ver pedido -> payment -> Volver goes back to the account, never to Pedidos" do
-    context = { q: "Monke", via: "customer", filter: "pending", from: "2026-10-01", to: "2026-10-31" }
+    context = { q: "Monke", via: "customer", filter: "pending", from: DAY.beginning_of_month.iso8601, to: DAY.end_of_month.iso8601 }
     get admin_customer_account_path(@monke, context)
     order_link = admin_order_path(@monke_order, context.merge(back_to: "account"))
     assert_select "a[href=?]", order_link, text: "Ver pedido"

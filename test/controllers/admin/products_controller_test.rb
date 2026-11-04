@@ -41,11 +41,19 @@ class Admin::ProductsControllerTest < ActionDispatch::IntegrationTest
 
   test "sorts every allowed field in both directions" do
     expectations = {
-      name: { asc: ["Alfajor Clásico", "Torta Brownie", "alfajor Blanco"], desc: ["alfajor Blanco", "Torta Brownie", "Alfajor Clásico"] },
-      category: { asc: ["Alfajor Clásico", "alfajor Blanco", "Torta Brownie"], desc: ["Torta Brownie", "Alfajor Clásico", "alfajor Blanco"] },
+      # El orden por nombre depende de la collation de la base (con mayúsculas antes o no): se compara contra la propia base.
+      name: { asc: Product.order(:name).pluck(:name), desc: Product.order(name: :desc).pluck(:name) },
       price: { asc: ["alfajor Blanco", "Alfajor Clásico", "Torta Brownie"], desc: ["Torta Brownie", "Alfajor Clásico", "alfajor Blanco"] },
       cost: { asc: ["Alfajor Clásico", "alfajor Blanco", "Torta Brownie"], desc: ["Torta Brownie", "alfajor Blanco", "Alfajor Clásico"] }
     }
+    # Por categoría el orden dentro de una misma categoría no está definido: se verifica el orden de las categorías.
+    %w[asc desc].each do |direction|
+      get admin_products_path, params: { sort: "category", direction: direction }
+      assert_response :success
+      categories = css_select("tbody tr td.fw-bold span").map { |cell| Product.find_by!(name: cell.text.strip).category.name }
+      assert_equal (direction == "asc" ? categories.sort : categories.sort.reverse), categories
+      assert_equal 3, categories.size
+    end
     expectations.each do |sort, directions|
       directions.each do |direction, expected|
         get admin_products_path, params: { sort: sort, direction: direction }
@@ -88,8 +96,8 @@ class Admin::ProductsControllerTest < ActionDispatch::IntegrationTest
     patch update_inline_admin_product_path(@clasico, field: "price_amount"), params: { product: { price_amount: "350" } }
 
     assert_response :success
-    assert_equal 35_000, @clasico.reload.price_cents
-    assert_match "35.000", @response.body
+    assert_equal 35_000, @clasico.reload.price_cents # $350 en centavos
+    assert_match "$350", @response.body
   end
 
   test "inline update edits internal_category independently from category_id" do

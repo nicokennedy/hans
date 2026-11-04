@@ -6,7 +6,7 @@ class OrderItemTest < ActiveSupport::TestCase
     @product = Product.create!(name: "Alfajor Clásico", category: @category, price_cents: 300, cost_cents: 100, active: true, position: 1)
     @other_product = Product.create!(name: "Torta Brownie", category: @category, price_cents: 900, cost_cents: 500, active: true, position: 2)
     @customer = Customer.create!(name: "Cliente Test", active: true)
-    @order = Order.create!(customer: @customer, delivery_date: Date.tomorrow)
+    @order = Order.create!(customer: @customer, delivery_date: next_delivery_date)
   end
 
   test "calculates subtotal from quantity and snapshot price on create" do

@@ -9,7 +9,7 @@ class Orders::CsvExporterTest < ActiveSupport::TestCase
     @admin = User.create!(email: "csvexporter-admin-#{rand(1_000_000)}@example.com", password: "password123", role: "admin")
   end
 
-  def build_order(delivery_date: Date.tomorrow)
+  def build_order(delivery_date: next_delivery_date)
     order = Order.new(customer: @customer, delivery_date: delivery_date, created_by_admin: true, payment_method_selected: "cash_on_delivery")
     order.order_items.build(product: @product, quantity: 1)
     order.save!
@@ -58,7 +58,7 @@ class Orders::CsvExporterTest < ActiveSupport::TestCase
   end
 
   test "an order with several products repeats the same payment columns on every row" do
-    order = Order.new(customer: @customer, delivery_date: Date.tomorrow, created_by_admin: true, payment_method_selected: "cash_on_delivery")
+    order = Order.new(customer: @customer, delivery_date: next_delivery_date, created_by_admin: true, payment_method_selected: "cash_on_delivery")
     order.order_items.build(product: @product, quantity: 2)
     order.order_items.build(product: @other_product, quantity: 3)
     order.save!

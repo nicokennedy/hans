@@ -7,7 +7,8 @@ class Notifications::OrderWhatsappMessageTest < ActiveSupport::TestCase
     @other_product = Product.create!(name: "Pan de molde", category: @category, price_cents: 300, cost_cents: 100, active: true, position: 2)
     @customer = Customer.create!(name: "Café Central", active: true)
 
-    @order = Order.new(customer: @customer, delivery_date: Date.new(2026, 7, 25))
+    # Fecha fija ya pasada: se carga como admin (sin control de fecha) para que el test no dependa del día en que corre.
+    @order = Order.new(customer: @customer, delivery_date: Date.new(2026, 7, 25), created_by_admin: true)
     @order.order_items.build(product: @product, quantity: 24)
     @order.order_items.build(product: @other_product, quantity: 6)
     @order.save!

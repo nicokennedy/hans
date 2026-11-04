@@ -71,6 +71,8 @@ group :development do
 end
 
 group :test do
+  # Rails 7.1 no es compatible con Minitest 6 (rails test falla en line_filtering): fijamos 5.x.
+  gem "minitest", "~> 5.25"
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"

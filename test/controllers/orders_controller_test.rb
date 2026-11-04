@@ -9,7 +9,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     @customer = Customer.create!(name: "Cliente Test", active: true)
     @user = User.create!(email: "customer-orders@example.com", password: "password123", role: "customer", customer: @customer)
 
-    @order = @customer.orders.new(delivery_date: Date.tomorrow)
+    @order = @customer.orders.new(delivery_date: next_delivery_date)
     @order.order_items.build(product: @product, quantity: 2)
     @order.save! # total_cents = 1000
   end
@@ -35,7 +35,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index shows the account statement totals, excluding canceled orders" do
-    canceled_order = @customer.orders.new(delivery_date: Date.tomorrow, status: "canceled")
+    canceled_order = @customer.orders.new(delivery_date: next_delivery_date, status: "canceled")
     canceled_order.order_items.build(product: @product, quantity: 5) # would add 2500 if counted
     canceled_order.save!
 
@@ -150,7 +150,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
 
   test "a customer cannot view another customer's order" do
     other_customer = Customer.create!(name: "Otro Cliente", active: true)
-    other_order = other_customer.orders.new(delivery_date: Date.tomorrow)
+    other_order = other_customer.orders.new(delivery_date: next_delivery_date)
     other_order.order_items.build(product: @product, quantity: 1)
     other_order.save!
 

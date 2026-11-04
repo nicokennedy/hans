@@ -10,7 +10,7 @@ class Admin::ExceptionalDeliveryDatesControllerTest < ActionDispatch::Integratio
   end
 
   test "admin can add an exceptional delivery date" do
-    tuesday = Date.new(2026, 10, 6)
+    tuesday = Date.current.next_occurring(:tuesday) # siempre futura: el controller rechaza fechas pasadas
 
     post admin_exceptional_delivery_dates_path, params: { date: tuesday.iso8601 }
 
@@ -19,7 +19,7 @@ class Admin::ExceptionalDeliveryDatesControllerTest < ActionDispatch::Integratio
   end
 
   test "adding the same date twice does not create duplicates or error" do
-    tuesday = Date.new(2026, 10, 6)
+    tuesday = Date.current.next_occurring(:tuesday) # siempre futura: el controller rechaza fechas pasadas
     post admin_exceptional_delivery_dates_path, params: { date: tuesday.iso8601 }
 
     post admin_exceptional_delivery_dates_path, params: { date: tuesday.iso8601 }
