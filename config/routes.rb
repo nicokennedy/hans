@@ -118,6 +118,19 @@ Rails.application.routes.draw do
           patch :move_down
         end
       end
+      # Etapa 3: retiro por zona Plaza del Agua y envío a domicilio (independiente del mayorista).
+      resource :fulfillment, path: "entregas", controller: "fulfillment", only: [:show] do
+        patch :general
+        patch :schedule
+      end
+      resources :delivery_zones, path: "entregas/zonas", except: [:index, :show] do
+        member do
+          patch :toggle_active
+          patch :move_up
+          patch :move_down
+        end
+      end
+      resources :service_closures, path: "entregas/fechas-sin-servicio", only: [:create, :destroy]
     end
     # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los
     # pedidos mayoristas (ver RetailOrder / Retail::*). Solo admin.

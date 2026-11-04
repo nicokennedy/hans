@@ -107,7 +107,7 @@ class Admin::RetailOrdersController < ApplicationController
   end
 
   def order_attributes
-    params.permit(:buyer_name, :buyer_phone, :delivery_date, :delivery_kind, :delivery_time_note, :address, :notes, :planned_payment_method, :shipping).to_h
+    params.permit(:buyer_name, :buyer_phone, :delivery_date, :delivery_kind, :delivery_time_note, :address, :notes, :planned_payment_method, :shipping, :delivery_zone_id).to_h
   end
 
   def item_rows
@@ -119,7 +119,7 @@ class Admin::RetailOrdersController < ApplicationController
     {
       buyer_name: order.buyer_name, buyer_phone: order.buyer_phone, delivery_date: order.delivery_date,
       delivery_kind: order.delivery_kind, delivery_time_note: order.delivery_time_note, address: order.address,
-      notes: order.notes, planned_payment_method: order.planned_payment_method,
+      notes: order.notes, planned_payment_method: order.planned_payment_method, delivery_zone_id: order.delivery_zone_id,
       shipping: order.shipping_cents.positive? ? Retail::Money.format_pesos(order.shipping_cents) : "",
       items: items
     }
@@ -138,6 +138,7 @@ class Admin::RetailOrdersController < ApplicationController
       buyer_name: params[:buyer_name], buyer_phone: params[:buyer_phone], delivery_date: params[:delivery_date],
       delivery_kind: params[:delivery_kind], delivery_time_note: params[:delivery_time_note], address: params[:address],
       notes: params[:notes], planned_payment_method: params[:planned_payment_method], shipping: params[:shipping],
+      delivery_zone_id: params[:delivery_zone_id],
       items: item_rows
     }
     prepare_form
@@ -146,5 +147,7 @@ class Admin::RetailOrdersController < ApplicationController
 
   def prepare_form
     @products = Product.active.ordered.to_a
+    # Zonas activas + la que ya tenía el pedido (aunque hoy esté desactivada), para no perderla al editar.
+    @zones = RetailDeliveryZone.where(active: true).or(RetailDeliveryZone.where(id: @order&.delivery_zone_id)).ordered.to_a
   end
 end

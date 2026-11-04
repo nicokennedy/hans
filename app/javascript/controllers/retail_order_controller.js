@@ -6,7 +6,7 @@ import { formatPesos } from "payment_distribution"
 // muestra subtotales, envío y total en vivo (exactos, ver retail_totals.js). El precio es
 // SIEMPRE manual: nunca se completa solo. El servidor recalcula y valida todo al guardar.
 export default class extends Controller {
-  static targets = ["list", "productTemplate", "manualTemplate", "row", "shipping", "subtotal", "total", "errors"]
+  static targets = ["list", "productTemplate", "manualTemplate", "row", "shipping", "subtotal", "total", "errors", "zone"]
 
   connect() {
     this.recalculate()
@@ -27,6 +27,16 @@ export default class extends Controller {
     this.listTarget.insertAdjacentHTML("beforeend", html)
     this.recalculate()
     this.listTarget.querySelector("[data-retail-order-target='row']:last-child select, [data-retail-order-target='row']:last-child input[type=text]")?.focus()
+  }
+
+  // Elegir una zona completa el envío con su precio (el equipo puede cambiarlo después; el
+  // servidor usa el precio de la zona si el envío queda vacío).
+  zoneChanged() {
+    const option = this.zoneTarget.selectedOptions[0]
+    if (option?.dataset.price && this.hasShippingTarget) {
+      this.shippingTarget.value = option.dataset.price
+      this.recalculate()
+    }
   }
 
   remove(event) {

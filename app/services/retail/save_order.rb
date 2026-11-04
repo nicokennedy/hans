@@ -15,6 +15,13 @@ module Retail
   # confirmación y no cuenta para producción ni stock. request_token hace idempotente el alta:
   # el mismo token devuelve el pedido ya creado (duplicate: true), también ante dos envíos
   # simultáneos (índice único). Al editar, origen y confirmación no cambian.
+  #
+  # Entrega (Etapa 3): el equipo puede elegir una zona de envío (delivery_zone_id) para registrar
+  # el pedido; si deja el envío vacío se usa el precio de esa zona, pero puede escribir otro
+  # importe (pedidos especiales) y cualquier fecha. La zona, su nombre y la franja quedan copiados
+  # en el pedido. Los pedidos de la TIENDA no entran por acá con datos del cliente: los crea
+  # Retail::PlaceStoreOrder, que valida fecha, zona y dirección con RetailFulfillment::Quote y pasa
+  # el resultado en fulfillment: (el envío sale de la zona, nunca de un importe del cliente).
   class SaveOrder
     def self.call(**args)
       new(**args).call
@@ -25,13 +32,14 @@ module Retail
     # items: [{ "id", "kind" ("product"|"manual"), "product_id", "description", "quantity", "unit_price" }]
     SOURCES = RetailOrder.sources.keys.freeze
 
-    def initialize(order:, attributes:, items:, user:, source: "manual", request_token: nil)
+    def initialize(order:, attributes:, items:, user:, source: "manual", request_token: nil, fulfillment: nil)
       @order = order
       @attributes = attributes.to_h.with_indifferent_access
       @rows = Array(items).map { |row| row.to_h.with_indifferent_access }
       @user = user
       @source = source.to_s
       @request_token = request_token.to_s.strip.presence
+      @fulfillment = fulfillment
     end
 
     def call
@@ -58,6 +66,7 @@ module Retail
         @order = order
         creating = order.new_record?
 
+        attrs[:delivery_window_label] = window_label_for(order, attrs)
         order.assign_attributes(attrs.merge(subtotal_cents: subtotal, total_cents: total))
         assign_origin(order) if creating
         order.created_by ||= @user if creating
@@ -105,9 +114,16 @@ module Retail
 
     def parse_attributes(errors)
       date = parse_date(@attributes[:delivery_date], errors)
-      shipping = parse_shipping(errors)
       kind = @attributes[:delivery_kind].presence || "pickup"
       errors << "El tipo de entrega no es válido." unless RetailOrder.delivery_kinds.key?(kind)
+      zone = zone_attributes(kind, errors)
+      shipping = if @fulfillment
+                   @fulfillment.shipping_cents
+                 elsif @attributes[:shipping].to_s.strip.empty? && zone[:delivery_zone]
+                   zone[:delivery_zone].price_cents # zona recién elegida y envío vacío: el precio de la zona
+                 else
+                   parse_shipping(errors)
+                 end
       planned = @attributes[:planned_payment_method].presence
       errors << "El medio de pago previsto no es válido." if planned && !RetailOrder::PAYMENT_METHODS.include?(planned)
       errors << "El nombre y apellido del comprador es obligatorio." if @attributes[:buyer_name].to_s.strip.empty?
@@ -122,7 +138,40 @@ module Retail
         notes: @attributes[:notes],
         planned_payment_method: planned,
         shipping_cents: shipping
-      }
+      }.merge(zone)
+    end
+
+    # Zona de envío. Sin envío a domicilio no hay zona. Si el pedido ya tenía esa zona, se conserva
+    # el nombre guardado (histórico) aunque la zona se haya renombrado o desactivado después.
+    def zone_attributes(kind, errors)
+      if @fulfillment
+        return { delivery_zone: @fulfillment.zone, delivery_zone_name: @fulfillment.zone_name, address: @fulfillment.address }
+      end
+      return { delivery_zone: nil, delivery_zone_name: nil } unless kind == "delivery"
+      return {} unless @attributes.key?(:delivery_zone_id) # quien no manda zona no la cambia
+
+      text = @attributes[:delivery_zone_id].to_s.strip
+      return { delivery_zone: nil, delivery_zone_name: nil } if text.empty?
+
+      zone = text.match?(/\A\d{1,18}\z/) ? RetailDeliveryZone.find_by(id: text.to_i) : nil
+      if zone.nil?
+        errors << "La zona de envío elegida no existe."
+        return {}
+      end
+      return {} if zone.id == @order.delivery_zone_id
+
+      errors << "La zona de envío \"#{zone.name}\" está desactivada." unless zone.active?
+      { delivery_zone: zone, delivery_zone_name: zone.name }
+    end
+
+    # Franja guardada en el pedido: la que validó la tienda. Si el equipo cambia la fecha o la
+    # modalidad de un pedido que tenía franja, se toma la del nuevo día (o ninguna).
+    def window_label_for(order, attrs)
+      return @fulfillment.window_label if @fulfillment
+      return order.delivery_window_label if order.delivery_window_label.blank?
+      return order.delivery_window_label if order.delivery_date == attrs[:delivery_date] && order.delivery_kind == attrs[:delivery_kind]
+
+      RetailFulfillment::Calendar.new.window_label(attrs[:delivery_kind], attrs[:delivery_date])
     end
 
     def parse_date(value, errors)

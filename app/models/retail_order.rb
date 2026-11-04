@@ -14,6 +14,10 @@ class RetailOrder < ApplicationRecord
   belongs_to :created_by, class_name: "User", optional: true
   belongs_to :confirmed_by, class_name: "User", optional: true
   belongs_to :rejected_by, class_name: "User", optional: true
+  # Zona de envío elegida (Etapa 3). El nombre de la zona, la franja y el costo (shipping_cents)
+  # quedan copiados en el pedido: si la zona cambia de precio o de nombre, el pedido conserva lo
+  # que se aplicó. Los pedidos anteriores a la Etapa 3 no tienen zona.
+  belongs_to :delivery_zone, class_name: "RetailDeliveryZone", optional: true, inverse_of: :retail_orders
   has_many :retail_order_items, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :retail_order
   has_many :retail_order_payments, -> { order(:paid_at, :id) }, dependent: :restrict_with_error, inverse_of: :retail_order
   has_many :retail_order_status_changes, -> { order(:created_at, :id) }, dependent: :destroy
@@ -74,6 +78,8 @@ class RetailOrder < ApplicationRecord
   validates :buyer_phone, length: { maximum: 40 }, allow_blank: true
   validates :delivery_time_note, length: { maximum: 120 }, allow_blank: true
   validates :address, length: { maximum: 250 }, allow_blank: true
+  validates :delivery_zone_name, length: { maximum: 60 }, allow_blank: true
+  validates :delivery_window_label, length: { maximum: 60 }, allow_blank: true
   validates :notes, length: { maximum: 2000 }, allow_blank: true
   validates :delivery_date, presence: true
   validates :planned_payment_method, inclusion: { in: PAYMENT_METHODS }, allow_blank: true
@@ -110,6 +116,11 @@ class RetailOrder < ApplicationRecord
 
   def delivery_kind_label
     DELIVERY_KIND_LABELS[delivery_kind]
+  end
+
+  # Nombre de la modalidad como lo ve el cliente de la tienda.
+  def delivery_service_name
+    RetailFulfillment.service_name(delivery_kind)
   end
 
   def planned_payment_method_label

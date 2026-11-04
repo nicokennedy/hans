@@ -1,0 +1,5 @@
+<div class="container py-5">
+  <div class="text-muted small">Tienda Minorista → Entregas</div>
+  <h1 class="fw-bold mb-3">Editar <%= @zone.name_was %></h1>
+  <%= render "form", url: admin_retail_catalog_delivery_zone_path(@zone), method: :patch, submit_label: "Guardar cambios" %>
+</div>

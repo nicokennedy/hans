@@ -19,6 +19,8 @@
       <div class="col-6 col-md-2"><div class="small text-muted">Entrega</div><div class="fw-bold"><%= retail_date(@order.delivery_date) %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Horario</div><div><%= @order.delivery_time_note.presence || "—" %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Tipo</div><div><%= @order.delivery_kind_label %></div></div>
+      <% if @order.delivery_window_label.present? %><div class="col-6 col-md-3"><div class="small text-muted"><%= RetailFulfillment::WINDOW_NAMES[@order.delivery_kind] %></div><div id="retail-order-window"><%= @order.delivery_window_label %></div></div><% end %>
+      <% if @order.delivery_zone_name.present? %><div class="col-6 col-md-3"><div class="small text-muted">Zona de envío</div><div id="retail-order-zone"><%= @order.delivery_zone_name %></div></div><% end %>
       <% if @order.address.present? %><div class="col-12 col-md-6"><div class="small text-muted">Dirección</div><div><%= @order.address %></div></div><% end %>
       <div class="col-6 col-md-3"><div class="small text-muted">Origen</div><div><%= retail_source_badge(@order) %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Confirmación</div><div id="retail-confirmation-status"><%= retail_confirmation_badge(@order) %></div></div>

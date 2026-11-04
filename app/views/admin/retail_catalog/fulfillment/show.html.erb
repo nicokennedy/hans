@@ -1,0 +1,175 @@
+<div class="container py-5">
+  <div class="mb-3">
+    <div class="text-muted small">Tienda Minorista</div>
+    <h1 class="fw-bold mb-0">Entregas y retiros</h1>
+    <div class="text-muted small">Reglas de la tienda online minorista. No cambian el reparto mayorista ni los pedidos ya cargados.</div>
+  </div>
+  <%= render "admin/retail_catalog/shared/nav" %>
+
+  <%# --- Reglas generales --- %>
+  <div class="product-card mb-4" id="reglas-generales">
+    <h2 class="fs-5 fw-bold mb-3">Reglas generales</h2>
+    <%= render "admin/administration/shared/errors", errors: @general_errors %>
+    <%= form_with model: @setting, scope: :retail_fulfillment_setting, url: general_admin_retail_catalog_fulfillment_path, method: :patch, local: true do |f| %>
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <%= f.label :min_lead_days, "Anticipación mínima (días calendario) *", class: "form-label" %>
+          <%= f.number_field :min_lead_days, class: "form-control", min: 0, max: RetailFulfillmentSetting::MAX_LEAD_DAYS, required: true %>
+          <div class="form-text">Se cuenta desde la fecha de hoy en Argentina, no en horas: con 2, un pedido del lunes (a cualquier hora) puede ser para el miércoles.</div>
+        </div>
+        <div class="col-12 col-md-8">
+          <%= f.label :pickup_point_details, "Punto de retiro (dirección o indicaciones)", class: "form-label" %>
+          <%= f.text_area :pickup_point_details, class: "form-control", rows: 3, maxlength: 1000, placeholder: "Todavía sin definir. Se mostrará al cliente que elija “Retiro por zona Plaza del Agua”." %>
+          <% if @setting.pickup_point_details.blank? %><div class="form-text text-warning-emphasis" id="pickup-point-missing">Sin cargar: el cliente verá solo “Retiro por zona Plaza del Agua”.</div><% end %>
+        </div>
+      </div>
+      <%= f.submit "Guardar reglas generales", class: "btn btn-dark mt-3" %>
+    <% end %>
+  </div>
+
+  <%# --- Días y horarios --- %>
+  <div class="product-card mb-4" id="horarios">
+    <h2 class="fs-5 fw-bold mb-1">Días y horarios</h2>
+    <div class="small text-muted mb-3">Los días sin marcar no se pueden elegir. El horario de envío es una franja de entrega, no un turno exacto.</div>
+    <%= render "admin/administration/shared/errors", errors: @schedule_errors %>
+    <%= form_with url: schedule_admin_retail_catalog_fulfillment_path, method: :patch, local: true do %>
+      <div class="row g-4">
+        <% RetailServiceWindow::SERVICES.each do |service| %>
+          <div class="col-12 col-xl-6" id="horarios-<%= service %>">
+            <h3 class="fs-6 fw-bold"><%= RetailFulfillment.service_name(service) %> <span class="fw-normal text-muted">· <%= service == "pickup" ? "Gratis" : "Costo según la zona" %></span></h3>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+              <thead><tr><th>Día</th><th>Habilitado</th><th>Desde</th><th>Hasta</th></tr></thead>
+              <tbody>
+                <% @windows.fetch(service, []).each do |w| %>
+                  <% base = "windows[#{service}][#{w.wday}]" %>
+                  <tr>
+                    <td><%= w.day_name %></td>
+                    <td><%= check_box_tag "#{base}[enabled]", "1", w.enabled?, id: "window-#{service}-#{w.wday}-enabled", class: "form-check-input", "aria-label": "#{w.day_name} habilitado" %></td>
+                    <td><%= time_field_tag "#{base}[opens_at]", w.opens_minute && format("%02d:%02d", w.opens_minute / 60, w.opens_minute % 60), id: "window-#{service}-#{w.wday}-opens", class: "form-control form-control-sm", "aria-label": "#{w.day_name} desde" %></td>
+                    <td><%= time_field_tag "#{base}[closes_at]", w.closes_minute && format("%02d:%02d", w.closes_minute / 60, w.closes_minute % 60), id: "window-#{service}-#{w.wday}-closes", class: "form-control form-control-sm", "aria-label": "#{w.day_name} hasta" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table></div>
+          </div>
+        <% end %>
+      </div>
+      <%= submit_tag "Guardar días y horarios", class: "btn btn-dark mt-3" %>
+    <% end %>
+  </div>
+
+  <%# --- Zonas --- %>
+  <div class="product-card mb-4" id="zonas">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="fs-5 fw-bold mb-0">Zonas de envío a domicilio</h2>
+      <%= link_to "+ Nueva zona", new_admin_retail_catalog_delivery_zone_path, class: "btn btn-sm btn-dark" %>
+    </div>
+    <div class="small text-muted mb-2">El cliente elige su zona a mano y el costo se aplica solo. La cobertura es orientativa. Cada pedido guarda el costo que se le aplicó: cambiar un precio no modifica pedidos ya creados.</div>
+    <% if @zones.empty? %>
+      <div class="alert alert-warning mb-0">No hay zonas: el envío a domicilio no se puede elegir hasta crear al menos una zona activa.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Orden</th><th>Zona</th><th>Cobertura</th><th class="text-end">Costo</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <% @zones.each_with_index do |z, i| %>
+            <tr class="<%= 'text-muted' unless z.active? %>" id="<%= dom_id(z) %>">
+              <td class="text-nowrap">
+                <%= button_to "↑", move_up_admin_retail_catalog_delivery_zone_path(z), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i.zero?, title: "Subir" %>
+                <%= button_to "↓", move_down_admin_retail_catalog_delivery_zone_path(z), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i == @zones.size - 1, title: "Bajar" %>
+              </td>
+              <td class="fw-bold text-nowrap"><%= z.name %></td>
+              <td class="small"><%= z.coverage.presence || "—" %></td>
+              <td class="text-end text-nowrap retail-zone-price"><%= retail_catalog_money(z.price_cents) %></td>
+              <td><span class="badge <%= z.active? ? 'bg-success' : 'bg-secondary' %>"><%= z.active? ? "Activa" : "Inactiva" %></span></td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Editar", edit_admin_retail_catalog_delivery_zone_path(z), class: "btn btn-sm btn-outline-dark" %>
+                <%= button_to(z.active? ? "Desactivar" : "Activar", toggle_active_admin_retail_catalog_delivery_zone_path(z), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }) %>
+                <% if @zone_usage[z.id].to_i.zero? %>
+                  <%= button_to "Eliminar", admin_retail_catalog_delivery_zone_path(z), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline", data: { turbo_confirm: "¿Eliminar la zona “#{z.name}”?" } } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+
+  <%# --- Fechas sin servicio --- %>
+  <div class="product-card mb-4" id="fechas-sin-servicio">
+    <h2 class="fs-5 fw-bold mb-1">Fechas sin servicio</h2>
+    <div class="small text-muted mb-3">Bloquean un día puntual sin cambiar los días habituales. Son solo de la tienda minorista: no afectan el calendario mayorista.</div>
+    <%= form_with model: @closure, scope: :retail_service_closure, url: admin_retail_catalog_service_closures_path, method: :post, local: true, class: "row g-2 align-items-end mb-3" do |f| %>
+      <div class="col-6 col-md-3"><%= f.label :date, "Fecha *", class: "form-label small" %><%= f.date_field :date, class: "form-control", required: true, min: @calendar.today.iso8601 %></div>
+      <div class="col-6 col-md-3"><%= f.label :service, "Sin", class: "form-label small" %><%= f.select :service, RetailServiceClosure::SERVICE_LABELS.map { |k, v| [v, k] }, {}, class: "form-select" %></div>
+      <div class="col-12 col-md-4"><%= f.label :reason, "Motivo (lo ve el cliente)", class: "form-label small" %><%= f.text_field :reason, class: "form-control", maxlength: 150, placeholder: "Ej.: feriado" %></div>
+      <div class="col-12 col-md-2"><%= f.submit "Bloquear", class: "btn btn-dark w-100" %></div>
+    <% end %>
+    <% if @closures.empty? %>
+      <div class="text-muted small">No hay fechas bloqueadas desde hoy.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Fecha</th><th>Sin</th><th>Motivo</th><th></th></tr></thead>
+        <tbody>
+          <% @closures.each do |c| %>
+            <tr id="<%= dom_id(c) %>">
+              <td class="text-nowrap"><%= RetailFulfillment.format_date(c.date).capitalize %>/<%= c.date.year %></td>
+              <td><%= c.service_label %></td>
+              <td><%= c.reason.presence || "—" %></td>
+              <td class="text-end"><%= button_to "Quitar", admin_retail_catalog_service_closure_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "¿Volver a habilitar el #{c.date.strftime('%d/%m/%Y')}?" } } %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+
+  <%# --- Vista del cliente y simulador --- %>
+  <div class="product-card mb-4" id="simulador">
+    <h2 class="fs-5 fw-bold mb-1">Qué vería un cliente hoy</h2>
+    <div class="small text-muted mb-3">
+      Hoy es <%= RetailFulfillment.format_date(@calendar.today) %> (hora de Argentina). Con <%= @calendar.min_lead_days %> días de anticipación, la primera fecha posible es el <strong id="earliest-date"><%= RetailFulfillment.format_date(@calendar.earliest_date) %></strong>.
+    </div>
+    <div class="row g-3 mb-3">
+      <% RetailServiceWindow::SERVICES.each do |service| %>
+        <div class="col-12 col-md-6" id="proximas-<%= service %>">
+          <div class="fw-bold"><%= RetailFulfillment.service_name(service) %></div>
+          <% if @next_dates[service].empty? %>
+            <div class="text-danger small">Sin fechas disponibles.</div>
+          <% else %>
+            <ul class="small mb-0 ps-3">
+              <% @next_dates[service].each do |date| %><li><%= RetailFulfillment.format_date(date).capitalize %> · <%= @calendar.window_label(service, date) %></li><% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%= form_with url: admin_retail_catalog_fulfillment_path(anchor: "simulador"), method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-3"><label class="form-label small" for="preview_service">Modalidad</label>
+        <%= select_tag "preview[service]", options_for_select(RetailFulfillment::SERVICE_NAMES.invert.to_a, @preview[:service]), id: "preview_service", class: "form-select" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small" for="preview_date">Fecha</label>
+        <%= date_field_tag "preview[date]", @preview[:date], id: "preview_date", class: "form-control", min: @calendar.earliest_date.iso8601, max: @calendar.last_date.iso8601 %></div>
+      <div class="col-6 col-md-3"><label class="form-label small" for="preview_zone_id">Zona (envío)</label>
+        <%= select_tag "preview[zone_id]", options_for_select(@zones.select(&:active?).map { |z| ["#{z.name} — #{retail_catalog_money(z.price_cents)}", z.id] }, @preview[:zone_id]), include_blank: "—", id: "preview_zone_id", class: "form-select" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small" for="preview_subtotal">Productos ($)</label>
+        <%= text_field_tag "preview[subtotal]", @preview[:subtotal], id: "preview_subtotal", class: "form-control", inputmode: "decimal", placeholder: "0" %></div>
+      <div class="col-6 col-md-2"><%= submit_tag "Probar", name: nil, class: "btn btn-outline-dark w-100" %></div>
+    <% end %>
+
+    <% if @preview_quote %>
+      <div class="mt-3" id="preview-result">
+        <% if @preview_quote.ok? %>
+          <div class="alert alert-success mb-0">
+            <div class="fw-bold"><%= @preview_quote.service_name %> · <%= RetailFulfillment.format_date(@preview_quote.date).capitalize %></div>
+            <div><%= RetailFulfillment::WINDOW_NAMES[@preview_quote.service] %>: <%= @preview_quote.window_label %></div>
+            <% if @preview_quote.zone %><div>Zona: <%= @preview_quote.zone_name %></div><% end %>
+            <div class="mt-2">Productos: <%= retail_catalog_money(@preview_quote.subtotal_cents) %> · Envío: <span id="preview-shipping"><%= @preview_quote.shipping_cents.zero? ? "$0 — Gratis" : retail_catalog_money(@preview_quote.shipping_cents) %></span> · <strong>Total: <span id="preview-total"><%= retail_catalog_money(@preview_quote.total_cents) %></span></strong></div>
+          </div>
+        <% else %>
+          <div class="alert alert-danger mb-0"><% @preview_quote.errors.each do |e| %><div><%= e %></div><% end %></div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

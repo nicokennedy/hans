@@ -26,7 +26,15 @@
         <label class="form-label" for="delivery_time_note">Horario</label>
         <%= text_field_tag :delivery_time_note, @form[:delivery_time_note], class: "form-control", maxlength: 120, placeholder: "Ej. 15:30, a la tarde, entre 10 y 12" %>
       </div>
-      <div class="col-12">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="delivery_zone_id">Zona de envío</label>
+        <%= select_tag :delivery_zone_id,
+              options_for_select(@zones.map { |z| ["#{z.name} — $#{Retail::Money.format_pesos(z.price_cents)}#{' (desactivada)' unless z.active?}", z.id, { "data-price" => Retail::Money.format_pesos(z.price_cents) }] }, @form[:delivery_zone_id]),
+              include_blank: "Sin zona", class: "form-select",
+              data: { retail_order_target: "zone", action: "change->retail-order#zoneChanged" } %>
+        <div class="form-text">Solo para envío a domicilio. Al elegirla se completa el envío con su precio; para un pedido especial podés cambiar el importe.</div>
+      </div>
+      <div class="col-12 col-md-8">
         <label class="form-label" for="address">Dirección</label>
         <%= text_field_tag :address, @form[:address], class: "form-control", maxlength: 250 %>
       </div>

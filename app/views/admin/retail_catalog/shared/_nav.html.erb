@@ -1,7 +1,8 @@
-<%# Navegación de Tienda Minorista → catálogo. %>
+<%# Navegación de Tienda Minorista: catálogo y entregas. %>
 <div class="d-flex flex-wrap gap-2 mb-3" id="retail-catalog-nav">
   <%= link_to "Productos", admin_retail_catalog_products_path, class: "btn btn-sm #{controller_name == 'products' ? 'btn-dark' : 'btn-outline-dark'}" %>
   <%= link_to "Categorías", admin_retail_catalog_categories_path, class: "btn btn-sm #{controller_name == 'categories' ? 'btn-dark' : 'btn-outline-dark'}" %>
+  <%= link_to "Entregas", admin_retail_catalog_fulfillment_path, class: "btn btn-sm #{%w[fulfillment delivery_zones].include?(controller_name) ? 'btn-dark' : 'btn-outline-dark'}" %>
 </div>
 <% unless RetailCatalog::PhotoStorage.enabled? %>
   <div class="alert alert-warning small" id="retail-photos-disabled">

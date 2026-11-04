@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -447,6 +447,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
     t.index "lower((name)::text)", name: "index_retail_categories_on_lower_name", unique: true
   end
 
+  create_table "retail_delivery_zones", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "coverage"
+    t.bigint "price_cents", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_retail_delivery_zones_on_lower_name", unique: true
+    t.check_constraint "price_cents >= 0", name: "retail_delivery_zones_price_non_negative"
+  end
+
+  create_table "retail_fulfillment_settings", force: :cascade do |t|
+    t.integer "min_lead_days", default: 2, null: false
+    t.text "pickup_point_details"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.check_constraint "min_lead_days >= 0 AND min_lead_days <= 30", name: "retail_fulfillment_lead_days_range"
+  end
+
   create_table "retail_order_confirmation_changes", force: :cascade do |t|
     t.bigint "retail_order_id", null: false
     t.string "from_status", null: false
@@ -531,10 +551,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
     t.text "rejection_reason"
     t.string "request_token"
     t.string "public_token"
+    t.bigint "delivery_zone_id"
+    t.string "delivery_zone_name"
+    t.string "delivery_window_label"
     t.index ["confirmation_status"], name: "index_retail_orders_on_confirmation_status"
     t.index ["confirmed_by_id"], name: "index_retail_orders_on_confirmed_by_id"
     t.index ["created_by_id"], name: "index_retail_orders_on_created_by_id"
     t.index ["delivery_date"], name: "index_retail_orders_on_delivery_date"
+    t.index ["delivery_zone_id"], name: "index_retail_orders_on_delivery_zone_id"
     t.index ["payment_status"], name: "index_retail_orders_on_payment_status"
     t.index ["public_token"], name: "index_retail_orders_on_public_token", unique: true, where: "(public_token IS NOT NULL)"
     t.index ["rejected_by_id"], name: "index_retail_orders_on_rejected_by_id"
@@ -576,6 +600,32 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
     t.index ["product_id"], name: "index_retail_products_on_product_id"
     t.index ["retail_category_id"], name: "index_retail_products_on_retail_category_id"
     t.check_constraint "price_cents >= 0", name: "retail_products_price_non_negative"
+  end
+
+  create_table "retail_service_closures", force: :cascade do |t|
+    t.date "date", null: false
+    t.string "service", null: false
+    t.string "reason"
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_retail_service_closures_on_created_by_id"
+    t.index ["date", "service"], name: "index_retail_service_closures_on_date_and_service", unique: true
+    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying, 'delivery'::character varying, 'all'::character varying]::text[])", name: "retail_service_closures_service_valid"
+  end
+
+  create_table "retail_service_windows", force: :cascade do |t|
+    t.string "service", null: false
+    t.integer "wday", null: false
+    t.boolean "enabled", default: false, null: false
+    t.integer "opens_minute"
+    t.integer "closes_minute"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service", "wday"], name: "index_retail_service_windows_on_service_and_wday", unique: true
+    t.check_constraint "NOT enabled OR opens_minute IS NOT NULL AND closes_minute IS NOT NULL AND opens_minute >= 0 AND closes_minute <= 1440 AND opens_minute < closes_minute", name: "retail_service_windows_enabled_has_hours"
+    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying, 'delivery'::character varying]::text[])", name: "retail_service_windows_service_valid"
+    t.check_constraint "wday >= 0 AND wday <= 6", name: "retail_service_windows_wday_valid"
   end
 
   create_table "stock_items", force: :cascade do |t|
@@ -686,12 +736,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
   add_foreign_key "retail_order_payments", "users", column: "voided_by_id"
   add_foreign_key "retail_order_status_changes", "retail_orders"
   add_foreign_key "retail_order_status_changes", "users"
+  add_foreign_key "retail_orders", "retail_delivery_zones", column: "delivery_zone_id", on_delete: :restrict
   add_foreign_key "retail_orders", "users", column: "confirmed_by_id"
   add_foreign_key "retail_orders", "users", column: "created_by_id"
   add_foreign_key "retail_orders", "users", column: "rejected_by_id"
   add_foreign_key "retail_product_photos", "retail_products", on_delete: :cascade
   add_foreign_key "retail_products", "products", on_delete: :nullify
   add_foreign_key "retail_products", "retail_categories", on_delete: :restrict
+  add_foreign_key "retail_service_closures", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "stock_movements", "orders"
   add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"

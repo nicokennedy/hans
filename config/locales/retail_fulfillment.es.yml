@@ -1,0 +1,23 @@
+es:
+  activerecord:
+    models:
+      retail_delivery_zone: "Zona de envío"
+      retail_service_closure: "Fecha sin servicio"
+      retail_fulfillment_setting: "Reglas de entrega"
+    attributes:
+      retail_delivery_zone:
+        name: "El nombre"
+        coverage: "La cobertura"
+        price: "El costo de envío"
+        price_cents: "El costo de envío"
+        position: "El orden"
+      retail_service_closure:
+        date: "La fecha"
+        service: "La modalidad"
+        reason: "El motivo"
+      retail_fulfillment_setting:
+        min_lead_days: "La anticipación mínima"
+        pickup_point_details: "Las indicaciones del punto de retiro"
+      retail_service_window:
+        opens_minute: "La hora de inicio"
+        closes_minute: "La hora de fin"
