@@ -172,6 +172,14 @@ class Admin::OrdersSummaryTest < ActionDispatch::IntegrationTest
     assert_equal ["1", "$2.000", "$2.000", "$0"], summary
     assert_select "#orders-summary-awaiting", text: /1 pedido pendiente de confirmación no incluido/
     assert_select "#orders-summary-rejected", count: 0
+
+    # Filtrando solo los pendientes de confirmación: ninguno suma, y se aclara que quedó afuera.
+    get admin_retail_orders_path, params: { confirmation: "awaiting" }
+    assert_equal ["0", "$0", "$0", "$0"], summary
+    assert_select "#orders-summary-awaiting", text: /1 pedido pendiente de confirmación no incluido/
+
+    get admin_retail_orders_path, params: { confirmation: "confirmed" }
+    assert_equal ["1", "$2.000", "$2.000", "$0"], summary
   end
 
   test "ver los listados con el resumen no modifica pedidos, pagos ni stock" do

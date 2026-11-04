@@ -25,7 +25,9 @@ module Collections
       if scope.klass.respond_to?(:committed)
         @awaiting_count = billable.where(confirmation_status: "awaiting").count
         @rejected_count = billable.where(confirmation_status: "rejected").count
-        billable = billable.merge(scope.klass.committed)
+        # where (no merge): merge reemplaza una condición previa sobre la misma columna (por ejemplo
+        # el filtro "Pendientes de confirmación") en vez de combinarla.
+        billable = billable.where(confirmation_status: "confirmed")
       end
 
       totals = billable.pick(
