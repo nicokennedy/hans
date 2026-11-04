@@ -51,8 +51,6 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -85,3 +83,8 @@ gem "sassc-rails", "~> 2.1"
 gem "devise", "~> 5.0"
 
 gem "caxlsx", "~> 4.4"
+
+# Fotos del catálogo minorista (Active Storage): variantes optimizadas con libvips y
+# almacenamiento en Cloudflare R2 (compatible con S3). Ver docs/TIENDA_MINORISTA.md.
+gem "image_processing", "~> 1.2"
+gem "aws-sdk-s3", "~> 1.170", require: false

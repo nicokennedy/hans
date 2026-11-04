@@ -32,3 +32,18 @@ local:
 #   service: Mirror
 #   primary: local
 #   mirrors: [ amazon, google, microsoft ]
+
+# Fotos del catálogo minorista en producción: Cloudflare R2 (API compatible con S3).
+# Todo sale de variables de entorno de Heroku (nunca del repo); ver docs/TIENDA_MINORISTA.md.
+# Este servicio solo se usa si config/environments/production.rb lo elige (con R2 completo y
+# RETAIL_PHOTOS_ENABLED=true); si no, ni se construye y HANS arranca igual.
+cloudflare_r2:
+  service: S3
+  endpoint: <%= ENV["R2_ENDPOINT"].presence || (ENV["R2_ACCOUNT_ID"].present? ? "https://#{ENV["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com" : nil) %>
+  access_key_id: <%= ENV["R2_ACCESS_KEY_ID"] %>
+  secret_access_key: <%= ENV["R2_SECRET_ACCESS_KEY"] %>
+  bucket: <%= ENV["R2_BUCKET"] %>
+  region: auto
+  # R2 no acepta los checksums CRC que el SDK de AWS agrega por defecto desde 2025.
+  request_checksum_calculation: when_required
+  response_checksum_validation: when_required

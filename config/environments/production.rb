@@ -37,7 +37,12 @@ Rails.application.configure do
   # config.action_dispatch.x_sendfile_header = "X-Accel-Redirect" # for NGINX
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # Fotos del catálogo minorista: Cloudflare R2 solo cuando está completo Y habilitado a mano
+  # (RETAIL_PHOTOS_ENABLED=true, después de verificarlo con bin/rails retail_catalog:check_storage).
+  # Sin eso queda :local y la subida de fotos está bloqueada (el disco de Heroku es efímero):
+  # nunca se aceptan fotos que se perderían. Ver RetailCatalog::PhotoStorage.
+  r2_ready = %w[R2_ACCOUNT_ID R2_BUCKET R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY].all? { |key| ENV[key].present? }
+  config.active_storage.service = r2_ready && ENV["RETAIL_PHOTOS_ENABLED"] == "true" ? :cloudflare_r2 : :local
 
   # Mount Action Cable outside main process or domain.
   # config.action_cable.mount_path = nil
