@@ -82,6 +82,33 @@ class Collections::OrdersSummaryTest < ActiveSupport::TestCase
     assert_equal [3, pesos(30_000), pesos(27_000), pesos(6_000), 1], summary_of(RetailOrder.all)
   end
 
+  test "minoristas: los pedidos de la tienda pendientes de confirmación o rechazados no suman; los manuales y los confirmados sí" do
+    manual = create_retail(items: [manual_row("OTROS", 1, "10.000")])
+    pay_retail(manual, "4.000")
+    store = ->(amount) { Retail::SaveOrder.call(order: RetailOrder.new, attributes: base_attributes, items: [manual_row("Box", 1, amount)], user: nil, source: "store").record }
+    awaiting = store.call("7.000")
+    rejected = store.call("5.000")
+    Retail::ChangeConfirmation.call(order: rejected, action: "reject", user: @admin, reason: "Sin stock")
+    confirmed = store.call("3.000")
+    Retail::ChangeConfirmation.call(order: confirmed, action: "confirm", user: @admin)
+
+    summary = Collections::OrdersSummary.new(RetailOrder.all)
+    assert_equal [2, pesos(13_000), pesos(4_000), pesos(9_000), 0], summary_of(RetailOrder.all)
+    assert_equal [1, 1], [summary.awaiting_count, summary.rejected_count]
+    assert awaiting.reload.confirmation_awaiting?
+
+    # Un pendiente cancelado cuenta solo como cancelado, no dos veces.
+    Retail::ChangeStatus.call(order: awaiting, to_status: "canceled", user: @admin)
+    summary = Collections::OrdersSummary.new(RetailOrder.all)
+    assert_equal [0, 1, 1], [summary.awaiting_count, summary.rejected_count, summary.canceled_count]
+  end
+
+  test "mayoristas: no tienen confirmación, el resumen sigue igual" do
+    make_order(10)
+    summary = Collections::OrdersSummary.new(Order.all)
+    assert_equal [0, 0], [summary.awaiting_count, summary.rejected_count]
+  end
+
   test "sin resultados: todo en cero" do
     assert_equal [0, 0, 0, 0, 0], summary_of(Order.none)
     assert_equal [0, 0, 0, 0, 0], summary_of(RetailOrder.where(id: -1))

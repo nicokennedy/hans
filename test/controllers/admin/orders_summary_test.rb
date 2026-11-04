@@ -164,6 +164,16 @@ class Admin::OrdersSummaryTest < ActionDispatch::IntegrationTest
     assert_equal ["0", "$0", "$0", "$0"], summary
   end
 
+  test "Minoristas: los pedidos de la tienda sin confirmar no suman y se aclara cuántos quedaron afuera" do
+    pay_retail(create_retail(attributes: { delivery_date: D9.iso8601 }, items: [manual_row("OTROS", 1, "2.000")]), "2.000")
+    Retail::SaveOrder.call(order: RetailOrder.new, attributes: base_attributes(delivery_date: D9.iso8601), items: [manual_row("Box", 1, "9.000")], user: nil, source: "store")
+
+    get admin_retail_orders_path
+    assert_equal ["1", "$2.000", "$2.000", "$0"], summary
+    assert_select "#orders-summary-awaiting", text: /1 pedido pendiente de confirmación no incluido/
+    assert_select "#orders-summary-rejected", count: 0
+  end
+
   test "ver los listados con el resumen no modifica pedidos, pagos ni stock" do
     order(@honey, D9, paid: 500)
     pay_retail(create_retail(items: [manual_row("OTROS", 1, "1.000")]), "1.000")

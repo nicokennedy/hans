@@ -29,4 +29,16 @@
       <%= summary.canceled_count %> <%= summary.canceled_count == 1 ? "pedido cancelado no incluido" : "pedidos cancelados no incluidos" %> en el resumen.
     </div>
   <% end %>
+
+  <% if summary.awaiting_count.positive? %>
+    <div class="small text-muted mt-1" id="orders-summary-awaiting">
+      <%= summary.awaiting_count %> <%= summary.awaiting_count == 1 ? "pedido pendiente de confirmación no incluido" : "pedidos pendientes de confirmación no incluidos" %> en el resumen.
+    </div>
+  <% end %>
+
+  <% if summary.rejected_count.positive? %>
+    <div class="small text-muted mt-1" id="orders-summary-rejected">
+      <%= summary.rejected_count %> <%= summary.rejected_count == 1 ? "pedido rechazado no incluido" : "pedidos rechazados no incluidos" %> en el resumen.
+    </div>
+  <% end %>
 </div>

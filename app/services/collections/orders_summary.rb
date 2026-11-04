@@ -5,6 +5,9 @@ module Collections
   #
   # Mismos criterios que el resumen de Clientes y la cuenta corriente (CustomerAccounts::Summary):
   #  - Pedidos cancelados: no cuentan en ningún indicador; se informa cuántos quedaron afuera.
+  #  - Minoristas: solo cuentan los confirmados (RetailOrder.committed, el mismo criterio que
+  #    producción y stock). Los pendientes de confirmación y los rechazados de la tienda online
+  #    quedan afuera y se informan aparte. Los manuales nacen confirmados: no cambian.
   #  - Facturado = suma de total_cents.
   #  - Cobrado = suma de amount_paid_cents: la caché de los pagos vigentes imputados a cada
   #    pedido (pagos individuales y aplicaciones de pagos de cuenta corriente). Un pago de cuenta
@@ -12,12 +15,18 @@ module Collections
   #  - Pendiente = suma de los saldos positivos de cada pedido: un pedido con excedente no
   #    descuenta la deuda de otros, así que nunca es negativo.
   class OrdersSummary
-    attr_reader :orders_count, :invoiced_cents, :collected_cents, :pending_cents, :canceled_count
+    attr_reader :orders_count, :invoiced_cents, :collected_cents, :pending_cents, :canceled_count, :awaiting_count, :rejected_count
 
     def initialize(scope)
       scope = scope.unscope(:order, :limit, :offset, :includes, :preload, :eager_load)
       table = scope.klass.quoted_table_name
       billable = scope.where.not(status: "canceled")
+      @awaiting_count = @rejected_count = 0
+      if scope.klass.respond_to?(:committed)
+        @awaiting_count = billable.where(confirmation_status: "awaiting").count
+        @rejected_count = billable.where(confirmation_status: "rejected").count
+        billable = billable.merge(scope.klass.committed)
+      end
 
       totals = billable.pick(
         Arel.sql("COUNT(*)"),
