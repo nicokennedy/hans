@@ -90,8 +90,8 @@ module Stock
       earliest_start = StockItem.active.minimum(:stock_tracking_started_on)
       due = RetailOrder.none
       if earliest_start
-        due = RetailOrder.not_canceled.where("delivery_date >= ? AND delivery_date < ?", earliest_start, today)
-        due = due.or(RetailOrder.not_canceled.where(delivery_date: today)) if cutoff_passed?(now: now) && today >= earliest_start
+        due = RetailOrder.committed.where("delivery_date >= ? AND delivery_date < ?", earliest_start, today)
+        due = due.or(RetailOrder.committed.where(delivery_date: today)) if cutoff_passed?(now: now) && today >= earliest_start
       end
 
       ids_with_existing_dispatch = StockMovement.dispatch.distinct.pluck(:retail_order_id).compact
@@ -150,6 +150,8 @@ module Stock
       today = now.in_time_zone.to_date
 
       return BigDecimal(0) if order.canceled?
+      # Pedido minorista pendiente de confirmación o rechazado: no sale nada (ver RetailOrder.committed).
+      return BigDecimal(0) if retail? && !order.committed?
       return BigDecimal(0) if order.delivery_date.nil?
       # Antes de la fecha de inicio del control de este ítem: no cuenta.
       return BigDecimal(0) if order.delivery_date < stock_item.stock_tracking_started_on

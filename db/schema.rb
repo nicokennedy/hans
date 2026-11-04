@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -410,6 +410,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
     t.index ["owner_type", "owner_id"], name: "index_recipe_components_on_owner"
   end
 
+  create_table "retail_order_confirmation_changes", force: :cascade do |t|
+    t.bigint "retail_order_id", null: false
+    t.string "from_status", null: false
+    t.string "to_status", null: false
+    t.bigint "user_id"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.index ["retail_order_id"], name: "index_retail_order_confirmation_changes_on_retail_order_id"
+    t.index ["user_id"], name: "index_retail_order_confirmation_changes_on_user_id"
+  end
+
   create_table "retail_order_items", force: :cascade do |t|
     t.bigint "retail_order_id", null: false
     t.bigint "product_id"
@@ -474,10 +485,29 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
     t.bigint "created_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "source", default: "manual", null: false
+    t.string "confirmation_status", default: "confirmed", null: false
+    t.datetime "confirmed_at"
+    t.bigint "confirmed_by_id"
+    t.datetime "rejected_at"
+    t.bigint "rejected_by_id"
+    t.text "rejection_reason"
+    t.string "request_token"
+    t.string "public_token"
+    t.index ["confirmation_status"], name: "index_retail_orders_on_confirmation_status"
+    t.index ["confirmed_by_id"], name: "index_retail_orders_on_confirmed_by_id"
     t.index ["created_by_id"], name: "index_retail_orders_on_created_by_id"
     t.index ["delivery_date"], name: "index_retail_orders_on_delivery_date"
     t.index ["payment_status"], name: "index_retail_orders_on_payment_status"
+    t.index ["public_token"], name: "index_retail_orders_on_public_token", unique: true, where: "(public_token IS NOT NULL)"
+    t.index ["rejected_by_id"], name: "index_retail_orders_on_rejected_by_id"
+    t.index ["request_token"], name: "index_retail_orders_on_request_token", unique: true, where: "(request_token IS NOT NULL)"
+    t.index ["source"], name: "index_retail_orders_on_source"
     t.index ["status"], name: "index_retail_orders_on_status"
+    t.check_constraint "confirmation_status::text <> 'confirmed'::text OR confirmed_at IS NOT NULL", name: "retail_orders_confirmed_has_date"
+    t.check_constraint "confirmation_status::text <> 'rejected'::text OR rejected_at IS NOT NULL AND rejection_reason IS NOT NULL", name: "retail_orders_rejected_has_reason"
+    t.check_constraint "confirmation_status::text = ANY (ARRAY['awaiting'::character varying, 'confirmed'::character varying, 'rejected'::character varying]::text[])", name: "retail_orders_confirmation_status_valid"
+    t.check_constraint "source::text = ANY (ARRAY['manual'::character varying, 'store'::character varying]::text[])", name: "retail_orders_source_valid"
   end
 
   create_table "stock_items", force: :cascade do |t|
@@ -577,6 +607,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "raw_material_cost_changes", "raw_materials"
   add_foreign_key "raw_material_cost_changes", "users", column: "changed_by_user_id"
+  add_foreign_key "retail_order_confirmation_changes", "retail_orders"
+  add_foreign_key "retail_order_confirmation_changes", "users"
   add_foreign_key "retail_order_items", "products"
   add_foreign_key "retail_order_items", "retail_orders"
   add_foreign_key "retail_order_payments", "retail_orders"
@@ -584,7 +616,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_14_120000) do
   add_foreign_key "retail_order_payments", "users", column: "voided_by_id"
   add_foreign_key "retail_order_status_changes", "retail_orders"
   add_foreign_key "retail_order_status_changes", "users"
+  add_foreign_key "retail_orders", "users", column: "confirmed_by_id"
   add_foreign_key "retail_orders", "users", column: "created_by_id"
+  add_foreign_key "retail_orders", "users", column: "rejected_by_id"
   add_foreign_key "stock_movements", "orders"
   add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"

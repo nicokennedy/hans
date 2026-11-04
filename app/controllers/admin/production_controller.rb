@@ -18,6 +18,7 @@ class Admin::ProductionController < ApplicationController
     @customers = sheet.customers
     @rows = sheet.rows
     @special_items = sheet.special_items
+    @awaiting_orders = sheet.awaiting_orders
   end
 
   def print

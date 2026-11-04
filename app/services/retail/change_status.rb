@@ -3,6 +3,8 @@ module Retail
   # Cancelar saca el pedido de producción y de la demanda de stock; si ya se había descontado
   # stock, Stock::DispatchReconciler lo devuelve con un movimiento de corrección (mismo
   # mecanismo que los mayoristas). Los pagos y el historial se conservan intactos.
+  # Un pedido no confirmado (pendiente de la tienda o rechazado) no avanza en el circuito
+  # operativo: primero se confirma (Retail::ChangeConfirmation). Cancelarlo sí se puede.
   class ChangeStatus
     def self.call(**args)
       new(**args).call
@@ -24,6 +26,11 @@ module Retail
 
         if order.status == @to_status
           result = Result.new(record: order, errors: ["El pedido ya está en estado #{order.status_label}."])
+          next
+        end
+
+        unless order.confirmation_confirmed? || @to_status == "canceled"
+          result = Result.new(record: order, errors: ["El pedido está #{order.confirmation_status_label.downcase}: confirmalo antes de cambiar su estado."])
           next
         end
 

@@ -6,7 +6,7 @@ class Admin::RetailOrdersController < ApplicationController
 
   before_action :authenticate_user!
   before_action :require_admin!
-  before_action :set_order, only: [:show, :edit, :update, :edit_status, :update_status]
+  before_action :set_order, only: [:show, :edit, :update, :edit_status, :update_status, :confirm, :reject]
 
   def index
     @filters = Retail::ListFilters.new(params)
@@ -31,6 +31,7 @@ class Admin::RetailOrdersController < ApplicationController
   def show
     @payments = @order.retail_order_payments.includes(:user, :voided_by).to_a
     @status_changes = @order.retail_order_status_changes.includes(:user).to_a
+    @confirmation_changes = @order.retail_order_confirmation_changes.includes(:user).to_a
     @items = @order.retail_order_items.includes(:product).to_a
   end
 
@@ -80,7 +81,26 @@ class Admin::RetailOrdersController < ApplicationController
     end
   end
 
+  # Confirmar / rechazar un pedido pendiente de confirmación (ver Retail::ChangeConfirmation).
+  def confirm
+    change_confirmation("confirm", "Pedido #{@order.number} confirmado: ya cuenta para producción y stock.")
+  end
+
+  def reject
+    change_confirmation("reject", "Pedido #{@order.number} rechazado. Queda fuera de producción y stock.")
+  end
+
   private
+
+  def change_confirmation(action, notice)
+    result = Retail::ChangeConfirmation.call(order: @order, action: action, user: current_user, reason: params[:reason])
+
+    if result.ok?
+      redirect_to admin_retail_order_path(@order, retail_context), notice: notice
+    else
+      redirect_to admin_retail_order_path(@order, retail_context), alert: result.errors.join(" ")
+    end
+  end
 
   def set_order
     @order = RetailOrder.find(params[:id])

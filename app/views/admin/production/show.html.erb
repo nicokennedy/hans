@@ -125,4 +125,21 @@
 
   <% end %>
 
+  <%# Pedidos de la tienda online pendientes de confirmación: visibles, pero NO incluidos en las cantidades de arriba. %>
+  <% if @awaiting_orders.any? %>
+    <div class="product-card mt-4 border border-warning" id="production-awaiting">
+      <h2 class="h5 fw-bold mb-1">Por confirmar — no incluidos en las cantidades</h2>
+      <p class="small text-muted mb-3">Pedidos de la tienda online para esta fecha que todavía no se confirmaron. Al confirmarlos se suman solos a la planilla.</p>
+      <ul class="list-unstyled mb-0">
+        <% @awaiting_orders.each do |order| %>
+          <li class="mb-2">
+            <strong><%= current_user.admin? ? link_to(order.number, admin_retail_order_path(order)) : order.number %></strong>
+            · <%= order.buyer_name %> <span class="text-muted small">(<%= order.delivery_kind_label %><%= ", #{order.delivery_time_note}" if order.delivery_time_note.present? %>)</span>
+            <div class="small text-muted"><%= order.retail_order_items.map { |item| "#{item.quantity} × #{item.display_name}" }.join(" · ") %></div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
 </div>

@@ -9,6 +9,12 @@ module Retail
   # (Stock::DispatchReconciler): alta, cambio de cantidades o de fecha mueven la demanda por
   # diferencia, sin duplicar movimientos. Si el nuevo total queda por debajo de lo pagado, los
   # pagos se conservan y el saldo queda como excedente (ver RetailOrder#excess_cents).
+  #
+  # Origen y confirmación (solo al crear): source "manual" (el equipo, por defecto) nace
+  # confirmado, con fecha y usuario; source "store" (la futura tienda online) nace pendiente de
+  # confirmación y no cuenta para producción ni stock. request_token hace idempotente el alta:
+  # el mismo token devuelve el pedido ya creado (duplicate: true), también ante dos envíos
+  # simultáneos (índice único). Al editar, origen y confirmación no cambian.
   class SaveOrder
     def self.call(**args)
       new(**args).call
@@ -17,14 +23,25 @@ module Retail
     # attributes: Hash con buyer_name, buyer_phone, delivery_date (texto ISO), delivery_kind,
     #   delivery_time_note, address, notes, planned_payment_method, shipping (texto en pesos).
     # items: [{ "id", "kind" ("product"|"manual"), "product_id", "description", "quantity", "unit_price" }]
-    def initialize(order:, attributes:, items:, user:)
+    SOURCES = RetailOrder.sources.keys.freeze
+
+    def initialize(order:, attributes:, items:, user:, source: "manual", request_token: nil)
       @order = order
       @attributes = attributes.to_h.with_indifferent_access
       @rows = Array(items).map { |row| row.to_h.with_indifferent_access }
       @user = user
+      @source = source.to_s
+      @request_token = request_token.to_s.strip.presence
     end
 
     def call
+      return failure(["El origen del pedido no es válido."]) unless SOURCES.include?(@source)
+      return failure(["El token del pedido no es válido."]) if @request_token && @request_token.length > 100
+
+      if @order.new_record? && (existing = existing_for_token)
+        return Result.new(record: existing, errors: [], duplicate: true)
+      end
+
       errors = []
       attrs = parse_attributes(errors)
       parsed_items = parse_items(errors)
@@ -42,6 +59,7 @@ module Retail
         creating = order.new_record?
 
         order.assign_attributes(attrs.merge(subtotal_cents: subtotal, total_cents: total))
+        assign_origin(order) if creating
         order.created_by ||= @user if creating
         order.save!
 
@@ -55,11 +73,31 @@ module Retail
       end
 
       Result.new(record: saved, errors: [])
+    rescue ActiveRecord::RecordNotUnique
+      # Otro envío con el mismo token ganó la carrera: se devuelve ese pedido, nunca un segundo.
+      existing = existing_for_token
+      existing ? Result.new(record: existing, errors: [], duplicate: true) : failure(["No se pudo guardar el pedido. Probá de nuevo."])
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages)
     end
 
     private
+
+    def existing_for_token
+      @request_token && RetailOrder.find_by(request_token: @request_token)
+    end
+
+    def assign_origin(order)
+      order.source = @source
+      order.request_token = @request_token
+      if order.source_store?
+        order.confirmation_status = "awaiting"
+      else
+        order.confirmation_status = "confirmed"
+        order.confirmed_at = Time.current
+        order.confirmed_by = @user
+      end
+    end
 
     def failure(errors)
       Result.new(record: @order, errors: errors)

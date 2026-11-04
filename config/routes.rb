@@ -99,6 +99,8 @@ Rails.application.routes.draw do
       member do
         get :status, action: :edit_status
         patch :status, action: :update_status
+        post :confirm
+        post :reject
       end
       resources :payments, only: [:new, :create], controller: "retail_order_payments" do
         post :void, on: :member

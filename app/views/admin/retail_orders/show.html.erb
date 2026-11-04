@@ -20,12 +20,16 @@
       <div class="col-6 col-md-2"><div class="small text-muted">Horario</div><div><%= @order.delivery_time_note.presence || "—" %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Tipo</div><div><%= @order.delivery_kind_label %></div></div>
       <% if @order.address.present? %><div class="col-12 col-md-6"><div class="small text-muted">Dirección</div><div><%= @order.address %></div></div><% end %>
+      <div class="col-6 col-md-3"><div class="small text-muted">Origen</div><div><%= retail_source_badge(@order) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Confirmación</div><div id="retail-confirmation-status"><%= retail_confirmation_badge(@order) %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Estado del pedido</div><div><%= retail_status_badge(@order) %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Estado de pago</div><div><%= retail_payment_badge(@order) %></div></div>
       <div class="col-12 col-md-3"><div class="small text-muted">Medio de pago previsto</div><div><%= @order.planned_payment_method_label || "Sin definir" %></div></div>
       <% if @order.notes.present? %><div class="col-12"><div class="small text-muted">Observaciones</div><div style="white-space: pre-wrap"><%= @order.notes %></div></div><% end %>
     </div>
   </div>
+
+  <%= render "confirmation", order: @order, changes: @confirmation_changes %>
 
   <div class="product-card mb-4" id="retail-items">
     <h2 class="fs-5 fw-bold mb-3">Productos</h2>
