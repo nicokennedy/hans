@@ -12,17 +12,18 @@ module Retail
   class ExcelExporter
     DETAIL_HEADERS = [
       "Pedido", "Fecha de creación", "Fecha de entrega", "Horario", "Comprador", "Teléfono", "Tipo de entrega", "Dirección",
-      "Producto", "Tipo de producto", "Cantidad", "Precio unitario", "Subtotal", "Observaciones del pedido", "Estado del pedido", "Estado del pago"
+      "Producto", "Tipo de producto", "Cantidad", "Precio unitario", "Subtotal", "Observaciones del pedido", "Estado del pedido", "Estado del pago",
+      "Origen", "Confirmación"
     ].freeze
 
     SUMMARY_HEADERS = [
       "Pedido", "Fecha de entrega", "Horario", "Comprador", "Teléfono", "Tipo de entrega", "Dirección",
       "Subtotal de productos", "Envío", "Total del pedido", "Total pagado", "Saldo pendiente", "Medio de pago previsto",
-      "Estado del pago", "Estado del pedido", "Observaciones"
+      "Estado del pago", "Estado del pedido", "Observaciones", "Origen", "Confirmación"
     ].freeze
 
-    DETAIL_WIDTHS = [10, 16, 16, 18, 28, 16, 14, 30, 36, 16, 10, 16, 16, 40, 16, 14].freeze
-    SUMMARY_WIDTHS = [10, 16, 18, 28, 16, 14, 30, 18, 14, 16, 16, 16, 24, 14, 16, 40].freeze
+    DETAIL_WIDTHS = [10, 16, 16, 18, 28, 16, 14, 30, 36, 16, 10, 16, 16, 40, 16, 14, 14, 24].freeze
+    SUMMARY_WIDTHS = [10, 16, 18, 28, 16, 14, 30, 18, 14, 16, 16, 16, 24, 14, 16, 40, 14, 24].freeze
 
     CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".freeze
     # Sin comillas: caxlsx no escapa las comillas dentro del atributo XML y dejaría el archivo inválido.
@@ -67,14 +68,15 @@ module Retail
 
     def build_detail(sheet, styles)
       sheet.add_row DETAIL_HEADERS, style: styles[:header], height: 32
-      column_types = %i[text date date text text text text text text text integer money money text text text]
+      column_types = %i[text date date text text text text text text text integer money money text text text text text]
 
       orders.each do |order|
         order.retail_order_items.each do |item|
           row = [
             order.number, order.created_at.in_time_zone.to_date, order.delivery_date, order.delivery_time_note.to_s, order.buyer_name, order.buyer_phone.to_s,
             order.delivery_kind_label, order.address.to_s, item.display_name, item.catalog? ? "Catálogo" : "Manual", item.quantity,
-            pesos(item.unit_price_cents), pesos(item.line_total_cents), order.notes.to_s, order.status_label, order.payment_status_label
+            pesos(item.unit_price_cents), pesos(item.line_total_cents), order.notes.to_s, order.status_label, order.payment_status_label,
+            order.source_label, order.confirmation_status_label
           ]
           add_data_row(sheet, row, column_types, styles)
         end
@@ -85,13 +87,14 @@ module Retail
 
     def build_summary(sheet, styles)
       sheet.add_row SUMMARY_HEADERS, style: styles[:header], height: 32
-      column_types = %i[text date text text text text text money money money money money text text text text]
+      column_types = %i[text date text text text text text money money money money money text text text text text text]
 
       orders.each do |order|
         row = [
           order.number, order.delivery_date, order.delivery_time_note.to_s, order.buyer_name, order.buyer_phone.to_s, order.delivery_kind_label, order.address.to_s,
           pesos(order.subtotal_cents), pesos(order.shipping_cents), pesos(order.total_cents), pesos(order.amount_paid_cents), pesos(order.pending_balance_cents),
-          order.planned_payment_method_label.to_s, order.payment_status_label, order.status_label, order.notes.to_s
+          order.planned_payment_method_label.to_s, order.payment_status_label, order.status_label, order.notes.to_s,
+          order.source_label, order.confirmation_status_label
         ]
         add_data_row(sheet, row, column_types, styles)
       end

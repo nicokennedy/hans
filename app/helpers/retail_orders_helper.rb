@@ -19,6 +19,23 @@ module RetailOrdersHelper
     RetailOrder::PAYMENT_METHOD_LABELS.map { |value, label| [label, value] }
   end
 
+  def retail_source_options
+    RetailOrder::SOURCE_LABELS.map { |value, label| [label, value] }
+  end
+
+  def retail_confirmation_options
+    RetailOrder::CONFIRMATION_STATUS_LABELS.map { |value, label| [label, value] }
+  end
+
+  def retail_confirmation_badge(order)
+    tone = { "awaiting" => "warning", "confirmed" => "success", "rejected" => "danger" }[order.confirmation_status]
+    content_tag(:span, order.confirmation_status_label, class: "badge text-bg-#{tone}")
+  end
+
+  def retail_source_badge(order)
+    content_tag(:span, order.source_label, class: "badge #{order.source_store? ? 'text-bg-primary' : 'text-bg-light border'}")
+  end
+
   def retail_status_badge(order)
     tone = { "pending" => "secondary", "in_preparation" => "warning", "ready" => "info", "delivered" => "success", "canceled" => "dark" }[order.status]
     content_tag(:span, order.status_label, class: "badge text-bg-#{tone}")

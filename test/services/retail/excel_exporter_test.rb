@@ -31,8 +31,8 @@ class Retail::ExcelExporterTest < ActiveSupport::TestCase
     assert_equal ["Detalle de productos", "Resumen de pedidos"], xlsx.sheet_names
     assert_equal Retail::ExcelExporter::DETAIL_HEADERS, detail(xlsx).first
     assert_equal Retail::ExcelExporter::SUMMARY_HEADERS, summary(xlsx).first
-    assert_equal 16, Retail::ExcelExporter::DETAIL_HEADERS.size
-    assert_equal 16, Retail::ExcelExporter::SUMMARY_HEADERS.size
+    assert_equal 18, Retail::ExcelExporter::DETAIL_HEADERS.size
+    assert_equal 18, Retail::ExcelExporter::SUMMARY_HEADERS.size
     assert_equal 1, detail(xlsx).size, "sin pedidos: solo encabezados"
   end
 
@@ -172,7 +172,7 @@ class Retail::ExcelExporterTest < ActiveSupport::TestCase
     assert_equal "$#,##0.00", summary_row[11].format
     assert_equal "dd/mm/yyyy", summary_row[1].format
 
-    { "Detalle de productos" => "P2", "Resumen de pedidos" => "P2" }.each do |name, last|
+    { "Detalle de productos" => "R2", "Resumen de pedidos" => "R2" }.each do |name, last|
       sheet = xlsx.xml(name)
       assert_equal "A1:#{last}", sheet.at_xpath("//autoFilter")["ref"], "autofiltro en #{name}"
       pane = sheet.at_xpath("//sheetView/pane")

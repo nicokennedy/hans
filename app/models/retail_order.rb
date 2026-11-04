@@ -5,11 +5,19 @@
 # los productos manuales solo aparecen en producción (ver RetailOrderItem).
 # Los importes son centavos enteros; el estado operativo (status) es independiente del
 # estado de pago (payment_status, derivado de los pagos activos).
+#
+# Confirmación (confirmation_status), independiente de los otros dos: los pedidos que carga el
+# equipo (source "manual") nacen confirmados; los de la tienda online (source "store") nacen
+# "awaiting" y no cuentan para producción ni stock hasta que alguien los confirma (ver
+# .committed y Retail::ChangeConfirmation). Un rechazo es definitivo.
 class RetailOrder < ApplicationRecord
   belongs_to :created_by, class_name: "User", optional: true
+  belongs_to :confirmed_by, class_name: "User", optional: true
+  belongs_to :rejected_by, class_name: "User", optional: true
   has_many :retail_order_items, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :retail_order
   has_many :retail_order_payments, -> { order(:paid_at, :id) }, dependent: :restrict_with_error, inverse_of: :retail_order
   has_many :retail_order_status_changes, -> { order(:created_at, :id) }, dependent: :destroy
+  has_many :retail_order_confirmation_changes, -> { order(:created_at, :id) }, dependent: :destroy
   has_many :stock_movements, dependent: :restrict_with_error
 
   enum :status, {
@@ -22,6 +30,11 @@ class RetailOrder < ApplicationRecord
 
   enum :payment_status, { pending: "pending", partial: "partial", paid: "paid" }, default: "pending", prefix: :payment
   enum :delivery_kind, { pickup: "pickup", delivery: "delivery" }, default: "pickup"
+  enum :confirmation_status, { awaiting: "awaiting", confirmed: "confirmed", rejected: "rejected" }, default: "confirmed", prefix: :confirmation
+  enum :source, { manual: "manual", store: "store" }, default: "manual", prefix: :source
+
+  # Token no predecible para la futura pantalla pública de confirmación del pedido (nunca el id).
+  has_secure_token :public_token, length: 32
 
   STATUS_LABELS = {
     "pending" => "Pendiente",
@@ -38,6 +51,14 @@ class RetailOrder < ApplicationRecord
   }.freeze
 
   DELIVERY_KIND_LABELS = { "pickup" => "Retiro", "delivery" => "Delivery" }.freeze
+
+  CONFIRMATION_STATUS_LABELS = {
+    "awaiting" => "Pendiente de confirmación",
+    "confirmed" => "Confirmado",
+    "rejected" => "Rechazado"
+  }.freeze
+
+  SOURCE_LABELS = { "manual" => "Manual", "store" => "Tienda online" }.freeze
 
   PAYMENT_METHODS = %w[transfer cash_on_delivery openpay].freeze
   PAYMENT_METHOD_LABELS = {
@@ -57,11 +78,22 @@ class RetailOrder < ApplicationRecord
   validates :planned_payment_method, inclusion: { in: PAYMENT_METHODS }, allow_blank: true
   validates :shipping_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: MAX_CENTS }
   validates :total_cents, numericality: { only_integer: true, less_than_or_equal_to: MAX_CENTS }
+  validates :request_token, length: { maximum: 100 }, allow_nil: true
+  validates :rejection_reason, presence: true, length: { maximum: 1000 }, if: :confirmation_rejected?
+
+  validate :store_orders_start_awaiting, on: :create
 
   before_validation :normalize_text
+  before_validation :stamp_confirmation, on: :create
 
   scope :not_canceled, -> { where.not(status: "canceled") }
-  scope :for_delivery_date, ->(date) { not_canceled.where(delivery_date: date) }
+  # ÚNICA condición de "pedido que cuenta" para producción y stock: confirmado y no cancelado.
+  # Los pendientes de confirmación y los rechazados nunca suman (ProductionDaySheet,
+  # Stock::Availability, Stock::DispatchReconciler la usan; no repetir la condición a mano).
+  scope :committed, -> { not_canceled.where(confirmation_status: "confirmed") }
+  scope :for_delivery_date, ->(date) { committed.where(delivery_date: date) }
+  # Pedidos de la tienda por revisar: visibles para el equipo, fuera de las cantidades.
+  scope :awaiting_review, -> { not_canceled.where(confirmation_status: "awaiting") }
 
   def number
     "R-#{id}"
@@ -81,6 +113,19 @@ class RetailOrder < ApplicationRecord
 
   def planned_payment_method_label
     PAYMENT_METHOD_LABELS[planned_payment_method]
+  end
+
+  def confirmation_status_label
+    CONFIRMATION_STATUS_LABELS[confirmation_status]
+  end
+
+  def source_label
+    SOURCE_LABELS[source]
+  end
+
+  # Mismo criterio que .committed, para un pedido ya cargado.
+  def committed?
+    !canceled? && confirmation_confirmed?
   end
 
   def active_payments
@@ -132,6 +177,18 @@ class RetailOrder < ApplicationRecord
   end
 
   private
+
+  # Un pedido de la tienda nunca puede nacer confirmado: entraría a producción y stock sin que
+  # nadie lo revise.
+  def store_orders_start_awaiting
+    errors.add(:confirmation_status, "de un pedido de la tienda online debe ser Pendiente de confirmación") if source_store? && !confirmation_awaiting?
+  end
+
+  # Un pedido creado confirmado (manual) sin fecha de confirmación la toma de su alta: la base
+  # exige que todo confirmado tenga fecha (retail_orders_confirmed_has_date).
+  def stamp_confirmation
+    self.confirmed_at ||= Time.current if confirmation_confirmed?
+  end
 
   def normalize_text
     self.buyer_name = buyer_name.to_s.squish.presence

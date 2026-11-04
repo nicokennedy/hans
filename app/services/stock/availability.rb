@@ -76,13 +76,14 @@ module Stock
     end
 
     # Pedidos con delivery_date anterior a started_on no cuentan para el ítem.
-    # Incluye los ítems de catálogo de pedidos minoristas (los manuales no consumen stock).
+    # Incluye los ítems de catálogo de pedidos minoristas CONFIRMADOS (RetailOrder.committed:
+    # los pendientes de confirmación y los rechazados no reservan stock; los manuales no consumen).
     def future_order_items(started_on)
       wholesale = OrderItem.joins(:order).merge(
         Order.not_canceled.where("orders.delivery_date > ? AND orders.delivery_date >= ?", today, started_on)
       )
       retail = RetailOrderItem.catalog.joins(:retail_order).merge(
-        RetailOrder.not_canceled.where("retail_orders.delivery_date > ? AND retail_orders.delivery_date >= ?", today, started_on)
+        RetailOrder.committed.where("retail_orders.delivery_date > ? AND retail_orders.delivery_date >= ?", today, started_on)
       )
       wholesale.includes(:product).to_a + retail.includes(:product).to_a
     end
@@ -91,7 +92,7 @@ module Stock
       return [] if today < started_on
 
       wholesale = OrderItem.joins(:order).merge(Order.not_canceled.where(orders: { delivery_date: today }))
-      retail = RetailOrderItem.catalog.joins(:retail_order).merge(RetailOrder.not_canceled.where(retail_orders: { delivery_date: today }))
+      retail = RetailOrderItem.catalog.joins(:retail_order).merge(RetailOrder.committed.where(retail_orders: { delivery_date: today }))
       wholesale.includes(:product).to_a + retail.includes(:product).to_a
     end
 

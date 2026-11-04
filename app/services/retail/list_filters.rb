@@ -1,12 +1,13 @@
 module Retail
   # Filtros del listado de pedidos minoristas: fecha de entrega (un día o un rango), nombre del
-  # comprador, tipo de entrega, estado operativo, estado de pago y página. Viajan siempre en
+  # comprador, tipo de entrega, estado operativo, estado de pago, origen (manual / tienda),
+  # estado de confirmación y página. Viajan siempre en
   # query params (y se reescriben en los links al pedido) para conservarlos al entrar y volver.
   # Todo valor se valida: lo manipulado o inválido se ignora; nunca se arrastra una URL.
   class ListFilters
     PER_PAGE = 50
 
-    attr_reader :date_from, :date_to, :buyer, :delivery_kind, :status, :payment_status, :invalid_date, :total_count
+    attr_reader :date_from, :date_to, :buyer, :delivery_kind, :status, :payment_status, :source, :confirmation, :invalid_date, :total_count
 
     def initialize(params)
       @invalid_date = false
@@ -16,11 +17,13 @@ module Retail
       @delivery_kind = pick(params[:kind], RetailOrder.delivery_kinds.keys)
       @status = pick(params[:status], RetailOrder.statuses.keys)
       @payment_status = pick(params[:payment_status], RetailOrder.payment_statuses.keys)
+      @source = pick(params[:source], RetailOrder.sources.keys)
+      @confirmation = pick(params[:confirmation], RetailOrder.confirmation_statuses.keys)
       @requested_page = parse_page(params[:page])
     end
 
     def active?
-      [date_from, date_to, buyer, delivery_kind, status, payment_status].any?(&:present?)
+      [date_from, date_to, buyer, delivery_kind, status, payment_status, source, confirmation].any?(&:present?)
     end
 
     def apply(scope)
@@ -35,6 +38,8 @@ module Retail
       scope = scope.where(delivery_kind: delivery_kind) if delivery_kind
       scope = scope.where(status: status) if status
       scope = scope.where(payment_status: payment_status) if payment_status
+      scope = scope.where(source: source) if source
+      scope = scope.where(confirmation_status: confirmation) if confirmation
       scope
     end
 
@@ -70,6 +75,8 @@ module Retail
         kind: delivery_kind,
         status: status,
         payment_status: payment_status,
+        source: source,
+        confirmation: confirmation,
         page: (page if page.to_i > 1)
       }.compact
     end

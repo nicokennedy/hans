@@ -1,0 +1,45 @@
+<%# Confirmación del pedido (ver Retail::ChangeConfirmation): solo los confirmados cuentan para producción y stock. %>
+<% if order.confirmation_awaiting? %>
+  <div class="product-card mb-4 border border-warning" id="retail-confirmation">
+    <h2 class="fs-5 fw-bold mb-1">Pendiente de confirmación</h2>
+    <p class="text-muted mb-3">Este pedido todavía no cuenta para producción ni para stock. Al confirmarlo se suma automáticamente a la hoja de producción del <%= retail_date(order.delivery_date) %>.</p>
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-md-start">
+      <% unless order.canceled? %>
+        <%= button_to "Confirmar pedido", confirm_admin_retail_order_path(order, retail_context), method: :post, class: "btn btn-success",
+              form: { data: { turbo_confirm: "¿Confirmar el pedido #{order.number}? Pasa a contar para producción y stock." } } %>
+      <% end %>
+      <%= form_with url: reject_admin_retail_order_path(order, retail_context), method: :post, local: true, class: "d-flex flex-column flex-sm-row gap-2 flex-grow-1", data: { turbo_confirm: "¿Rechazar el pedido #{order.number}? No se puede deshacer." } do %>
+        <%= text_field_tag :reason, nil, required: true, maxlength: 1000, placeholder: "Motivo del rechazo (obligatorio)", class: "form-control", "aria-label": "Motivo del rechazo" %>
+        <%= submit_tag "Rechazar", class: "btn btn-outline-danger" %>
+      <% end %>
+    </div>
+  </div>
+<% elsif order.confirmation_rejected? %>
+  <div class="product-card mb-4 border border-danger" id="retail-confirmation">
+    <h2 class="fs-5 fw-bold mb-1">Pedido rechazado</h2>
+    <div class="text-muted">
+      <%= l(order.rejected_at, format: "%d/%m/%Y %H:%M") %><% if order.rejected_by %> · <%= order.rejected_by.email %><% end %> · Motivo: <%= order.rejection_reason %>
+    </div>
+    <div class="small text-muted mt-1">No cuenta para producción ni stock, y no se puede volver a confirmar.</div>
+  </div>
+<% elsif order.source_store? && order.confirmed_at %>
+  <div class="small text-muted mb-3" id="retail-confirmation">
+    Confirmado el <%= l(order.confirmed_at, format: "%d/%m/%Y %H:%M") %><% if order.confirmed_by %> por <%= order.confirmed_by.email %><% end %>.
+  </div>
+<% end %>
+
+<% if changes.any? %>
+  <div class="product-card mb-4" id="retail-confirmation-history">
+    <h2 class="fs-6 fw-bold mb-2">Historial de confirmación</h2>
+    <ul class="list-unstyled small mb-0">
+      <% changes.each do |change| %>
+        <li>
+          <%= change.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M") %> —
+          <%= RetailOrder::CONFIRMATION_STATUS_LABELS[change.from_status] %> → <strong><%= RetailOrder::CONFIRMATION_STATUS_LABELS[change.to_status] %></strong>
+          <% if change.user %> · <%= change.user.email %><% end %>
+          <% if change.note.present? %> · <%= change.note %><% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

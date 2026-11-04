@@ -1,5 +1,5 @@
 # Consolida la demanda de UNA fecha de entrega para la planilla de producción: pedidos
-# mayoristas + pedidos minoristas (no cancelados) en una sola planilla, sin crear pedidos
+# mayoristas + pedidos minoristas confirmados (RetailOrder.committed) en una sola planilla, sin crear pedidos
 # artificiales. Los productos de catálogo se suman por id REAL de producto (20 + 15 + 12 =
 # 47) y los minoristas se muestran en la columna "HANS" (es solo una etiqueta: no es el
 # cliente mayorista). Los productos manuales no tienen producto: van aparte, al final, como
@@ -9,7 +9,7 @@ class ProductionDaySheet
 
   SpecialItem = Struct.new(:description, :quantity, :buyer_name, :time_note, :delivery_kind_label, :notes, :retail_order, keyword_init: true)
 
-  attr_reader :date, :customers, :rows, :special_items
+  attr_reader :date, :customers, :rows, :special_items, :awaiting_orders
 
   def self.for(date)
     new(date)
@@ -30,7 +30,7 @@ class ProductionDaySheet
 
   def self.dates_with_orders(from:, to:)
     wholesale = Order.where.not(status: "canceled").where(delivery_date: from..to).distinct.pluck(:delivery_date)
-    retail = RetailOrder.not_canceled.where(delivery_date: from..to).distinct.pluck(:delivery_date)
+    retail = RetailOrder.committed.where(delivery_date: from..to).distinct.pluck(:delivery_date)
     (wholesale | retail).sort.reverse
   end
 
@@ -80,6 +80,10 @@ class ProductionDaySheet
         end
       end
     end
+
+    # Pedidos de la tienda pendientes de confirmación para esta fecha: se muestran aparte para que
+    # el equipo los vea, pero NO suman a las cantidades de arriba hasta que se confirmen.
+    @awaiting_orders = RetailOrder.awaiting_review.where(delivery_date: date).includes(:retail_order_items).order(:delivery_time_note, :id).to_a
 
     categories = Product.where(id: product_ids.uniq).pluck(:id, :internal_category).to_h
 
