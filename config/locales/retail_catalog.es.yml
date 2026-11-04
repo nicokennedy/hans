@@ -1,0 +1,22 @@
+es:
+  activerecord:
+    models:
+      retail_category: "Categoría minorista"
+      retail_product: "Producto minorista"
+      retail_product_photo: "Fotografía"
+    attributes:
+      retail_category:
+        name: "El nombre"
+        position: "El orden"
+      retail_product:
+        name: "El nombre"
+        code: "El código interno"
+        description: "La descripción"
+        price: "El precio"
+        price_cents: "El precio"
+        position: "El orden"
+        retail_category: "La categoría"
+        product: "El producto mayorista"
+      retail_product_photo:
+        image: "La imagen"
+        checksum: "La imagen"

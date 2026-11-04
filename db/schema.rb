@@ -10,10 +10,38 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_04_142500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
 
   create_table "administration_attachments", force: :cascade do |t|
     t.string "owner_type", null: false
@@ -410,6 +438,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
     t.index ["owner_type", "owner_id"], name: "index_recipe_components_on_owner"
   end
 
+  create_table "retail_categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((name)::text)", name: "index_retail_categories_on_lower_name", unique: true
+  end
+
   create_table "retail_order_confirmation_changes", force: :cascade do |t|
     t.bigint "retail_order_id", null: false
     t.string "from_status", null: false
@@ -510,6 +547,37 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
     t.check_constraint "source::text = ANY (ARRAY['manual'::character varying, 'store'::character varying]::text[])", name: "retail_orders_source_valid"
   end
 
+  create_table "retail_product_photos", force: :cascade do |t|
+    t.bigint "retail_product_id", null: false
+    t.boolean "primary", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.string "checksum", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["retail_product_id", "checksum"], name: "index_retail_product_photos_unique_checksum", unique: true
+    t.index ["retail_product_id"], name: "index_retail_product_photos_on_retail_product_id"
+    t.index ["retail_product_id"], name: "index_retail_product_photos_one_primary", unique: true, where: "\"primary\""
+  end
+
+  create_table "retail_products", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "code", null: false
+    t.text "description"
+    t.bigint "price_cents", null: false
+    t.bigint "retail_category_id", null: false
+    t.bigint "product_id"
+    t.boolean "active", default: false, null: false
+    t.boolean "featured", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((code)::text)", name: "index_retail_products_on_lower_code", unique: true
+    t.index ["active", "position"], name: "index_retail_products_on_active_and_position"
+    t.index ["product_id"], name: "index_retail_products_on_product_id"
+    t.index ["retail_category_id"], name: "index_retail_products_on_retail_category_id"
+    t.check_constraint "price_cents >= 0", name: "retail_products_price_non_negative"
+  end
+
   create_table "stock_items", force: :cascade do |t|
     t.string "stockable_type", null: false
     t.bigint "stockable_id", null: false
@@ -569,6 +637,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "administration_attachments", "users"
   add_foreign_key "customer_payments", "customers"
   add_foreign_key "customer_payments", "users"
@@ -619,6 +689,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_10_21_120000) do
   add_foreign_key "retail_orders", "users", column: "confirmed_by_id"
   add_foreign_key "retail_orders", "users", column: "created_by_id"
   add_foreign_key "retail_orders", "users", column: "rejected_by_id"
+  add_foreign_key "retail_product_photos", "retail_products", on_delete: :cascade
+  add_foreign_key "retail_products", "products", on_delete: :nullify
+  add_foreign_key "retail_products", "retail_categories", on_delete: :restrict
   add_foreign_key "stock_movements", "orders"
   add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"

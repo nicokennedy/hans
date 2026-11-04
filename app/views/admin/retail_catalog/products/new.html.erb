@@ -1,0 +1,10 @@
+<div class="container py-5">
+  <div class="text-muted small">Tienda Minorista</div>
+  <h1 class="fw-bold mb-3">Nuevo producto</h1>
+  <% if @categories.empty? %>
+    <div class="alert alert-warning">Primero creá una categoría. <%= link_to "Nueva categoría", new_admin_retail_catalog_category_path, class: "alert-link" %></div>
+  <% else %>
+    <p class="text-muted">Las fotos se agregan después de guardar el producto.</p>
+    <%= render "form", url: admin_retail_catalog_products_path, method: :post, submit_label: "Crear producto" %>
+  <% end %>
+</div>

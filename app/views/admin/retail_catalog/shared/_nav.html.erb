@@ -1,0 +1,10 @@
+<%# Navegación de Tienda Minorista → catálogo. %>
+<div class="d-flex flex-wrap gap-2 mb-3" id="retail-catalog-nav">
+  <%= link_to "Productos", admin_retail_catalog_products_path, class: "btn btn-sm #{controller_name == 'products' ? 'btn-dark' : 'btn-outline-dark'}" %>
+  <%= link_to "Categorías", admin_retail_catalog_categories_path, class: "btn btn-sm #{controller_name == 'categories' ? 'btn-dark' : 'btn-outline-dark'}" %>
+</div>
+<% unless RetailCatalog::PhotoStorage.enabled? %>
+  <div class="alert alert-warning small" id="retail-photos-disabled">
+    <strong>Fotos todavía deshabilitadas.</strong> Falta conectar el almacenamiento de imágenes (Cloudflare R2): podés cargar productos y categorías, y las fotos se agregan cuando esté configurado.
+  </div>
+<% end %>

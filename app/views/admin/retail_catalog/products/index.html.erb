@@ -1,0 +1,64 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <div class="text-muted small">Tienda Minorista</div>
+      <h1 class="fw-bold mb-0">Productos</h1>
+    </div>
+    <% if @categories.any? %>
+      <%= link_to "+ Nuevo producto", new_admin_retail_catalog_product_path, class: "btn btn-dark", id: "new-retail-product" %>
+    <% else %>
+      <%= link_to "Crear la primera categoría", new_admin_retail_catalog_category_path, class: "btn btn-dark" %>
+    <% end %>
+  </div>
+  <%= render "admin/retail_catalog/shared/nav" %>
+
+  <div class="product-card mb-3" id="retail-products-filters">
+    <%= form_with url: admin_retail_catalog_products_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-4"><label class="form-label small mb-0" for="rp-q">Buscar</label><%= search_field_tag :q, @query, id: "rp-q", class: "form-control form-control-sm", placeholder: "Nombre o código" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="rp-category">Categoría</label>
+        <%= select_tag :category_id, options_for_select(@categories.map { |c| [c.name, c.id] }, @category_id), include_blank: "Todas", id: "rp-category", class: "form-select form-select-sm" %></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-0" for="rp-status">Estado</label>
+        <%= select_tag :status, options_for_select(Admin::RetailCatalog::ProductsController::STATUS_FILTERS.invert.to_a, @status), include_blank: "Todos", id: "rp-status", class: "form-select form-select-sm" %></div>
+      <div class="col-8 col-md-2"><label class="form-label small mb-0" for="rp-sort">Ordenar por</label>
+        <%= select_tag :sort, options_for_select(Admin::RetailCatalog::ProductsController::SORTS.invert.to_a, @sort), id: "rp-sort", class: "form-select form-select-sm" %></div>
+      <div class="col-4 col-md-2 d-flex gap-1"><%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark" %><%= link_to "✕", admin_retail_catalog_products_path, class: "btn btn-sm btn-outline-dark", title: "Limpiar filtros" %></div>
+    <% end %>
+  </div>
+
+  <div class="small text-muted mb-2" id="retail-products-count"><%= @products.size %> de <%= @total_count %> productos</div>
+
+  <div class="product-card">
+    <% if @products.empty? %>
+      <div class="text-muted"><%= @total_count.zero? ? "Todavía no hay productos en el catálogo minorista." : "No hay productos que coincidan con los filtros." %></div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><% if @sort == "position" %><th>Orden</th><% end %><th>Foto</th><th>Producto</th><th>Categoría</th><th class="text-end">Precio</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <% @products.each_with_index do |p, i| %>
+            <tr class="<%= 'text-muted' unless p.active? %>" id="<%= dom_id(p) %>">
+              <% if @sort == "position" %>
+                <td class="text-nowrap">
+                  <%= button_to "↑", move_up_admin_retail_catalog_product_path(p), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i.zero?, title: "Subir" %>
+                  <%= button_to "↓", move_down_admin_retail_catalog_product_path(p), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i == @products.size - 1, title: "Bajar" %>
+                </td>
+              <% end %>
+              <td><%= link_to retail_photo_thumb(p.primary_photo, size: 56), admin_retail_catalog_product_path(p) %></td>
+              <td>
+                <%= link_to p.name, admin_retail_catalog_product_path(p), class: "fw-bold text-dark text-decoration-none retail-product-name" %>
+                <div class="small text-muted"><%= p.code %><% if p.product %> · Mayorista: <%= p.product.name %><% end %></div>
+              </td>
+              <td><%= p.retail_category.name %><% unless p.retail_category.active? %> <span class="badge bg-secondary">Inactiva</span><% end %></td>
+              <td class="text-end fw-bold text-nowrap"><%= retail_catalog_money(p.price_cents) %></td>
+              <td><%= retail_status_badges(p) %></td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Editar", edit_admin_retail_catalog_product_path(p), class: "btn btn-sm btn-outline-dark" %>
+                <%= button_to(p.active? ? "Desactivar" : "Activar", toggle_active_admin_retail_catalog_product_path(p), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }) %>
+                <%= button_to "Duplicar", duplicate_admin_retail_catalog_product_path(p), method: :post, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    <% end %>
+  </div>
+</div>

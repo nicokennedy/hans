@@ -1,0 +1,41 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <div class="text-muted small">Tienda Minorista</div>
+      <h1 class="fw-bold mb-0">Categorías</h1>
+    </div>
+    <%= link_to "+ Nueva categoría", new_admin_retail_catalog_category_path, class: "btn btn-dark" %>
+  </div>
+  <%= render "admin/retail_catalog/shared/nav" %>
+
+  <div class="product-card">
+    <% if @categories.empty? %>
+      <div class="text-muted">Todavía no hay categorías. Creá la primera para empezar a cargar productos.</div>
+    <% else %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Orden</th><th>Categoría</th><th class="text-end">Productos</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <% @categories.each_with_index do |c, i| %>
+            <tr class="<%= 'text-muted' unless c.active? %>" id="<%= dom_id(c) %>">
+              <td class="text-nowrap">
+                <%= button_to "↑", move_up_admin_retail_catalog_category_path(c), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i.zero?, title: "Subir" %>
+                <%= button_to "↓", move_down_admin_retail_catalog_category_path(c), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: i == @categories.size - 1, title: "Bajar" %>
+              </td>
+              <td class="fw-bold"><%= c.name %></td>
+              <td class="text-end"><%= link_to @counts[c.id].to_i, admin_retail_catalog_products_path(category_id: c.id), class: "text-decoration-none" %></td>
+              <td><span class="badge <%= c.active? ? 'bg-success' : 'bg-secondary' %>"><%= c.active? ? "Activa" : "Inactiva" %></span></td>
+              <td class="text-end text-nowrap">
+                <%= link_to "Editar", edit_admin_retail_catalog_category_path(c), class: "btn btn-sm btn-outline-dark" %>
+                <%= button_to(c.active? ? "Desactivar" : "Activar", toggle_active_admin_retail_catalog_category_path(c), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }) %>
+                <% if @counts[c.id].to_i.zero? %>
+                  <%= button_to "Eliminar", admin_retail_catalog_category_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline", data: { turbo_confirm: "¿Eliminar la categoría “#{c.name}”?" } } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table></div>
+      <div class="small text-muted mt-2">Las categorías con productos no se eliminan: se desactivan, y sus productos dejan de estar listos para la tienda.</div>
+    <% end %>
+  </div>
+</div>

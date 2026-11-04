@@ -1,0 +1,97 @@
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+      <div class="text-muted small">Tienda Minorista → <%= link_to "Productos", admin_retail_catalog_products_path, class: "text-muted" %></div>
+      <h1 class="fw-bold mb-1"><%= @product.name %></h1>
+      <div><%= retail_status_badges(@product) %></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Editar", edit_admin_retail_catalog_product_path(@product), class: "btn btn-dark" %>
+      <%= button_to(@product.active? ? "Desactivar" : "Activar", toggle_active_admin_retail_catalog_product_path(@product), method: :patch, class: "btn btn-outline-dark") %>
+      <%= button_to "Duplicar", duplicate_admin_retail_catalog_product_path(@product), method: :post, class: "btn btn-outline-dark" %>
+      <% if @product.deletable? %>
+        <%= button_to "Eliminar", admin_retail_catalog_product_path(@product), method: :delete, class: "btn btn-outline-danger",
+              form: { data: { turbo_confirm: "¿Eliminar “#{@product.name}” y sus fotos? No se puede deshacer." } } %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="product-card mb-4" id="retail-product-data">
+    <div class="row g-3">
+      <div class="col-6 col-md-3"><div class="small text-muted">Precio minorista</div><div class="fw-bold fs-5"><%= retail_catalog_money(@product.price_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Categoría</div><div><%= @product.retail_category.name %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Código interno</div><div><%= @product.code %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Orden</div><div><%= @product.position %></div></div>
+      <div class="col-12 col-md-6"><div class="small text-muted">Producto mayorista vinculado</div><div><%= @product.product&.name || "Sin vincular (producto especial)" %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Creado</div><div><%= l(@product.created_at, format: "%d/%m/%Y %H:%M") %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Última modificación</div><div><%= l(@product.updated_at, format: "%d/%m/%Y %H:%M") %></div></div>
+      <% if @product.description.present? %><div class="col-12"><div class="small text-muted">Descripción</div><div style="white-space: pre-line"><%= @product.description %></div></div><% end %>
+    </div>
+    <% unless @product.ready_for_store? %>
+      <div class="alert alert-light border small mt-3 mb-0" id="retail-publication-issues">
+        <strong>Todavía no está listo para la tienda:</strong> <%= @product.publication_issues.join(" · ") %>.
+      </div>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-4" id="fotos">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h2 class="fs-5 fw-bold mb-0">Fotografías</h2>
+      <span class="small text-muted">La principal se usa en las tarjetas del catálogo; las demás, en la galería del detalle.</span>
+    </div>
+
+    <% if @photos.empty? %>
+      <div class="d-flex align-items-center gap-3 mb-3"><%= retail_photo_placeholder(size: 96) %><span class="text-muted">Este producto todavía no tiene fotos.</span></div>
+    <% else %>
+      <div class="row g-3 mb-3" id="retail-photos">
+        <% secondaries = @photos.reject(&:primary?) %>
+        <% @photos.each do |photo| %>
+          <div class="col-6 col-md-4 col-lg-3" id="<%= dom_id(photo) %>">
+            <div class="border rounded p-2 h-100 <%= 'border-dark border-2' if photo.primary? %>">
+              <%= link_to url_for(photo.image.variant(:detail)), target: "_blank", rel: "noopener" do %>
+                <%= image_tag url_for(photo.image.variant(:card)), alt: @product.name, class: "w-100 rounded bg-light", style: "aspect-ratio: 1; object-fit: cover;", loading: "lazy" %>
+              <% end %>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <% if photo.primary? %>
+                  <span class="badge bg-dark">Principal</span>
+                <% else %>
+                  <%= button_to "Hacer principal", make_primary_admin_retail_catalog_product_photo_path(@product, photo), method: :patch, class: "btn btn-sm btn-outline-dark" %>
+                  <span class="text-nowrap">
+                    <% index = secondaries.index(photo) %>
+                    <%= button_to "←", move_up_admin_retail_catalog_product_photo_path(@product, photo), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: index.zero?, title: "Antes" %>
+                    <%= button_to "→", move_down_admin_retail_catalog_product_photo_path(@product, photo), method: :patch, class: "btn btn-sm btn-outline-secondary", form: { class: "d-inline" }, disabled: index == secondaries.size - 1, title: "Después" %>
+                  </span>
+                <% end %>
+              </div>
+              <% if RetailCatalog::PhotoStorage.enabled? %>
+                <%= form_with url: admin_retail_catalog_product_photo_path(@product, photo), method: :patch, local: true, multipart: true, class: "mt-2" do %>
+                  <%= file_field_tag :image, accept: "image/jpeg,image/png,image/webp", class: "form-control form-control-sm", required: true, "aria-label": "Nueva imagen" %>
+                  <%= submit_tag "Reemplazar", class: "btn btn-sm btn-outline-dark w-100 mt-1" %>
+                <% end %>
+              <% end %>
+              <% last = @photos.size == 1 %>
+              <%= button_to "Eliminar", admin_retail_catalog_product_photo_path(@product, photo), method: :delete, params: (last ? { confirm_last: "1" } : {}),
+                    class: "btn btn-sm btn-outline-danger w-100 mt-1",
+                    form: { data: { turbo_confirm: last ? "Es la única foto: el producto quedará sin fotos y no podrá publicarse. ¿Eliminarla?" : "¿Eliminar esta foto?" } } %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if RetailCatalog::PhotoStorage.enabled? %>
+      <%= form_with url: admin_retail_catalog_product_photos_path(@product), method: :post, local: true, multipart: true, id: "retail-photo-upload" do %>
+        <label class="form-label" for="retail-photo-files">Agregar fotos</label>
+        <div class="d-flex flex-column flex-sm-row gap-2">
+          <%= file_field_tag "images[]", multiple: true, accept: "image/jpeg,image/png,image/webp", id: "retail-photo-files", class: "form-control", required: true %>
+          <%= submit_tag "Subir fotos", class: "btn btn-dark" %>
+        </div>
+        <div class="form-text">JPEG, PNG o WebP, hasta 5 MB cada una. Podés elegir varias a la vez. La primera foto del producto queda como principal.</div>
+      <% end %>
+    <% else %>
+      <div class="alert alert-warning small mb-0" id="retail-photo-upload-disabled">
+        La carga de fotos se habilita cuando esté conectado el almacenamiento (Cloudflare R2). Mientras tanto el producto puede guardarse sin fotos.
+      </div>
+    <% end %>
+  </div>
+</div>

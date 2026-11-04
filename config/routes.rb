@@ -92,6 +92,33 @@ Rails.application.routes.draw do
       end
       resources :attachments, only: [:show]
     end
+    # Tienda Minorista → catálogo propio (productos, categorías y fotos), independiente del
+    # catálogo mayorista. Solo admin (ver Admin::RetailCatalog::BaseController).
+    namespace :retail_catalog, path: "tienda-minorista" do
+      root "products#index"
+      resources :products, path: "productos" do
+        member do
+          patch :toggle_active
+          post :duplicate
+          patch :move_up
+          patch :move_down
+        end
+        resources :photos, path: "fotos", only: [:create, :update, :destroy] do
+          member do
+            patch :make_primary
+            patch :move_up
+            patch :move_down
+          end
+        end
+      end
+      resources :categories, path: "categorias", except: [:show] do
+        member do
+          patch :toggle_active
+          patch :move_up
+          patch :move_down
+        end
+      end
+    end
     # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los
     # pedidos mayoristas (ver RetailOrder / Retail::*). Solo admin.
     resources :retail_orders, except: [:destroy] do
