@@ -1,0 +1,10 @@
+<% content_for :title, "Esperá un momento" %>
+<div class="store-container">
+  <div class="store-empty" id="store-throttled">
+    <h1>Esperá un momento</h1>
+    <p>Recibimos muchos intentos seguidos desde esta conexión. Probá de nuevo en unos minutos o escribinos por WhatsApp.</p>
+    <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-btn store-btn-whatsapp", target: "_blank", rel: "noopener noreferrer" do %>
+      <%= store_whatsapp_icon %> Escribinos por WhatsApp
+    <% end %>
+  </div>
+</div>

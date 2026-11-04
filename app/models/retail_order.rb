@@ -37,7 +37,7 @@ class RetailOrder < ApplicationRecord
   enum :confirmation_status, { awaiting: "awaiting", confirmed: "confirmed", rejected: "rejected" }, default: "confirmed", prefix: :confirmation
   enum :source, { manual: "manual", store: "store" }, default: "manual", prefix: :source
 
-  # Token no predecible para la futura pantalla pública de confirmación del pedido (nunca el id).
+  # Token no predecible de la pantalla pública "Pedido recibido" de la tienda (nunca el id).
   has_secure_token :public_token, length: 32
 
   STATUS_LABELS = {
@@ -72,10 +72,18 @@ class RetailOrder < ApplicationRecord
     "other" => "Otro"
   }.freeze
 
+  # Las dos únicas formas de pago que ofrece la tienda pública (sin pasarelas): indican cómo quiere
+  # pagar el cliente, no que haya pagado. El pago se coordina por WhatsApp y se registra a mano.
+  STORE_PAYMENT_METHOD_LABELS = {
+    "transfer" => "Transferencia bancaria",
+    "cash_on_delivery" => "Efectivo"
+  }.freeze
+
   MAX_CENTS = 2_000_000_000
 
   validates :buyer_name, presence: true, length: { maximum: 150 }
   validates :buyer_phone, length: { maximum: 40 }, allow_blank: true
+  validates :buyer_email, length: { maximum: 150 }, format: { with: URI::MailTo::EMAIL_REGEXP, message: "no es un email válido" }, allow_blank: true
   validates :delivery_time_note, length: { maximum: 120 }, allow_blank: true
   validates :address, length: { maximum: 250 }, allow_blank: true
   validates :delivery_zone_name, length: { maximum: 60 }, allow_blank: true
@@ -125,6 +133,11 @@ class RetailOrder < ApplicationRecord
 
   def planned_payment_method_label
     PAYMENT_METHOD_LABELS[planned_payment_method]
+  end
+
+  # Como lo ve el cliente de la tienda ("Transferencia bancaria", "Efectivo").
+  def store_payment_method_label
+    STORE_PAYMENT_METHOD_LABELS[planned_payment_method] || planned_payment_method_label
   end
 
   def confirmation_status_label
@@ -205,6 +218,7 @@ class RetailOrder < ApplicationRecord
   def normalize_text
     self.buyer_name = buyer_name.to_s.squish.presence
     self.buyer_phone = buyer_phone.to_s.squish.presence
+    self.buyer_email = buyer_email.to_s.strip.downcase.presence
     self.delivery_time_note = delivery_time_note.to_s.squish.presence
     self.address = address.to_s.squish.presence
     self.notes = notes.to_s.strip.presence

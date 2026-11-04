@@ -1,0 +1,143 @@
+<% content_for :title, "Finalizar pedido" %>
+<% services = @options[:services].index_by { |s| s[:key] } %>
+<% kind = @form[:delivery_kind] == "delivery" ? "delivery" : "pickup" %>
+<% date_options = ->(service) { services[service][:dates].map { |d| ["#{store_date(Date.iso8601(d[:date]))} · #{d[:label]}", d[:date]] } } %>
+<% selected_zone = @zones.find { |z| z.id.to_s == @form[:delivery_zone_id].to_s } %>
+
+<div class="store-container" id="store-checkout">
+  <nav class="store-breadcrumb"><%= link_to "← Volver al carrito", store_cart_path %></nav>
+  <h1 class="store-page-title">Finalizar pedido</h1>
+
+  <% if @errors.present? %>
+    <div class="store-errors" role="alert" id="store-checkout-errors" tabindex="-1">
+      <strong>Revisá estos datos:</strong>
+      <ul><% @errors.each do |error| %><li><%= error %></li><% end %></ul>
+    </div>
+  <% end %>
+  <% if @dropped.present? %>
+    <div class="store-flash store-flash-error" role="alert">Sacamos del carrito <%= @dropped.to_sentence %> porque ya no está disponible. Revisá el resumen.</div>
+  <% end %>
+
+  <%= form_with url: store_checkout_path, method: :post, id: "store-checkout-form", class: "store-checkout-grid",
+        data: { controller: "store-checkout", store_checkout_subtotal_value: @subtotal_cents, turbo: !store_preview? } do %>
+    <%= hidden_field_tag :checkout_token, @checkout_token, id: nil %>
+    <div class="store-hp" aria-hidden="true">
+      <label for="website">No completar este campo</label>
+      <%= text_field_tag :website, "", tabindex: -1, autocomplete: "off" %>
+    </div>
+
+    <div class="store-checkout-main">
+      <section class="store-panel" aria-labelledby="datos-title">
+        <h2 class="store-panel-title" id="datos-title"><span class="store-step">1</span> Tus datos</h2>
+        <div class="store-field">
+          <label class="store-label" for="buyer_name">Nombre y apellido</label>
+          <%= text_field_tag :buyer_name, @form[:buyer_name], class: "store-input", required: true, maxlength: 150, autocomplete: "name", autocapitalize: "words" %>
+        </div>
+        <div class="store-field">
+          <label class="store-label" for="buyer_phone">Celular con WhatsApp</label>
+          <%= telephone_field_tag :buyer_phone, @form[:buyer_phone], class: "store-input", required: true, maxlength: 40, autocomplete: "tel", inputmode: "tel", placeholder: "Ej. 223 5275412", "aria-describedby": "buyer_phone_help" %>
+          <div class="store-help" id="buyer_phone_help">Con código de área. Te escribimos a este número para confirmar.</div>
+        </div>
+        <div class="store-field">
+          <label class="store-label" for="buyer_email">Email</label>
+          <%= email_field_tag :buyer_email, @form[:buyer_email], class: "store-input", required: true, maxlength: 150, autocomplete: "email", inputmode: "email", autocapitalize: "off", spellcheck: false %>
+        </div>
+      </section>
+
+      <section class="store-panel" aria-labelledby="entrega-title">
+        <h2 class="store-panel-title" id="entrega-title"><span class="store-step">2</span> Entrega</h2>
+        <div class="store-options" role="radiogroup" aria-label="Modalidad de entrega">
+          <% %w[pickup delivery].each do |service| %>
+            <% info = services[service] %>
+            <label class="store-option">
+              <%= radio_button_tag :delivery_kind, service, kind == service, required: true, data: { action: "store-checkout#kindChanged" } %>
+              <span class="store-option-body">
+                <span class="store-option-head"><strong><%= info[:name] %></strong><span class="store-option-price"><%= service == "pickup" ? "Gratis" : "Según la zona" %></span></span>
+                <span class="store-option-text"><%= store_weekly_summary(info[:weekly]) %></span>
+              </span>
+            </label>
+          <% end %>
+        </div>
+
+        <div class="store-subpanel" data-store-checkout-target="pickup" <%= "hidden" unless kind == "pickup" %>>
+          <% if services["pickup"][:details].present? %>
+            <div class="store-note" id="store-pickup-details"><strong>Punto de retiro</strong><div><%= simple_format(services["pickup"][:details]) %></div></div>
+          <% else %>
+            <div class="store-note" id="store-pickup-details">Te pasamos el punto exacto de retiro por WhatsApp al confirmar el pedido.</div>
+          <% end %>
+          <div class="store-field">
+            <label class="store-label" for="pickup_date">Fecha de retiro</label>
+            <%= select_tag :pickup_date, options_for_select(date_options.call("pickup"), kind == "pickup" ? @form[:delivery_date] : nil), include_blank: "Elegí una fecha", class: "store-input", required: true, disabled: kind != "pickup" %>
+            <div class="store-help">Horario de retiro según el día. No hay retiros los domingos.</div>
+          </div>
+        </div>
+
+        <div class="store-subpanel" data-store-checkout-target="delivery" <%= "hidden" unless kind == "delivery" %>>
+          <fieldset class="store-field">
+            <legend class="store-label">Zona de envío</legend>
+            <div class="store-zones">
+              <% @zones.each do |zone| %>
+                <label class="store-zone">
+                  <%= radio_button_tag :delivery_zone_id, zone.id, selected_zone == zone, required: true, disabled: kind != "delivery",
+                        data: { price: zone.price_cents, action: "store-checkout#zoneChanged" } %>
+                  <span class="store-zone-body">
+                    <span class="store-zone-head"><strong><%= zone.name %></strong><span><%= store_money(zone.price_cents) %></span></span>
+                    <% if zone.coverage.present? %><span class="store-zone-coverage"><%= zone.coverage %></span><% end %>
+                  </span>
+                </label>
+              <% end %>
+            </div>
+            <div class="store-help">Elegí la zona de tu dirección. Si no estás seguro, escribinos por WhatsApp antes de pedir.</div>
+          </fieldset>
+          <div class="store-field">
+            <label class="store-label" for="address">Dirección de entrega</label>
+            <%= text_field_tag :address, @form[:address], class: "store-input", required: true, maxlength: 250, autocomplete: "street-address", placeholder: "Calle, número, piso/depto y barrio", disabled: kind != "delivery" %>
+          </div>
+          <div class="store-field">
+            <label class="store-label" for="delivery_date">Fecha de entrega</label>
+            <%= select_tag :delivery_date, options_for_select(date_options.call("delivery"), kind == "delivery" ? @form[:delivery_date] : nil), include_blank: "Elegí una fecha", class: "store-input", required: true, disabled: kind != "delivery" %>
+            <div class="store-help">Entregamos dentro de la franja indicada; no hay horario exacto. No hay envíos los domingos.</div>
+          </div>
+        </div>
+        <p class="store-help mt-2 mb-0">Los pedidos necesitan <%= @options[:min_lead_days] %> <%= @options[:min_lead_days] == 1 ? "día" : "días" %> de anticipación: solo te mostramos fechas disponibles.</p>
+      </section>
+
+      <section class="store-panel" aria-labelledby="pago-title">
+        <h2 class="store-panel-title" id="pago-title"><span class="store-step">3</span> Forma de pago</h2>
+        <div class="store-options store-options-inline" role="radiogroup" aria-label="Forma de pago">
+          <% RetailOrder::STORE_PAYMENT_METHOD_LABELS.each do |value, label| %>
+            <label class="store-option">
+              <%= radio_button_tag :planned_payment_method, value, @form[:planned_payment_method] == value, required: true %>
+              <span class="store-option-body"><strong><%= label %></strong></span>
+            </label>
+          <% end %>
+        </div>
+        <p class="store-help mb-0">Elegís cómo vas a pagar; el pago se coordina por WhatsApp cuando confirmemos el pedido.</p>
+      </section>
+
+      <section class="store-panel" aria-labelledby="notas-title">
+        <h2 class="store-panel-title" id="notas-title"><span class="store-step">4</span> Notas del pedido <span class="store-optional">(opcional)</span></h2>
+        <%= text_area_tag :notes, @form[:notes], class: "store-input", rows: 3, maxlength: Retail::PlaceStoreOrder::MAX_NOTES, placeholder: "Texto para la torta, observaciones, alergias, etc.", "aria-label": "Notas del pedido" %>
+      </section>
+    </div>
+
+    <aside class="store-checkout-aside">
+      <div class="store-summary store-summary-sticky" id="store-checkout-summary">
+        <h2 class="store-panel-title">Tu pedido</h2>
+        <ul class="store-summary-lines">
+          <% @lines.each do |line| %>
+            <li><span><%= line.quantity %> × <%= line.product.name %></span><span><%= store_money(line.line_total_cents) %></span></li>
+          <% end %>
+        </ul>
+        <div class="store-summary-row"><span>Subtotal</span><span id="store-summary-subtotal"><%= store_money(@subtotal_cents) %></span></div>
+        <div class="store-summary-row"><span>Envío</span><span id="store-summary-shipping" data-store-checkout-target="shipping"><%= kind == "pickup" ? "Gratis" : (selected_zone ? store_money(selected_zone.price_cents) : "Elegí la zona") %></span></div>
+        <div class="store-summary-row store-summary-total"><span>Total</span><strong id="store-summary-total" data-store-checkout-target="total"><%= store_money(@subtotal_cents + (kind == "delivery" && selected_zone ? selected_zone.price_cents : 0)) %></strong></div>
+
+        <button type="submit" class="store-btn store-btn-whatsapp w-100 mt-3" id="store-submit" data-turbo-submits-with="Registrando tu pedido…">
+          <%= store_whatsapp_icon %> Enviar pedido por WhatsApp
+        </button>
+        <p class="store-help mt-2 mb-0">Registramos tu pedido y abrimos WhatsApp con el mensaje listo para enviarnos. El pedido queda confirmado cuando HANS te responde.</p>
+      </div>
+    </aside>
+  <% end %>
+</div>

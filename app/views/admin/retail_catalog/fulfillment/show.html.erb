@@ -20,7 +20,7 @@
         <div class="col-12 col-md-8">
           <%= f.label :pickup_point_details, "Punto de retiro (dirección o indicaciones)", class: "form-label" %>
           <%= f.text_area :pickup_point_details, class: "form-control", rows: 3, maxlength: 1000, placeholder: "Todavía sin definir. Se mostrará al cliente que elija “Retiro por zona Plaza del Agua”." %>
-          <% if @setting.pickup_point_details.blank? %><div class="form-text text-warning-emphasis" id="pickup-point-missing">Sin cargar: el cliente verá solo “Retiro por zona Plaza del Agua”.</div><% end %>
+          <% if @setting.pickup_point_details.blank? %><div class="form-text text-warning-emphasis" id="pickup-point-missing">Sin cargar: el cliente verá “Retiro por zona Plaza del Agua” y que el punto exacto se lo pasan por WhatsApp.</div><% end %>
         </div>
       </div>
       <%= f.submit "Guardar reglas generales", class: "btn btn-dark mt-3" %>

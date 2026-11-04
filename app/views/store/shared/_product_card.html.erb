@@ -1,0 +1,15 @@
+<%# locals: product %>
+<article class="store-card" id="<%= dom_id(product, :store) %>">
+  <%= link_to store_product_path_for(product), class: "store-card-link" do %>
+    <div class="store-card-photo"><%= store_photo_tag(product.primary_photo, alt: product.name) %></div>
+    <div class="store-card-body">
+      <h3 class="store-card-name"><%= product.name %></h3>
+      <div class="store-card-price"><%= store_money(product.price_cents) %></div>
+    </div>
+  <% end %>
+  <%= form_with url: add_store_cart_path, method: :post, class: "store-card-add" do %>
+    <%= hidden_field_tag :product_id, product.id, id: nil %>
+    <%= hidden_field_tag :quantity, 1, id: nil %>
+    <button type="submit" class="store-btn store-btn-outline store-btn-sm w-100" aria-label="Agregar <%= product.name %> al carrito" data-turbo-submits-with="Agregando…">Agregar</button>
+  <% end %>
+</article>

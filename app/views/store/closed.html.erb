@@ -1,0 +1,12 @@
+<% content_for :title, "Próximamente" %>
+<% content_for :hide_cart, "1" %>
+<div class="store-container">
+  <div class="store-empty" id="store-closed">
+    <p class="store-eyebrow">Tienda online</p>
+    <h1>Próximamente</h1>
+    <p>Estamos preparando la tienda online de HANS Pastelería. Mientras tanto podés hacer tu pedido por WhatsApp.</p>
+    <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-btn store-btn-whatsapp", target: "_blank", rel: "noopener noreferrer" do %>
+      <%= store_whatsapp_icon %> Escribinos por WhatsApp
+    <% end %>
+  </div>
+</div>

@@ -6,6 +6,9 @@
 class RetailOrderItem < ApplicationRecord
   belongs_to :retail_order, inverse_of: :retail_order_items
   belongs_to :product, optional: true
+  # Producto de la tienda pública del que salió el ítem (Etapa 4). Los ítems cargados por el equipo
+  # no lo tienen. El nombre y el precio quedan copiados en el ítem.
+  belongs_to :retail_product, optional: true
 
   MAX_QUANTITY = 100_000
 

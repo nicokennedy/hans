@@ -1,0 +1,64 @@
+<% content_for :title, "Pedido #{@order.number}" %>
+<div class="store-container store-narrow" id="store-order"
+     data-controller="store-whatsapp" data-store-whatsapp-url-value="<%= @whatsapp_url %>" data-store-whatsapp-auto-value="<%= @open_whatsapp %>">
+  <div class="store-received">
+    <div class="store-received-icon" aria-hidden="true">✓</div>
+    <p class="store-eyebrow">Pedido registrado</p>
+    <h1 class="store-page-title mb-1">Recibimos tu pedido</h1>
+    <p class="store-order-number">Número de pedido <strong id="store-order-number"><%= @order.number %></strong></p>
+    <% if @order.confirmation_awaiting? %>
+      <p class="store-received-text">Para terminar, envianos el mensaje por WhatsApp. El equipo de HANS revisa el pedido y te lo confirma por ese medio.</p>
+    <% elsif @order.confirmation_confirmed? %>
+      <p class="store-received-text" id="store-order-confirmed"><strong>HANS ya confirmó este pedido.</strong></p>
+    <% else %>
+      <p class="store-received-text" id="store-order-not-confirmed">Este pedido no pudo confirmarse. Escribinos por WhatsApp si tenés dudas.</p>
+    <% end %>
+
+    <a href="<%= @whatsapp_url %>" class="store-btn store-btn-whatsapp w-100" id="store-whatsapp-button" target="_blank" rel="noopener noreferrer">
+      <%= store_whatsapp_icon %> <%= @order.confirmation_awaiting? ? "Enviar pedido por WhatsApp" : "Escribir a HANS por WhatsApp" %>
+    </a>
+    <p class="store-help mt-2" data-store-whatsapp-target="blocked" hidden>Si WhatsApp no se abrió solo, tocá el botón verde.</p>
+    <p class="store-help mt-2 mb-0">El mensaje ya tiene tu número de pedido y el detalle. Podés volver a abrirlo desde esta página: no se genera otro pedido.</p>
+  </div>
+
+  <section class="store-summary mt-4" aria-labelledby="detalle-title">
+    <h2 class="store-panel-title" id="detalle-title">Detalle</h2>
+    <ul class="store-summary-lines" id="store-order-items">
+      <% @order.retail_order_items.each do |item| %>
+        <li><span><%= item.quantity %> × <%= item.display_name %></span><span><%= store_money(item.line_total_cents) %></span></li>
+      <% end %>
+    </ul>
+    <div class="store-summary-row"><span>Subtotal</span><span><%= store_money(@order.subtotal_cents) %></span></div>
+    <div class="store-summary-row"><span>Envío</span><span id="store-order-shipping"><%= @order.shipping_cents.zero? ? "Gratis" : store_money(@order.shipping_cents) %></span></div>
+    <div class="store-summary-row store-summary-total"><span>Total</span><strong id="store-order-total"><%= store_money(@order.total_cents) %></strong></div>
+
+    <dl class="store-facts-list">
+      <div><dt>Modalidad</dt><dd><%= @order.delivery_service_name %></dd></div>
+      <% if @order.delivery? %>
+        <div><dt>Zona</dt><dd><%= @order.delivery_zone_name %></dd></div>
+        <div><dt>Dirección</dt><dd><%= @order.address %></dd></div>
+      <% elsif @pickup_details.present? %>
+        <div><dt>Punto de retiro</dt><dd><%= simple_format(@pickup_details) %></dd></div>
+      <% end %>
+      <div><dt>Fecha</dt><dd><%= store_date(@order.delivery_date) %></dd></div>
+      <% if @order.delivery_window_label.present? %><div><dt><%= RetailFulfillment::WINDOW_NAMES[@order.delivery_kind] %></dt><dd><%= @order.delivery_window_label %></dd></div><% end %>
+      <div><dt>Forma de pago</dt><dd><%= @order.store_payment_method_label %></dd></div>
+      <div><dt>Nombre</dt><dd><%= @order.buyer_name %></dd></div>
+      <% if @order.notes.present? %><div><dt>Notas</dt><dd><%= simple_format(@order.notes) %></dd></div><% end %>
+    </dl>
+
+    <% if @order.planned_payment_method == "transfer" %>
+      <div class="store-note mt-3" id="store-transfer-details">
+        <strong>Pago por transferencia</strong>
+        <% if store_setting.bank_transfer_details.present? %>
+          <div><%= simple_format(store_setting.bank_transfer_details) %></div>
+          <div class="store-help mb-0">Transferí cuando HANS te confirme el pedido y envianos el comprobante por WhatsApp.</div>
+        <% else %>
+          <div>Te pasamos los datos para transferir por WhatsApp cuando confirmemos el pedido.</div>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <p class="text-center mt-4"><%= link_to "Volver a la tienda", store_root_path, class: "store-muted" %></p>
+</div>

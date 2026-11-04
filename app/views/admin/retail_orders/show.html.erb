@@ -16,6 +16,7 @@
     <div class="row g-3">
       <div class="col-12 col-md-4"><div class="small text-muted">Comprador</div><div class="fw-bold fs-5"><%= @order.buyer_name %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Teléfono</div><div><%= retail_whatsapp_link(@order).presence || "—" %></div></div>
+      <% if @order.buyer_email.present? %><div class="col-12 col-md-4"><div class="small text-muted">Email</div><div id="retail-order-email"><%= mail_to @order.buyer_email %></div></div><% end %>
       <div class="col-6 col-md-2"><div class="small text-muted">Entrega</div><div class="fw-bold"><%= retail_date(@order.delivery_date) %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Horario</div><div><%= @order.delivery_time_note.presence || "—" %></div></div>
       <div class="col-6 col-md-2"><div class="small text-muted">Tipo</div><div><%= @order.delivery_kind_label %></div></div>
@@ -26,7 +27,7 @@
       <div class="col-6 col-md-3"><div class="small text-muted">Confirmación</div><div id="retail-confirmation-status"><%= retail_confirmation_badge(@order) %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Estado del pedido</div><div><%= retail_status_badge(@order) %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Estado de pago</div><div><%= retail_payment_badge(@order) %></div></div>
-      <div class="col-12 col-md-3"><div class="small text-muted">Medio de pago previsto</div><div><%= @order.planned_payment_method_label || "Sin definir" %></div></div>
+      <div class="col-12 col-md-3"><div class="small text-muted">Medio de pago previsto</div><div id="retail-order-payment-method"><%= (@order.source_store? ? @order.store_payment_method_label : @order.planned_payment_method_label) || "Sin definir" %></div></div>
       <% if @order.notes.present? %><div class="col-12"><div class="small text-muted">Observaciones</div><div style="white-space: pre-wrap"><%= @order.notes %></div></div><% end %>
     </div>
   </div>

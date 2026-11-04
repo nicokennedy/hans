@@ -6,5 +6,7 @@
 Rails.application.config.filter_parameters += [
   :passw, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn,
   # Datos personales de compradores minoristas (y de la futura tienda online) fuera de los logs.
-  :buyer_name, :buyer_phone, :address, :phone, :reason
+  :buyer_name, :buyer_phone, :address, :phone, :reason,
+  # Tienda pública (Etapa 4): email y notas del pedido (pueden incluir alergias).
+  :email, :notes
 ]

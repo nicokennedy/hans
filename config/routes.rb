@@ -3,7 +3,30 @@ Rails.application.routes.draw do
 
   mount ActionCable.server => "/cable"
 
+  # Dominio propio de la tienda (opcional, más adelante): con RETAIL_STORE_HOST=tienda.ejemplo.com la
+  # raíz de ese dominio abre la tienda. Sin la variable no cambia nada.
+  if (store_host = ENV["RETAIL_STORE_HOST"].presence)
+    constraints(host: store_host) do
+      get "/", to: redirect("/tienda", status: 302), as: nil
+    end
+  end
+
   root "pages#home"
+
+  # Tienda pública minorista (Etapa 4): catálogo, carrito y checkout por WhatsApp. Se visita sin
+  # iniciar sesión; mientras esté cerrada (Tienda Minorista → Tienda online) solo la ven los
+  # administradores, en vista previa. Ver Store::BaseController.
+  scope "tienda", module: "store", as: "store" do
+    root "catalog#index"
+    get "productos/:id", to: "catalog#show", as: :product, constraints: { id: /\d+(-[a-z0-9-]*)?/ }
+    resource :cart, path: "carrito", only: [:show] do
+      post :add, path: "agregar"
+      patch :update_item, path: "cantidad"
+      delete :remove_item, path: "quitar"
+    end
+    resource :checkout, path: "finalizar", only: [:show, :create]
+    get "pedido/:token", to: "orders#show", as: :order, constraints: { token: /[A-Za-z0-9]{32}/ }
+  end
 
   resource :dashboard, only: [:show]
 
@@ -131,6 +154,11 @@ Rails.application.routes.draw do
         end
       end
       resources :service_closures, path: "entregas/fechas-sin-servicio", only: [:create, :destroy]
+      # Etapa 4: publicación de la tienda pública, WhatsApp de HANS y datos para transferencia.
+      resource :store_settings, path: "tienda-online", only: [:show, :update] do
+        patch :publish
+        patch :unpublish
+      end
     end
     # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los
     # pedidos mayoristas (ver RetailOrder / Retail::*). Solo admin.

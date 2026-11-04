@@ -11,6 +11,9 @@ class RetailProduct < ApplicationRecord
   belongs_to :product, optional: true # producto mayorista vinculado (solo lectura)
   has_many :photos, -> { order(primary: :desc, position: :asc, id: :asc) }, class_name: "RetailProductPhoto", dependent: :destroy, inverse_of: :retail_product
   has_one :primary_photo, -> { where(primary: true) }, class_name: "RetailProductPhoto", inverse_of: :retail_product
+  # Ítems de pedidos de la tienda que salieron de este producto. Si el producto se borra, los ítems
+  # conservan nombre, cantidad y precio (la base limpia el vínculo: on_delete nullify).
+  has_many :retail_order_items, dependent: :nullify
 
   before_validation :normalize_fields
   before_validation :assign_code, on: :create
@@ -25,6 +28,12 @@ class RetailProduct < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:position, Arel.sql("lower(retail_products.name)"), :id) }
+  # Lo que muestra y vende la tienda pública: el mismo criterio que #ready_for_store? (activo,
+  # categoría activa y foto principal), resuelto en la base.
+  scope :for_store, -> {
+    active.joins(:retail_category).merge(RetailCategory.active)
+      .where(id: RetailProductPhoto.where(primary: true).select(:retail_product_id))
+  }
 
   # Precio como se escribe en pesos ("4.500", "4500,50"); inválido -> error de validación.
   def price=(text)
@@ -36,8 +45,8 @@ class RetailProduct < ApplicationRecord
     @price_input || (price_cents && Retail::Money.format_pesos(price_cents))
   end
 
-  # Qué le falta para mostrarse en la tienda pública (todavía no publicada): producto activo,
-  # categoría activa y fotografía principal.
+  # Qué le falta para mostrarse en la tienda pública: producto activo, categoría activa y
+  # fotografía principal (ver .for_store).
   def publication_issues
     issues = []
     issues << "Inactivo" unless active?
@@ -50,8 +59,8 @@ class RetailProduct < ApplicationRecord
     publication_issues.empty?
   end
 
-  # Hoy ningún pedido usa productos de la tienda (llega con el checkout): se puede borrar si está
-  # inactivo, para no borrar por error algo visible. Las fotos se borran con él.
+  # Se puede borrar si está inactivo, para no borrar por error algo visible. Las fotos se borran con
+  # él; los pedidos que lo incluían conservan sus ítems (nombre, cantidad y precio).
   def deletable?
     !active?
   end

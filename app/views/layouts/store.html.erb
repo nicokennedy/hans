@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title><%= content_for?(:title) ? "#{yield(:title)} · HANS Pastelería" : "HANS Pastelería · Tienda online" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="description" content="Tienda online de HANS Pastelería. Elegí tus productos, retiralos por zona Plaza del Agua o recibilos en tu casa.">
+    <% unless store_setting.published? %><meta name="robots" content="noindex, nofollow"><% end %>
+    <meta name="theme-color" content="#f7f4ef">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <%= stylesheet_link_tag "store", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="store-body">
+    <% if store_preview? %>
+      <div class="store-preview-bar" id="store-preview-bar">
+        <strong>Vista previa</strong> · La tienda está cerrada al público. Los pedidos de prueba no se registran.
+        <%= link_to "Configurar", admin_retail_catalog_store_settings_path %>
+      </div>
+    <% end %>
+
+    <header class="store-header">
+      <div class="store-container store-header-inner">
+        <%= link_to store_root_path, class: "store-brand", "aria-label": "HANS Pastelería, inicio de la tienda" do %>
+          <span class="store-brand-name">HANS</span><span class="store-brand-sub">Pastelería</span>
+        <% end %>
+        <% if content_for?(:hide_cart) %>
+          <span></span>
+        <% else %>
+          <% count = store_cart.count %>
+          <%= link_to store_cart_path, class: "store-cart-link", id: "store-cart-link", "aria-label": "Carrito, #{count} #{count == 1 ? 'producto' : 'productos'}" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+            <span>Carrito</span>
+            <% if count.positive? %><span class="store-cart-count"><%= count %></span><% end %>
+          <% end %>
+        <% end %>
+      </div>
+    </header>
+
+    <main class="store-main">
+      <div class="store-container">
+        <% if notice.present? %><div class="store-flash store-flash-ok" role="status"><%= notice %></div><% end %>
+        <% if alert.present? %><div class="store-flash store-flash-error" role="alert"><%= alert %></div><% end %>
+      </div>
+      <%= yield %>
+    </main>
+
+    <footer class="store-footer">
+      <div class="store-container">
+        <div class="store-footer-brand">HANS Pastelería</div>
+        <p class="mb-2">Hacés el pedido acá y lo coordinamos por WhatsApp. El equipo de HANS confirma cada pedido.</p>
+        <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-footer-link", target: "_blank", rel: "noopener noreferrer" do %>
+          <%= store_whatsapp_icon(size: 18) %> WhatsApp <%= store_setting.whatsapp_display %>
+        <% end %>
+      </div>
+    </footer>
+  </body>
+</html>

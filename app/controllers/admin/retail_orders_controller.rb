@@ -107,7 +107,7 @@ class Admin::RetailOrdersController < ApplicationController
   end
 
   def order_attributes
-    params.permit(:buyer_name, :buyer_phone, :delivery_date, :delivery_kind, :delivery_time_note, :address, :notes, :planned_payment_method, :shipping, :delivery_zone_id).to_h
+    params.permit(:buyer_name, :buyer_phone, :buyer_email, :delivery_date, :delivery_kind, :delivery_time_note, :address, :notes, :planned_payment_method, :shipping, :delivery_zone_id).to_h
   end
 
   def item_rows
@@ -117,7 +117,7 @@ class Admin::RetailOrdersController < ApplicationController
   def form_defaults(order)
     items = order.persisted? ? order.retail_order_items.includes(:product).map { |item| item_form_row(item) } : []
     {
-      buyer_name: order.buyer_name, buyer_phone: order.buyer_phone, delivery_date: order.delivery_date,
+      buyer_name: order.buyer_name, buyer_phone: order.buyer_phone, buyer_email: order.buyer_email, delivery_date: order.delivery_date,
       delivery_kind: order.delivery_kind, delivery_time_note: order.delivery_time_note, address: order.address,
       notes: order.notes, planned_payment_method: order.planned_payment_method, delivery_zone_id: order.delivery_zone_id,
       shipping: order.shipping_cents.positive? ? Retail::Money.format_pesos(order.shipping_cents) : "",
@@ -135,7 +135,7 @@ class Admin::RetailOrdersController < ApplicationController
   def render_form_errors(action, errors)
     @errors = errors
     @form = {
-      buyer_name: params[:buyer_name], buyer_phone: params[:buyer_phone], delivery_date: params[:delivery_date],
+      buyer_name: params[:buyer_name], buyer_phone: params[:buyer_phone], buyer_email: params[:buyer_email], delivery_date: params[:delivery_date],
       delivery_kind: params[:delivery_kind], delivery_time_note: params[:delivery_time_note], address: params[:address],
       notes: params[:notes], planned_payment_method: params[:planned_payment_method], shipping: params[:shipping],
       delivery_zone_id: params[:delivery_zone_id],

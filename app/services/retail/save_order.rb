@@ -27,9 +27,13 @@ module Retail
       new(**args).call
     end
 
-    # attributes: Hash con buyer_name, buyer_phone, delivery_date (texto ISO), delivery_kind,
+    # attributes: Hash con buyer_name, buyer_phone, buyer_email, delivery_date (texto ISO), delivery_kind,
     #   delivery_time_note, address, notes, planned_payment_method, shipping (texto en pesos).
     # items: [{ "id", "kind" ("product"|"manual"), "product_id", "description", "quantity", "unit_price" }]
+    #   Los ítems de la TIENDA los arma Retail::PlaceStoreOrder en el servidor desde el catálogo
+    #   minorista (nunca desde el navegador) y traen además "retail_product_id", "name" (nombre del
+    #   producto de la tienda) y "unit_price_cents" (precio vigente del catálogo); solo se aceptan
+    #   en ese camino (con fulfillment:).
     SOURCES = RetailOrder.sources.keys.freeze
 
     def initialize(order:, attributes:, items:, user:, source: "manual", request_token: nil, fulfillment: nil)
@@ -131,6 +135,7 @@ module Retail
       {
         buyer_name: @attributes[:buyer_name],
         buyer_phone: @attributes[:buyer_phone],
+        buyer_email: @attributes[:buyer_email],
         delivery_date: date,
         delivery_kind: kind,
         delivery_time_note: @attributes[:delivery_time_note],
@@ -228,7 +233,11 @@ module Retail
           quantity = nil
         end
 
-        price = row[:unit_price].to_s.strip.empty? ? nil : Money.parse_pesos(row[:unit_price])
+        price = if store_row?(row)
+                  row[:unit_price_cents]
+                else
+                  row[:unit_price].to_s.strip.empty? ? nil : Money.parse_pesos(row[:unit_price])
+                end
         row_errors << "#{label}: el precio unitario es obligatorio y debe ser un importe válido (puede ser 0)." if price.nil?
         row_errors << "#{label}: el importe de la línea es demasiado alto." if price && quantity && price * quantity > RetailOrder::MAX_CENTS
 
@@ -236,8 +245,15 @@ module Retail
         next if row_errors.any?
 
         { id: row[:id].to_s.match?(/\A\d{1,18}\z/) ? row[:id].to_i : nil, product: product,
-          description: manual ? row[:description].to_s.squish : nil, quantity: quantity, unit_price_cents: price }
+          description: manual ? row[:description].to_s.squish : nil, quantity: quantity, unit_price_cents: price,
+          retail_product_id: store_row?(row) ? row[:retail_product_id] : nil, name: store_row?(row) ? row[:name].to_s.squish.first(200) : nil }
       end
+    end
+
+    # Ítem armado por Retail::PlaceStoreOrder desde el catálogo minorista (precio en centavos del
+    # catálogo). Solo existe en el alta de la tienda: el formulario del equipo no puede usarlo.
+    def store_row?(row)
+      @fulfillment.present? && row[:retail_product_id].is_a?(Integer) && row[:unit_price_cents].is_a?(Integer)
     end
 
     def sync_items(order, parsed_items)
@@ -251,6 +267,10 @@ module Retail
         item.description = data[:description]
         # El snapshot del nombre se conserva mientras el ítem siga siendo el mismo producto.
         item.product_name_snapshot = nil if data[:product].nil? || previous_product_id != data[:product].id
+        if data[:retail_product_id]
+          item.retail_product_id = data[:retail_product_id]
+          item.product_name_snapshot = data[:name] # el nombre que vio el cliente en la tienda
+        end
         item.quantity = data[:quantity]
         item.unit_price_cents = data[:unit_price_cents]
         item.position = position

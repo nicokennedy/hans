@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -489,8 +489,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "retail_product_id"
     t.index ["product_id"], name: "index_retail_order_items_on_product_id"
     t.index ["retail_order_id"], name: "index_retail_order_items_on_retail_order_id"
+    t.index ["retail_product_id"], name: "index_retail_order_items_on_retail_product_id"
   end
 
   create_table "retail_order_payments", force: :cascade do |t|
@@ -554,6 +556,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
     t.bigint "delivery_zone_id"
     t.string "delivery_zone_name"
     t.string "delivery_window_label"
+    t.string "buyer_email"
     t.index ["confirmation_status"], name: "index_retail_orders_on_confirmation_status"
     t.index ["confirmed_by_id"], name: "index_retail_orders_on_confirmed_by_id"
     t.index ["created_by_id"], name: "index_retail_orders_on_created_by_id"
@@ -626,6 +629,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
     t.check_constraint "NOT enabled OR opens_minute IS NOT NULL AND closes_minute IS NOT NULL AND opens_minute >= 0 AND closes_minute <= 1440 AND opens_minute < closes_minute", name: "retail_service_windows_enabled_has_hours"
     t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying, 'delivery'::character varying]::text[])", name: "retail_service_windows_service_valid"
     t.check_constraint "wday >= 0 AND wday <= 6", name: "retail_service_windows_wday_valid"
+  end
+
+  create_table "retail_store_settings", force: :cascade do |t|
+    t.boolean "published", default: false, null: false
+    t.datetime "published_at"
+    t.string "whatsapp_number", null: false
+    t.text "bank_transfer_details"
+    t.bigint "updated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["updated_by_id"], name: "index_retail_store_settings_on_updated_by_id"
+    t.check_constraint "whatsapp_number::text ~ '^[0-9]{10,15}$'::text", name: "retail_store_settings_whatsapp_digits"
   end
 
   create_table "stock_items", force: :cascade do |t|
@@ -731,6 +746,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
   add_foreign_key "retail_order_confirmation_changes", "users"
   add_foreign_key "retail_order_items", "products"
   add_foreign_key "retail_order_items", "retail_orders"
+  add_foreign_key "retail_order_items", "retail_products", on_delete: :nullify
   add_foreign_key "retail_order_payments", "retail_orders"
   add_foreign_key "retail_order_payments", "users"
   add_foreign_key "retail_order_payments", "users", column: "voided_by_id"
@@ -744,6 +760,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_04_190000) do
   add_foreign_key "retail_products", "products", on_delete: :nullify
   add_foreign_key "retail_products", "retail_categories", on_delete: :restrict
   add_foreign_key "retail_service_closures", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "retail_store_settings", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "stock_movements", "orders"
   add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"

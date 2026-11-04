@@ -1,0 +1,81 @@
+<div class="container py-5">
+  <div class="mb-3">
+    <div class="text-muted small">Tienda Minorista</div>
+    <h1 class="fw-bold mb-0">Tienda online</h1>
+    <div class="text-muted small">Publicación de la tienda pública, WhatsApp de HANS y datos para transferencia.</div>
+  </div>
+  <%= render "admin/retail_catalog/shared/nav" %>
+
+  <div class="product-card mb-4" id="store-publication">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+      <div>
+        <h2 class="fs-5 fw-bold mb-1">Publicación</h2>
+        <% if @setting.published? %>
+          <span class="badge bg-success fs-6" id="store-status">Publicada</span>
+          <div class="small text-muted mt-1">Cualquier persona puede ver la tienda y hacer pedidos<% if @setting.published_at %> (desde el <%= l(@setting.published_at.in_time_zone(RetailFulfillment::TIME_ZONE), format: "%d/%m/%Y %H:%M") %>)<% end %>.</div>
+        <% else %>
+          <span class="badge bg-secondary fs-6" id="store-status">Cerrada al público</span>
+          <div class="small text-muted mt-1">El público ve “Próximamente”. Los administradores la recorren en <strong>vista previa</strong>: el checkout valida todo y muestra el mensaje de WhatsApp, pero <strong>no registra pedidos</strong>.</div>
+        <% end %>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <%= link_to (@setting.published? ? "Abrir la tienda" : "Ver la tienda (vista previa)"), store_root_path, class: "btn btn-outline-dark", target: "_blank", rel: "noopener", id: "store-open-link" %>
+      </div>
+    </div>
+
+    <div class="mt-3 small">
+      <div class="text-muted">Dirección de la tienda</div>
+      <code id="store-url"><%= store_root_url %></code>
+    </div>
+
+    <hr>
+    <h3 class="fs-6 fw-bold">Antes de publicar</h3>
+    <ul class="small mb-3" id="store-readiness">
+      <li><strong><%= @published_products %></strong> <%= @published_products == 1 ? "producto visible" : "productos visibles" %> en la tienda (de <%= @active_products %> activos). Se muestran los activos, de categoría activa y con foto principal.</li>
+      <li><strong><%= @active_zones %></strong> <%= @active_zones == 1 ? "zona de envío activa" : "zonas de envío activas" %>.</li>
+      <li>Punto de retiro: <%= @pickup_details.present? ? "cargado" : content_tag(:span, "sin cargar (se coordina por WhatsApp)", class: "text-warning-emphasis") %> — <%= link_to "Entregas", admin_retail_catalog_fulfillment_path %>.</li>
+      <li>Datos para transferencia: <%= @setting.bank_transfer_details.present? ? "cargados" : content_tag(:span, "sin cargar (se pasan por WhatsApp)", class: "text-warning-emphasis") %>.</li>
+      <li>Probá el recorrido completo en vista previa: catálogo, carrito, checkout con retiro y con envío, y el mensaje de WhatsApp.</li>
+    </ul>
+
+    <% if @setting.published? %>
+      <%= button_to "Cerrar la tienda al público", unpublish_admin_retail_catalog_store_settings_path, method: :patch, class: "btn btn-outline-danger",
+            form: { data: { turbo_confirm: "¿Cerrar la tienda? El público verá “Próximamente” y no podrá hacer pedidos. Los pedidos ya hechos no cambian." } } %>
+    <% else %>
+      <%= form_with url: publish_admin_retail_catalog_store_settings_path, method: :patch, local: true, id: "store-publish-form",
+            data: { turbo_confirm: "¿Publicar la tienda? Desde ahora cualquier persona podrá hacer pedidos." } do %>
+        <div class="form-check mb-2">
+          <%= check_box_tag :confirm, "1", false, class: "form-check-input", id: "store-publish-confirm", required: true %>
+          <label class="form-check-label" for="store-publish-confirm">Revisé la tienda en vista previa y quiero abrirla al público.</label>
+        </div>
+        <%= submit_tag "Publicar la tienda", class: "btn btn-success" %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-4" id="store-data">
+    <h2 class="fs-5 fw-bold mb-3">WhatsApp y transferencia</h2>
+    <%= render "admin/administration/shared/errors", errors: @errors %>
+    <%= form_with url: admin_retail_catalog_store_settings_path, method: :patch, local: true do %>
+      <div class="row g-3">
+        <div class="col-12 col-md-5">
+          <label class="form-label" for="whatsapp_number">WhatsApp de HANS (para wa.me) *</label>
+          <%= text_field_tag :whatsapp_number, @setting.whatsapp_number, class: "form-control", required: true, maxlength: 20, inputmode: "numeric" %>
+          <div class="form-text">Solo números, con código de país y sin el 0 ni el 15: <code>5492235275412</code>. Se muestra como <strong><%= @setting.whatsapp_display %></strong>.</div>
+        </div>
+        <div class="col-12 col-md-7">
+          <label class="form-label" for="bank_transfer_details">Datos para transferencia</label>
+          <%= text_area_tag :bank_transfer_details, @setting.bank_transfer_details, class: "form-control", rows: 4, maxlength: 1000, placeholder: "Titular, CBU/CVU y alias. Si queda vacío, el cliente ve que los datos se pasan por WhatsApp." %>
+          <div class="form-text">Los ve el cliente que elige transferencia, en la pantalla de pedido recibido.</div>
+        </div>
+      </div>
+      <%= submit_tag "Guardar", class: "btn btn-dark mt-3" %>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-4">
+    <h2 class="fs-5 fw-bold mb-2">Cómo llegan los pedidos</h2>
+    <p class="small mb-1">Cada pedido de la tienda aparece en <%= link_to "Pedidos Minoristas", admin_retail_orders_path %> como <strong>Tienda online · Pendiente de confirmación</strong> (hoy: <strong id="store-awaiting-count"><%= @awaiting_orders %></strong>). No cuenta para producción ni stock hasta que lo confirmás. El cliente además te escribe por WhatsApp con el número de pedido.</p>
+    <p class="small mb-0 text-muted">Abrir WhatsApp no confirma ni paga nada: la confirmación y los pagos se registran desde el pedido.</p>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<% pickup = @fulfillment[:services].find { |s| s[:key] == "pickup" } %>
+<% delivery = @fulfillment[:services].find { |s| s[:key] == "delivery" } %>
+<section class="store-hero">
+  <div class="store-container">
+    <p class="store-eyebrow">Tienda online</p>
+    <h1 class="store-hero-title">HANS Pastelería</h1>
+    <p class="store-hero-text">Elegí tus productos, completá tus datos y envianos el pedido por WhatsApp. Te confirmamos desde HANS.</p>
+    <ul class="store-facts" aria-label="Entregas">
+      <li><strong><%= pickup[:name] %></strong><span>Gratis</span></li>
+      <li><strong><%= delivery[:name] %></strong><span>Según la zona</span></li>
+      <% if @fulfillment[:min_lead_days].positive? %>
+        <li><strong>Con <%= @fulfillment[:min_lead_days] %> <%= @fulfillment[:min_lead_days] == 1 ? "día" : "días" %> de anticipación</strong><span>Sin domingos</span></li>
+      <% end %>
+    </ul>
+  </div>
+</section>
+
+<% if @categories.empty? %>
+  <div class="store-container">
+    <div class="store-empty" id="store-empty-catalog">
+      <h2>Estamos preparando la tienda</h2>
+      <p>Todavía no hay productos publicados. Mientras tanto podés escribirnos por WhatsApp.</p>
+    </div>
+  </div>
+<% else %>
+  <nav class="store-chips-wrap" aria-label="Categorías">
+    <div class="store-container">
+      <div class="store-chips">
+        <% @categories.each do |category, _| %>
+          <a class="store-chip" href="#categoria-<%= category.id %>"><%= category.name %></a>
+        <% end %>
+      </div>
+    </div>
+  </nav>
+
+  <div class="store-container">
+    <% if @featured.any? %>
+      <section class="store-section" id="destacados" aria-labelledby="destacados-title">
+        <h2 class="store-section-title" id="destacados-title">Destacados</h2>
+        <div class="store-grid">
+          <% @featured.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
+        </div>
+      </section>
+    <% end %>
+
+    <% @categories.each do |category, products| %>
+      <section class="store-section" id="categoria-<%= category.id %>" aria-labelledby="categoria-<%= category.id %>-title">
+        <h2 class="store-section-title" id="categoria-<%= category.id %>-title"><%= category.name %></h2>
+        <div class="store-grid">
+          <% products.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
+        </div>
+      </section>
+    <% end %>
+  </div>
+<% end %>

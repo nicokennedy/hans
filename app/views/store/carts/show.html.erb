@@ -1,0 +1,56 @@
+<% content_for :title, "Carrito" %>
+<div class="store-container store-narrow" id="store-cart">
+  <h1 class="store-page-title">Tu carrito</h1>
+
+  <% if @dropped.any? %>
+    <div class="store-flash store-flash-error" role="alert" id="store-cart-dropped">
+      Sacamos del carrito <%= @dropped.to_sentence %> porque ya no <%= @dropped.size == 1 ? "está disponible" : "están disponibles" %>.
+    </div>
+  <% end %>
+
+  <% if @lines.empty? %>
+    <div class="store-empty" id="store-cart-empty">
+      <p>Tu carrito está vacío.</p>
+      <%= link_to "Ver productos", store_root_path, class: "store-btn store-btn-primary" %>
+    </div>
+  <% else %>
+    <ul class="store-lines" aria-label="Productos del carrito">
+      <% @lines.each do |line| %>
+        <li class="store-line" id="<%= dom_id(line.product, :cart) %>">
+          <%= link_to store_product_path_for(line.product), class: "store-line-photo", tabindex: -1, "aria-hidden": true do %>
+            <%= store_photo_tag(line.product.primary_photo, variant: :thumb, alt: "") %>
+          <% end %>
+          <div class="store-line-main">
+            <%= link_to line.product.name, store_product_path_for(line.product), class: "store-line-name" %>
+            <div class="store-line-unit"><%= store_money(line.unit_price_cents) %> c/u</div>
+            <div class="store-line-actions">
+              <%= form_with url: update_item_store_cart_path, method: :patch, class: "store-line-qty", data: { controller: "store-quantity", store_quantity_autosubmit_value: true } do %>
+                <%= hidden_field_tag :product_id, line.product.id, id: nil %>
+                <div class="store-stepper store-stepper-sm">
+                  <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno de <%= line.product.name %>">−</button>
+                  <%= number_field_tag :quantity, line.quantity, min: 1, max: Retail::StoreCart::MAX_QUANTITY, step: 1, inputmode: "numeric", class: "store-stepper-input",
+                        id: "qty-#{line.product.id}", "aria-label": "Cantidad de #{line.product.name}", data: { store_quantity_target: "input", action: "change->store-quantity#submit" } %>
+                  <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno de <%= line.product.name %>">+</button>
+                </div>
+                <noscript><button type="submit" class="store-btn store-btn-outline store-btn-sm">Actualizar</button></noscript>
+              <% end %>
+              <%= button_to "Quitar", remove_item_store_cart_path, method: :delete, params: { product_id: line.product.id }, class: "store-link-btn", form_class: "d-inline" %>
+            </div>
+          </div>
+          <div class="store-line-total"><%= store_money(line.line_total_cents) %></div>
+        </li>
+      <% end %>
+    </ul>
+
+    <div class="store-summary" id="store-cart-summary">
+      <div class="store-summary-row store-summary-total"><span>Subtotal</span><strong id="store-cart-subtotal"><%= store_money(@lines.sum(&:line_total_cents)) %></strong></div>
+      <p class="store-muted small mb-3">El envío se calcula en el paso siguiente según la modalidad y la zona. El retiro por zona Plaza del Agua es gratis.</p>
+      <%= link_to "Continuar con el pedido", store_checkout_path, class: "store-btn store-btn-primary w-100", id: "store-go-checkout" %>
+      <%= link_to "Seguir comprando", store_root_path, class: "store-btn store-btn-ghost w-100 mt-2" %>
+    </div>
+  <% end %>
+
+  <% if (last = Array(session[Store::CheckoutsController::PLACED_KEY]).last) %>
+    <p class="text-center mt-4 small"><%= link_to "Ver tu último pedido", store_order_path(last), class: "store-muted" %></p>
+  <% end %>
+</div>

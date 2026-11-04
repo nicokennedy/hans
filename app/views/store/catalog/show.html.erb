@@ -1,0 +1,46 @@
+<% content_for :title, @product.name %>
+<div class="store-container store-product" id="store-product">
+  <nav class="store-breadcrumb" aria-label="Volver">
+    <%= link_to "← Seguir comprando", store_root_path(anchor: "categoria-#{@product.retail_category_id}") %>
+  </nav>
+  <div class="store-product-grid">
+    <div class="store-gallery" data-controller="store-gallery">
+      <div class="store-gallery-main">
+        <% main = @photos.first %>
+        <%= store_photo_tag(main, variant: :detail, alt: @product.name, loading: "eager", data: { store_gallery_target: "main" }) %>
+      </div>
+      <% if @photos.size > 1 %>
+        <div class="store-gallery-thumbs" role="list">
+          <% @photos.each_with_index do |photo, index| %>
+            <button type="button" role="listitem" class="store-gallery-thumb <%= 'is-active' if index.zero? %>" aria-label="Ver foto <%= index + 1 %> de <%= @photos.size %>"
+                    data-action="store-gallery#show" data-store-gallery-target="thumb" data-src="<%= store_photo_url(photo, :detail) %>">
+              <%= store_photo_tag(photo, variant: :thumb, alt: "") %>
+            </button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="store-product-info">
+      <p class="store-eyebrow"><%= @product.retail_category.name %></p>
+      <h1 class="store-product-name"><%= @product.name %></h1>
+      <div class="store-product-price" id="store-product-price"><%= store_money(@product.price_cents) %></div>
+      <% if @product.description.present? %>
+        <div class="store-product-description"><%= simple_format(@product.description) %></div>
+      <% end %>
+
+      <%= form_with url: add_store_cart_path, method: :post, class: "store-add-form", id: "store-add-form" do %>
+        <%= hidden_field_tag :product_id, @product.id, id: nil %>
+        <label class="store-label" for="quantity">Cantidad</label>
+        <div class="store-add-row">
+          <div class="store-stepper" data-controller="store-quantity">
+            <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno">−</button>
+            <%= number_field_tag :quantity, 1, min: 1, max: Retail::StoreCart::MAX_QUANTITY, step: 1, inputmode: "numeric", class: "store-stepper-input", data: { store_quantity_target: "input" } %>
+            <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno">+</button>
+          </div>
+          <button type="submit" class="store-btn store-btn-primary flex-grow-1" data-turbo-submits-with="Agregando…">Agregar al carrito</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

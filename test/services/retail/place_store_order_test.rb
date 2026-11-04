@@ -1,10 +1,12 @@
 require "test_helper"
 require_relative "../../support/retail_helpers"
+require_relative "../../support/retail_catalog_helpers"
 
 # Etapa 3: pedidos de la tienda con reglas de entrega validadas en el servidor (fecha, zona,
 # dirección) y costo de envío que sale de la zona y queda guardado en el pedido.
 class Retail::PlaceStoreOrderTest < ActiveSupport::TestCase
   include RetailHelpers
+  include RetailCatalogHelpers
 
   MON = Date.new(2026, 11, 9)
   WED = MON + 2
@@ -15,12 +17,14 @@ class Retail::PlaceStoreOrderTest < ActiveSupport::TestCase
     @zone1 = RetailDeliveryZone.find_by!(name: "Zona 1")
     @zone3 = RetailDeliveryZone.find_by!(name: "Zona 3")
     @now = Time.zone.local(2026, 11, 9, 23, 30) # lunes 23:30 en Argentina
+    @box = catalog_product("Box", price: "10.000", active: true)
+    RetailCatalog::PhotoUpload.add(product: @box, files: [image_upload("pixel.png")])
   end
 
-  def place(attributes = nil, token: "tok-#{rand(1_000_000)}", items: [manual_row("Box", 2, "10.000")])
-    base = { buyer_name: "Lucía", buyer_phone: "11 5555-0000", delivery_kind: "delivery", delivery_date: WED.iso8601,
-             delivery_zone_id: @zone1.id.to_s, address: "Alem 123", planned_payment_method: "transfer" }
-    Retail::PlaceStoreOrder.call(attributes: base.merge(attributes || {}), items: items, request_token: token, now: @now)
+  def place(attributes = nil, token: "tok-#{rand(1_000_000)}", cart: { @box.id.to_s => 2 })
+    base = { buyer_name: "Lucía", buyer_phone: "11 5555-0000", buyer_email: "lucia@example.com", delivery_kind: "delivery",
+             delivery_date: WED.iso8601, delivery_zone_id: @zone1.id.to_s, address: "Alem 123", planned_payment_method: "transfer" }
+    Retail::PlaceStoreOrder.call(attributes: base.merge(attributes || {}), cart: cart, request_token: token, now: @now)
   end
 
   test "envío a domicilio: guarda zona, nombre, franja y costo; total = productos + envío; nace pendiente" do
