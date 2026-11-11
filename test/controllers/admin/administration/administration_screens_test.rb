@@ -702,6 +702,51 @@ class Admin::AdministrationScreensTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "resumen: ventas, resultado económico y flujo de caja del período, con rango personalizado" do
+    travel_to Time.zone.local(2026, 11, 11, 12) do
+      product = Product.create!(name: "Prod Res #{rand(1_000_000)}", category: Category.create!(name: "Res #{rand(1_000_000)}", position: 1, active: true), price_cents: 100_000, cost_cents: 1, active: true, position: 1)
+      order = Order.new(customer: Customer.create!(name: "Res Cliente #{rand(1_000_000)}", active: true), delivery_date: Date.new(2026, 10, 12), created_by_admin: true, payment_method_selected: "bank_transfer")
+      order.order_items.build(product: product, quantity: 3) # $3.000
+      order.save!
+      order.payments.create!(amount_cents: 100_000, paid_at: Time.zone.local(2026, 10, 12, 10), payment_method: "cash_on_delivery")
+      make_purchase(1_000, accrual_on: Date.new(2026, 10, 2))
+      make_expense(500, accrual_on: Date.new(2026, 10, 5))
+      pay(400, paid_on: Date.new(2026, 10, 8), obligations: [Obligation.purchases.order(:id).last])
+
+      get admin_administration_root_path, params: { year: "2026", month: "10" }
+
+      assert_response :success
+      assert_select "#sales-wholesale-count", text: "1"
+      assert_select "#sales-wholesale-invoiced", text: "$3.000"
+      assert_select "#sales-wholesale-collected", text: "$1.000"
+      assert_select "#sales-wholesale-pending", text: "$2.000"
+      assert_select "#sales-retail-invoiced", text: "$0"
+      assert_select "#result-sales", text: "$3.000"
+      assert_select "#result-costs", text: "$1.500"
+      assert_select "#result-total.text-success", text: "$1.500"
+      assert_select "#result-margin", text: "50 %"
+      assert_match(/simplificado/i, css_select("#economic-result").to_s)
+      assert_match(/variaci[oó]n de inventario/i, css_select("#economic-result").to_s)
+      assert_select "#cash-in", text: "$1.000"
+      assert_select "#cash-purchases", text: "$400"
+      assert_select "#cash-out", text: "$400"
+      assert_select "#cash-net.text-success", text: "$600"
+      assert_match(/operativo parcial/i, css_select("#cash-flow").to_s)
+      assert_select "#kpi-paid", text: "$400"
+
+      get admin_administration_root_path, params: { year: "2026", month: "9" }
+      assert_select "#result-total", text: "$0"
+      assert_select "#result-margin", text: "—"
+      assert_select "#cash-net", text: "$0"
+
+      get admin_administration_root_path, params: { year: "2026", month: "10", from: "2026-10-03", to: "2026-10-31" }
+      assert_select "#dash-period-label", text: "Del 03/10/2026 al 31/10/2026"
+      assert_select "#result-purchases", text: "$0"
+      assert_select "#result-total.text-success", text: "$2.500"
+      assert_select "#kpi-purchases", text: "$0"
+    end
+  end
+
   # --- Etapa 1: sin impacto operativo ------------------------------------------------------------------
 
   test "ninguna pantalla ni acción del módulo modifica stock, materias primas, recetas ni costos" do

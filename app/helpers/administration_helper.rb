@@ -13,6 +13,19 @@ module AdministrationHelper
     "$#{Finance::Money.format_pesos(cents.to_i)}"
   end
 
+  # Verde si es positivo, rojo si es negativo (resultado y flujo de caja).
+  def fin_sign_class(cents)
+    return "text-success" if cents.to_i.positive?
+    return "text-danger" if cents.to_i.negative?
+
+    "text-muted"
+  end
+
+  # Porcentaje con coma decimal ("12,5 %"); "—" si no se puede calcular.
+  def fin_percent(value)
+    value.nil? ? "—" : "#{value.to_s.sub(/\.0\z/, '').tr('.', ',')} %"
+  end
+
   def administration_nav_class
     "btn btn-sm #{params[:controller].to_s.start_with?('admin/administration/') ? 'btn-dark' : 'btn-outline-dark'}"
   end

@@ -1352,3 +1352,39 @@ body.with-sidebar .app-content {
 .table-row-link:hover > td {
   box-shadow: inset 0 0 0 9999px rgba(43, 43, 43, 0.04);
 }
+
+/* Administración → Resumen: resultado económico y flujo de caja */
+.finance-highlight {
+  border-top: 4px solid var(--hans-orange) !important;
+}
+
+.finance-statement td {
+  border-color: #f2eee6;
+}
+
+.finance-total {
+  background: var(--hans-cream);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.finance-bar {
+  background: #f2eee6;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.finance-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.finance-bar-sales {
+  background: var(--hans-orange);
+}
+
+.finance-bar-costs {
+  background: var(--hans-aqua);
+}

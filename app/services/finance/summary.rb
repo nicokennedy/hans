@@ -10,18 +10,29 @@ module Finance
 
     attr_reader :year, :month, :today
 
-    def initialize(year: nil, month: nil, today: Date.current)
+    # from/to (ISO, ambos): período personalizado; tiene prioridad sobre mes/año. Si alguno
+    # falta o es inválido se ignora y vale el mes/año.
+    def initialize(year: nil, month: nil, from: nil, to: nil, today: Date.current)
       @today = today
       @year = year.to_i.between?(2000, 2100) ? year.to_i : today.year
       @month = month.to_s.empty? ? today.month : (month.to_i.between?(1, 12) ? month.to_i : nil)
       @month = nil if month.to_s == "all"
+      @custom_period = parse_range(from, to)
+    end
+
+    def custom?
+      !@custom_period.nil?
     end
 
     def period
+      return @custom_period if custom?
+
       month ? Date.new(year, month, 1)..Date.new(year, month, -1) : Date.new(year, 1, 1)..Date.new(year, 12, 31)
     end
 
     def period_label
+      return "Del #{period.first.strftime('%d/%m/%Y')} al #{period.last.strftime('%d/%m/%Y')}" if custom?
+
       month ? "#{MONTH_NAMES[month - 1]} #{year}" : "Año #{year}"
     end
 
@@ -89,6 +100,17 @@ module Finance
     end
 
     private
+
+    def parse_range(from, to)
+      dates = [from, to].map do |value|
+        Date.iso8601(value.to_s)
+      rescue ArgumentError, TypeError
+        nil
+      end
+      return nil if dates.any? { |d| d.nil? || !d.year.between?(2000, 2100) }
+
+      dates.min..dates.max
+    end
 
     def accrued(scope)
       scope.active.where(accrual_on: period)

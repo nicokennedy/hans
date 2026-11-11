@@ -20,12 +20,27 @@
         <label class="form-label" for="dash-year">Año</label>
         <%= number_field_tag :year, @summary.year, min: 2000, max: 2100, id: "dash-year", class: "form-control" %>
       </div>
-      <div class="col-12 col-md-auto"><%= submit_tag "Ver período", name: nil, class: "btn btn-dark" %></div>
+      <div class="col-6 col-md-2">
+        <label class="form-label" for="dash-from">Desde <span class="text-muted small">(opcional)</span></label>
+        <%= date_field_tag :from, (@summary.period.first if @summary.custom?), id: "dash-from", class: "form-control" %>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label" for="dash-to">Hasta <span class="text-muted small">(opcional)</span></label>
+        <%= date_field_tag :to, (@summary.period.last if @summary.custom?), id: "dash-to", class: "form-control" %>
+      </div>
+      <div class="col-12 col-md-auto d-flex gap-2">
+        <%= submit_tag "Ver período", name: nil, class: "btn btn-dark" %>
+        <% if @summary.custom? %><%= link_to "Quitar rango", admin_administration_root_path(year: @summary.year, month: @summary.month || "all"), class: "btn btn-outline-dark" %><% end %>
+      </div>
     <% end %>
     <div class="small text-muted mt-2">
-      Período: <strong><%= @summary.period_label %></strong>. Compras y gastos se miden por su <strong>fecha de compra o devengamiento</strong>; los pagos, por su <strong>fecha de pago</strong>; los vencimientos se controlan aparte.
+      Período: <strong id="dash-period-label"><%= @summary.period_label %></strong>. Si completás Desde y Hasta se usa ese rango en lugar del mes. Ventas por <strong>fecha de entrega</strong>; compras y gastos por su <strong>fecha de compra o devengamiento</strong>; cobros y pagos, por su <strong>fecha de pago</strong>; los vencimientos se controlan aparte.
     </div>
   </div>
+
+  <%= render "period_result", summary: @summary, result: @result %>
+
+  <h2 class="fs-5 fw-bold mb-3">Compras, gastos y pagos</h2>
 
   <div class="row g-3 mb-4" id="dashboard-kpis">
     <div class="col-6 col-md-4 col-lg-2">

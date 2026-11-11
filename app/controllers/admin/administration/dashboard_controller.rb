@@ -8,6 +8,7 @@ class Admin::Administration::DashboardController < Admin::Administration::BaseCo
       Rails.logger.error("No se pudieron generar los gastos recurrentes: #{e.message}")
     end
 
-    @summary = Finance::Summary.new(year: params[:year], month: params[:month])
+    @summary = Finance::Summary.new(year: params[:year], month: params[:month], from: params[:from], to: params[:to])
+    @result = Finance::PeriodResult.new(@summary)
   end
 end
