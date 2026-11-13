@@ -4,6 +4,7 @@ es:
       retail_category: "Categoría minorista"
       retail_product: "Producto minorista"
       retail_product_photo: "Fotografía"
+      retail_product_variant: "Variante"
     attributes:
       retail_category:
         name: "El nombre"
@@ -17,6 +18,12 @@ es:
         position: "El orden"
         retail_category: "La categoría"
         product: "El producto mayorista"
+      retail_product_variant:
+        name: "El nombre"
+        price: "El precio"
+        price_cents: "El precio"
+        position: "El orden"
+        stock_quantity: "El stock"
       retail_product_photo:
         image: "La imagen"
         checksum: "La imagen"

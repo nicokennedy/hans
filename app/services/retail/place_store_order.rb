@@ -3,9 +3,13 @@ module Retail
   # se calcula en el servidor antes de crear nada:
   #  - datos del comprador: nombre, celular con WhatsApp, email y forma de pago (transferencia o
   #    efectivo: solo indica cómo quiere pagar, nunca registra un pago);
-  #  - productos: el carrito trae SOLO ids de productos de la tienda y cantidades. Cada producto
-  #    tiene que seguir publicado (RetailProduct.for_store) y el precio sale del catálogo minorista
-  #    vigente; precios, descuentos o totales del navegador no existen para este servicio;
+  #  - productos: el carrito trae SOLO ids de VARIANTES de la tienda (tamaño o presentación) y
+  #    cantidades. Cada variante tiene que estar habilitada, su producto seguir publicado
+  #    (RetailProduct.for_store) y el precio sale de la variante vigente; precios, descuentos o totales
+  #    del navegador no existen para este servicio;
+  #  - stock online: si la variante tiene stock limitado, el pedido lo reserva al crearse (también
+  #    pendiente de confirmación) con la variante bloqueada (Retail::OnlineStock): no se vende más de
+  #    lo cargado aunque lleguen compras simultáneas;
   #  - entrega: modalidad, fecha (anticipación en días calendario de Argentina, días habilitados,
   #    fechas sin servicio), zona activa y dirección, con RetailFulfillment::Quote; el envío sale de
   #    la zona.
@@ -28,7 +32,7 @@ module Retail
       new(**args).call
     end
 
-    # cart: { retail_product_id => cantidad } (lo que guarda Retail::StoreCart).
+    # cart: { retail_product_variant_id => cantidad } (lo que guarda Retail::StoreCart).
     def self.preview(**args)
       new(request_token: nil, **args).preview
     end
@@ -69,6 +73,7 @@ module Retail
       )
       items.each do |item|
         order.retail_order_items.build(product_id: item["product_id"].presence, description: item["description"], retail_product_id: item["retail_product_id"],
+          retail_product_variant_id: item["retail_product_variant_id"], variant_name_snapshot: item["variant_name"],
           product_name_snapshot: item["name"], quantity: item["quantity"], unit_price_cents: item["unit_price_cents"],
           line_total_cents: item["quantity"] * item["unit_price_cents"])
       end
@@ -140,23 +145,32 @@ module Retail
         return []
       end
 
-      products = RetailProduct.for_store.includes(:product).where(id: wanted.keys).index_by(&:id)
-      missing = wanted.keys - products.keys
+      variants = RetailProductVariant.active.includes(:product, retail_product: :product)
+                                     .where(id: wanted.keys, retail_product_id: RetailProduct.for_store.select(:id)).index_by(&:id)
+      missing = wanted.keys - variants.keys
       errors << "Algunos productos del carrito ya no están disponibles. Revisá el carrito." if missing.any?
 
       wanted.filter_map do |id, quantity|
-        product = products[id]
-        next unless product
+        variant = variants[id]
+        next unless variant
 
-        wholesale = product.product if product.product&.active?
+        # Aviso temprano; la reserva definitiva (con la variante bloqueada) la hace Retail::OnlineStock.
+        if variant.limited_stock? && variant.stock_quantity < quantity
+          errors << Retail::OnlineStock::Insufficient.new(variant, variant.stock_quantity, quantity).message
+          next
+        end
+
+        wholesale = variant.wholesale_product if variant.wholesale_product&.active?
         {
           "kind" => wholesale ? "product" : "manual",
           "product_id" => wholesale&.id.to_s,
-          "description" => wholesale ? nil : product.name,
+          "description" => wholesale ? nil : variant.full_name,
           "quantity" => quantity,
-          "unit_price_cents" => product.price_cents,
-          "retail_product_id" => product.id,
-          "name" => product.name
+          "unit_price_cents" => variant.price_cents,
+          "retail_product_id" => variant.retail_product_id,
+          "retail_product_variant_id" => variant.id,
+          "variant_name" => variant.name,
+          "name" => variant.full_name
         }
       end
     end

@@ -168,7 +168,7 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
 
     get store_cart_path
     assert_select ".store-line", 2
-    assert_select "#cart_retail_product_#{@cookies.id} .store-line-total", "$8.000"
+    assert_select "#cart_retail_product_variant_#{@cookies.variants.first.id} .store-line-total", "$8.000"
     assert_select "#store-cart-subtotal", "$28.000"
 
     patch update_item_store_cart_path, params: { product_id: @cookies.id, quantity: 5 }

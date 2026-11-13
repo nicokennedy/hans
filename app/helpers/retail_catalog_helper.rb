@@ -18,7 +18,9 @@ module RetailCatalogHelper
   end
 
   def retail_status_badges(product)
-    badges = [content_tag(:span, product.active? ? "Activo" : "Inactivo", class: "badge #{product.active? ? 'bg-success' : 'bg-secondary'}")]
+    badges = [content_tag(:span, product.active? ? "Publicado" : "Oculto", class: "badge #{product.active? ? 'bg-success' : 'bg-secondary'}")]
+    badges << content_tag(:span, "Agotado", class: "badge text-bg-danger") if product.sold_out?
+    badges << content_tag(:span, "Sin variantes habilitadas", class: "badge text-bg-light border text-danger") unless product.variants.any?(&:active?)
     badges << content_tag(:span, "Destacado", class: "badge text-bg-warning") if product.featured?
     badges << content_tag(:span, "Sin foto principal", class: "badge text-bg-light border text-danger") unless product.primary_photo
     safe_join(badges, " ")

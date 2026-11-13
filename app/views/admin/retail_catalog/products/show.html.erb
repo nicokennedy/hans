@@ -18,7 +18,8 @@
 
   <div class="product-card mb-4" id="retail-product-data">
     <div class="row g-3">
-      <div class="col-6 col-md-3"><div class="small text-muted">Precio minorista</div><div class="fw-bold fs-5"><%= retail_catalog_money(@product.price_cents) %></div></div>
+      <div class="col-6 col-md-3"><div class="small text-muted">Precio que ve el cliente</div><div class="fw-bold fs-5"><%= retail_catalog_money((@product.display_variant || @product.ordered_variants.last).price_cents) %></div>
+        <% if @product.multiple_variants? %><div class="small text-muted">El del tamaño más grande disponible</div><% end %></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Categoría</div><div><%= @product.retail_category.name %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Código interno</div><div><%= @product.code %></div></div>
       <div class="col-6 col-md-3"><div class="small text-muted">Orden</div><div><%= @product.position %></div></div>
@@ -27,6 +28,20 @@
       <div class="col-6 col-md-3"><div class="small text-muted">Última modificación</div><div><%= l(@product.updated_at, format: "%d/%m/%Y %H:%M") %></div></div>
       <% if @product.description.present? %><div class="col-12"><div class="small text-muted">Descripción</div><div style="white-space: pre-line"><%= @product.description %></div></div><% end %>
     </div>
+    <div class="table-responsive mt-3" id="retail-product-variants"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Variante</th><th class="text-end">Precio</th><th>Disponibilidad</th><th>Stock online</th><th>Mayorista</th></tr></thead>
+      <tbody>
+        <% @product.variants.each do |variant| %>
+          <tr class="<%= 'text-muted' unless variant.active? %>">
+            <td><%= variant.label %><% if variant.description.present? %><div class="small" style="white-space: pre-line"><%= variant.description %></div><% end %><% if variant.external_ref.present? %><div class="small text-muted"><%= variant.external_ref %></div><% end %></td>
+            <td class="text-end fw-bold"><%= retail_catalog_money(variant.price_cents) %></td>
+            <td><%= variant.active? ? (variant.sold_out? ? tag.span("Agotada", class: "badge text-bg-danger") : tag.span("Habilitada", class: "badge text-bg-success")) : tag.span("Deshabilitada", class: "badge text-bg-secondary") %></td>
+            <td><%= variant.limited_stock? ? pluralize(variant.stock_quantity, "unidad", plural: "unidades") : "Sin límite" %></td>
+            <td class="small"><%= variant.product&.name || (@product.product ? "#{@product.product.name} (del producto)" : "—") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table></div>
     <% unless @product.ready_for_store? %>
       <div class="alert alert-light border small mt-3 mb-0" id="retail-publication-issues">
         <strong>Todavía no está listo para la tienda:</strong> <%= @product.publication_issues.join(" · ") %>.

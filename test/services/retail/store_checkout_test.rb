@@ -33,7 +33,12 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
       delivery_date: WED.iso8601, planned_payment_method: "transfer", notes: "" }.merge(overrides)
   end
 
-  def place(attributes = {}, cart: { @torta.id.to_s => 1, @cookies.id.to_s => 2 }, token: "store-#{SecureRandom.hex(8)}")
+  # Id de la única variante de un producto simple (el carrito guarda ids de variante).
+  def vid(product)
+    product.variants.first.id
+  end
+
+  def place(attributes = {}, cart: { vid(@torta).to_s => 1, vid(@cookies).to_s => 2 }, token: "store-#{SecureRandom.hex(8)}")
     Retail::PlaceStoreOrder.call(attributes: buyer(attributes), cart: cart, request_token: token, now: @now)
   end
 
@@ -72,21 +77,21 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
   test "ignora precios, totales, descuentos y costos que mande el navegador" do
     result = place({ shipping: "0", total_cents: 1, subtotal_cents: 1, unit_price: "1", discount: "100", price_cents: 1,
                      delivery_kind: "delivery", delivery_zone_id: @zones.first.id.to_s, address: "Alem 123" },
-                   cart: { @torta.id.to_s => 1 })
+                   cart: { vid(@torta).to_s => 1 })
     assert result.ok?, result.errors.inspect
     assert_equal 2_000_000, result.record.subtotal_cents
     assert_equal 2_500_000, result.record.total_cents
   end
 
   test "el carrito solo aporta ids y cantidades: un precio dentro del carrito no se usa" do
-    result = place({}, cart: { @torta.id.to_s => { "quantity" => 1, "price" => 1 } })
+    result = place({}, cart: { vid(@torta).to_s => { "quantity" => 1, "price" => 1 } })
     assert_not result.ok?
     assert_match "cantidades", result.errors.first
   end
 
   test "usa el precio vigente al momento del pedido" do
     @torta.update!(price: "25.000")
-    order = place({}, cart: { @torta.id.to_s => 1 }).record
+    order = place({}, cart: { vid(@torta).to_s => 1 }).record
     assert_equal 2_500_000, order.total_cents
     @torta.update!(price: "30.000")
     assert_equal 2_500_000, order.reload.total_cents, "el pedido guarda el precio con el que se hizo"
@@ -102,7 +107,7 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
 
     assert_no_difference ["RetailOrder.count", "RetailOrderItem.count"] do
       [inactive, hidden, no_photo].each do |product|
-        result = place({}, cart: { product.id.to_s => 1 })
+        result = place({}, cart: { vid(product).to_s => 1 })
         assert_equal ["Algunos productos del carrito ya no están disponibles. Revisá el carrito."], result.errors
       end
       assert_equal ["Algunos productos del carrito ya no están disponibles. Revisá el carrito."], place({}, cart: { "999999999" => 1 }).errors
@@ -112,11 +117,11 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
 
   test "valida cantidades: enteras de 1 a 99" do
     ["0", "-1", "100", "1.5", "abc", ""].each do |quantity|
-      result = place({}, cart: { @torta.id.to_s => quantity })
+      result = place({}, cart: { vid(@torta).to_s => quantity })
       assert_not result.ok?, "cantidad #{quantity.inspect}"
       assert_match "cantidades", result.errors.first
     end
-    assert place({}, cart: { @torta.id.to_s => "99" }).ok?
+    assert place({}, cart: { vid(@torta).to_s => "99" }).ok?
   end
 
   test "datos del comprador: nombre, celular, email y forma de pago obligatorios y válidos" do
@@ -147,8 +152,8 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
 
   test "fechas: dos días calendario de anticipación en Argentina, sin domingos ni fechas sin servicio" do
     late_monday = Time.utc(2026, 11, 10, 2, 30) # lunes 23:30 en Argentina (ya martes en UTC)
-    assert_match "anticipación", Retail::PlaceStoreOrder.call(attributes: buyer(delivery_date: (MON + 1).iso8601), cart: { @torta.id.to_s => 1 }, request_token: "a1", now: late_monday).errors.first
-    ok = Retail::PlaceStoreOrder.call(attributes: buyer(delivery_date: WED.iso8601), cart: { @torta.id.to_s => 1 }, request_token: "a2", now: late_monday)
+    assert_match "anticipación", Retail::PlaceStoreOrder.call(attributes: buyer(delivery_date: (MON + 1).iso8601), cart: { vid(@torta).to_s => 1 }, request_token: "a1", now: late_monday).errors.first
+    ok = Retail::PlaceStoreOrder.call(attributes: buyer(delivery_date: WED.iso8601), cart: { vid(@torta).to_s => 1 }, request_token: "a2", now: late_monday)
     assert ok.ok?, ok.errors.inspect
     assert_match "domingos", place({ delivery_date: (MON + 6).iso8601 }).errors.first
     RetailServiceClosure.create!(date: WED + 1, service: "all", reason: "Inventario")
@@ -160,7 +165,7 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
     inactive_link = published_product("Torta vieja", "5.000", product: @torta_wholesale = make_product("Inactivo #{rand(1000)}", 100))
     @torta_wholesale.update!(active: false)
 
-    order = place({}, cart: { linked.id.to_s => 2, inactive_link.id.to_s => 1 }).record
+    order = place({}, cart: { vid(linked).to_s => 2, vid(inactive_link).to_s => 1 }).record
     first, second = order.retail_order_items.to_a
     assert_equal @mini, first.product
     assert_equal "Mini rogel x 12", first.display_name
@@ -237,10 +242,10 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
   test "carrito en la sesión: guarda solo ids y cantidades, suma, limita y saca lo que deja de estar publicado" do
     session = {}
     cart = Retail::StoreCart.new(session)
-    assert_nil cart.add(@torta.id, 2)
-    assert_nil cart.add(@torta.id, "1")
-    assert_nil cart.add(@cookies.id, 1)
-    assert_equal({ @torta.id.to_s => 3, @cookies.id.to_s => 1 }, session[Retail::StoreCart::SESSION_KEY])
+    assert_nil cart.add(vid(@torta), 2)
+    assert_nil cart.add(vid(@torta), "1")
+    assert_nil cart.add(vid(@cookies), 1)
+    assert_equal({ vid(@torta).to_s => 3, vid(@cookies).to_s => 1 }, session[Retail::StoreCart::SESSION_KEY])
     assert_equal 4, cart.count
     assert_equal 6_400_000, cart.subtotal_cents
 
@@ -248,28 +253,28 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
     again = Retail::StoreCart.new(session)
     assert_equal 2, again.lines.size
 
-    assert_equal "Elegí una cantidad de 1 a 99.", again.update(@torta.id, "0")
-    assert_equal "Elegí una cantidad de 1 a 99.", again.add(@torta.id, "500")
-    assert_match "hasta 99", again.add(@torta.id, 98)
-    assert_equal 99, again.contents[@torta.id.to_s]
+    assert_equal "Elegí una cantidad de 1 a 99.", again.update(vid(@torta), "0")
+    assert_equal "Elegí una cantidad de 1 a 99.", again.add(vid(@torta), "500")
+    assert_match "hasta 99", again.add(vid(@torta), 98)
+    assert_equal 99, again.contents[vid(@torta).to_s]
     assert_equal "Ese producto no está disponible.", again.add("999999", 1)
 
     @cookies.update!(active: false)
     fresh = Retail::StoreCart.new(session)
     assert_equal [@torta], fresh.lines.map(&:product)
     assert_equal ["Cookies"], fresh.dropped
-    assert_not session[Retail::StoreCart::SESSION_KEY].key?(@cookies.id.to_s)
+    assert_not session[Retail::StoreCart::SESSION_KEY].key?(vid(@cookies).to_s)
 
-    fresh.remove(@torta.id)
+    fresh.remove(vid(@torta))
     assert fresh.empty?
     assert_nil session[Retail::StoreCart::SESSION_KEY]
     assert_equal 0, StockMovement.count, "el carrito no toca stock"
   end
 
   test "el carrito descarta datos adulterados en la sesión" do
-    session = { Retail::StoreCart::SESSION_KEY => { "abc" => 2, @torta.id.to_s => "500", @cookies.id.to_s => -3 } }
+    session = { Retail::StoreCart::SESSION_KEY => { "abc" => 2, vid(@torta).to_s => "500", vid(@cookies).to_s => -3 } }
     cart = Retail::StoreCart.new(session)
-    assert_equal({ @torta.id.to_s => 99 }, cart.contents)
+    assert_equal({ vid(@torta).to_s => 99 }, cart.contents)
     assert_equal({}, Retail::StoreCart.new({ Retail::StoreCart::SESSION_KEY => "basura" }).contents)
   end
 end

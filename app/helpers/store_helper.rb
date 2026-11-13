@@ -20,6 +20,11 @@ module StoreHelper
     store_product_path(id: store_product_slug(product))
   end
 
+  # "Tamaño" para tortas (variantes en cm); "Presentación" para cajas, boxes, etc.
+  def store_variant_kind(variants)
+    variants.all? { |v| v.name.to_s.match?(/\d\s*cm\b/i) } ? "Tamaño" : "Presentación"
+  end
+
   def store_date(date)
     RetailFulfillment.format_date(date).sub(/\A./, &:upcase)
   end

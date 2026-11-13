@@ -5,6 +5,8 @@ module Retail
   #  - ítems de catálogo (producto + cantidad + precio manual) o manuales (descripción + cantidad
   #    + precio manual), cantidad entera > 0, precio >= 0, centavos enteros;
   #  - subtotal = suma de líneas; total = subtotal + envío (recalculado acá, nunca confiado al cliente).
+  # Stock de venta online (solo ítems de la tienda con variante): Retail::OnlineStock descuenta o
+  # devuelve la diferencia contra lo ya reservado; si no alcanza, no se guarda nada.
   # Al guardar concilia stock con el mismo mecanismo que los pedidos mayoristas
   # (Stock::DispatchReconciler): alta, cambio de cantidades o de fecha mueven la demanda por
   # diferencia, sin duplicar movimientos. Si el nuevo total queda por debajo de lo pagado, los
@@ -81,6 +83,7 @@ module Retail
         order.recalculate_payment_state!
 
         log_creation(order) if creating
+        OnlineStock.reconcile!(order)
         Stock::DispatchReconciler.call(order)
         saved = order
       end
@@ -92,6 +95,8 @@ module Retail
       existing ? Result.new(record: existing, errors: [], duplicate: true) : failure(["No se pudo guardar el pedido. Probá de nuevo."])
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages)
+    rescue OnlineStock::Insufficient => e
+      failure([e.message])
     end
 
     private
@@ -246,7 +251,8 @@ module Retail
 
         { id: row[:id].to_s.match?(/\A\d{1,18}\z/) ? row[:id].to_i : nil, product: product,
           description: manual ? row[:description].to_s.squish : nil, quantity: quantity, unit_price_cents: price,
-          retail_product_id: store_row?(row) ? row[:retail_product_id] : nil, name: store_row?(row) ? row[:name].to_s.squish.first(200) : nil }
+          retail_product_id: store_row?(row) ? row[:retail_product_id] : nil, name: store_row?(row) ? row[:name].to_s.squish.first(200) : nil,
+          retail_product_variant_id: store_row?(row) ? row[:retail_product_variant_id] : nil, variant_name: store_row?(row) ? row[:variant_name].to_s.squish.first(60).presence : nil }
       end
     end
 
@@ -270,6 +276,8 @@ module Retail
         if data[:retail_product_id]
           item.retail_product_id = data[:retail_product_id]
           item.product_name_snapshot = data[:name] # el nombre que vio el cliente en la tienda
+          item.retail_product_variant_id = data[:retail_product_variant_id]
+          item.variant_name_snapshot = data[:variant_name]
         end
         item.quantity = data[:quantity]
         item.unit_price_cents = data[:unit_price_cents]

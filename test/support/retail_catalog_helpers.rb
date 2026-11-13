@@ -7,7 +7,8 @@ module RetailCatalogHelpers
   end
 
   def catalog_product(name = "Box de cookies #{rand(1_000_000)}", category: nil, price: "4.500", **attrs)
-    RetailProduct.create!(name: name, retail_category: category || catalog_category, price: price, **attrs)
+    attrs = attrs.merge(price: price) unless attrs.key?(:variants_attributes) # con variantes, el precio va en cada una
+    RetailProduct.create!(name: name, retail_category: category || catalog_category, **attrs)
   end
 
   def image_upload(name, content_type: nil)

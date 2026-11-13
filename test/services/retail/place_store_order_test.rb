@@ -21,7 +21,7 @@ class Retail::PlaceStoreOrderTest < ActiveSupport::TestCase
     RetailCatalog::PhotoUpload.add(product: @box, files: [image_upload("pixel.png")])
   end
 
-  def place(attributes = nil, token: "tok-#{rand(1_000_000)}", cart: { @box.id.to_s => 2 })
+  def place(attributes = nil, token: "tok-#{rand(1_000_000)}", cart: { @box.variants.first.id.to_s => 2 })
     base = { buyer_name: "Lucía", buyer_phone: "11 5555-0000", buyer_email: "lucia@example.com", delivery_kind: "delivery",
              delivery_date: WED.iso8601, delivery_zone_id: @zone1.id.to_s, address: "Alem 123", planned_payment_method: "transfer" }
     Retail::PlaceStoreOrder.call(attributes: base.merge(attributes || {}), cart: cart, request_token: token, now: @now)

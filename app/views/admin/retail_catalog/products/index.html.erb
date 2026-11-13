@@ -48,7 +48,10 @@
                 <div class="small text-muted"><%= p.code %><% if p.product %> · Mayorista: <%= p.product.name %><% end %></div>
               </td>
               <td><%= p.retail_category.name %><% unless p.retail_category.active? %> <span class="badge bg-secondary">Inactiva</span><% end %></td>
-              <td class="text-end fw-bold text-nowrap"><%= retail_catalog_money(p.price_cents) %></td>
+              <td class="text-end text-nowrap"><span class="fw-bold"><%= retail_catalog_money((p.display_variant || p.ordered_variants.last).price_cents) %></span>
+                <% if p.multiple_variants? %><div class="small text-muted"><%= p.ordered_variants.map(&:label).join(" · ") %></div><% end %>
+                <% limited = p.ordered_variants.select(&:limited_stock?) %>
+                <% if limited.any? %><div class="small <%= 'text-danger' if p.sold_out? %>">Stock: <%= limited.map { |v| p.multiple_variants? ? "#{v.label} #{v.stock_quantity}" : v.stock_quantity.to_s }.join(" · ") %></div><% end %></td>
               <td><%= retail_status_badges(p) %></td>
               <td class="text-end text-nowrap">
                 <%= link_to "Editar", edit_admin_retail_catalog_product_path(p), class: "btn btn-sm btn-outline-dark" %>

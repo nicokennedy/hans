@@ -126,7 +126,7 @@
         <h2 class="store-panel-title">Tu pedido</h2>
         <ul class="store-summary-lines">
           <% @lines.each do |line| %>
-            <li><span><%= line.quantity %> × <%= line.product.name %></span><span><%= store_money(line.line_total_cents) %></span></li>
+            <li><span><%= line.quantity %> × <%= line.variant.full_name %></span><span><%= store_money(line.line_total_cents) %></span></li>
           <% end %>
         </ul>
         <div class="store-summary-row"><span>Subtotal</span><span id="store-summary-subtotal"><%= store_money(@subtotal_cents) %></span></div>

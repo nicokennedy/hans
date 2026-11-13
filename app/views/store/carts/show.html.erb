@@ -16,25 +16,27 @@
   <% else %>
     <ul class="store-lines" aria-label="Productos del carrito">
       <% @lines.each do |line| %>
-        <li class="store-line" id="<%= dom_id(line.product, :cart) %>">
+        <li class="store-line" id="<%= dom_id(line.variant, :cart) %>">
           <%= link_to store_product_path_for(line.product), class: "store-line-photo", tabindex: -1, "aria-hidden": true do %>
             <%= store_photo_tag(line.product.primary_photo, variant: :thumb, alt: "") %>
           <% end %>
           <div class="store-line-main">
             <%= link_to line.product.name, store_product_path_for(line.product), class: "store-line-name" %>
+            <% if line.variant.name.present? %><div class="store-line-variant"><%= line.variant.name %></div><% end %>
             <div class="store-line-unit"><%= store_money(line.unit_price_cents) %> c/u</div>
+            <% if line.short_stock? %><div class="store-line-warning"><%= Retail::OnlineStock::Insufficient.new(line.variant, line.variant.stock_quantity, line.quantity).message %></div><% end %>
             <div class="store-line-actions">
               <%= form_with url: update_item_store_cart_path, method: :patch, class: "store-line-qty", data: { controller: "store-quantity", store_quantity_autosubmit_value: true } do %>
-                <%= hidden_field_tag :product_id, line.product.id, id: nil %>
+                <%= hidden_field_tag :variant_id, line.variant.id, id: nil %>
                 <div class="store-stepper store-stepper-sm">
-                  <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno de <%= line.product.name %>">−</button>
-                  <%= number_field_tag :quantity, line.quantity, min: 1, max: Retail::StoreCart::MAX_QUANTITY, step: 1, inputmode: "numeric", class: "store-stepper-input",
-                        id: "qty-#{line.product.id}", "aria-label": "Cantidad de #{line.product.name}", data: { store_quantity_target: "input", action: "change->store-quantity#submit" } %>
-                  <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno de <%= line.product.name %>">+</button>
+                  <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno de <%= line.variant.full_name %>">−</button>
+                  <%= number_field_tag :quantity, line.quantity, min: 1, max: [line.variant.stock_quantity || Retail::StoreCart::MAX_QUANTITY, Retail::StoreCart::MAX_QUANTITY].min, step: 1, inputmode: "numeric", class: "store-stepper-input",
+                        id: "qty-#{line.variant.id}", "aria-label": "Cantidad de #{line.variant.full_name}", data: { store_quantity_target: "input", action: "change->store-quantity#submit" } %>
+                  <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno de <%= line.variant.full_name %>">+</button>
                 </div>
                 <noscript><button type="submit" class="store-btn store-btn-outline store-btn-sm">Actualizar</button></noscript>
               <% end %>
-              <%= button_to "Quitar", remove_item_store_cart_path, method: :delete, params: { product_id: line.product.id }, class: "store-link-btn", form_class: "d-inline" %>
+              <%= button_to "Quitar", remove_item_store_cart_path, method: :delete, params: { variant_id: line.variant.id }, class: "store-link-btn", form_class: "d-inline" %>
             </div>
           </div>
           <div class="store-line-total"><%= store_money(line.line_total_cents) %></div>

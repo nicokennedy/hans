@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_13_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -490,9 +490,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "retail_product_id"
+    t.bigint "retail_product_variant_id"
+    t.string "variant_name_snapshot"
+    t.integer "online_stock_reserved", default: 0, null: false
     t.index ["product_id"], name: "index_retail_order_items_on_product_id"
     t.index ["retail_order_id"], name: "index_retail_order_items_on_retail_order_id"
     t.index ["retail_product_id"], name: "index_retail_order_items_on_retail_product_id"
+    t.index ["retail_product_variant_id"], name: "index_retail_order_items_on_retail_product_variant_id"
+    t.check_constraint "online_stock_reserved >= 0", name: "retail_order_items_reserved_non_negative"
   end
 
   create_table "retail_order_payments", force: :cascade do |t|
@@ -570,8 +575,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
     t.index ["status"], name: "index_retail_orders_on_status"
     t.check_constraint "confirmation_status::text <> 'confirmed'::text OR confirmed_at IS NOT NULL", name: "retail_orders_confirmed_has_date"
     t.check_constraint "confirmation_status::text <> 'rejected'::text OR rejected_at IS NOT NULL AND rejection_reason IS NOT NULL", name: "retail_orders_rejected_has_reason"
-    t.check_constraint "confirmation_status::text = ANY (ARRAY['awaiting'::character varying, 'confirmed'::character varying, 'rejected'::character varying]::text[])", name: "retail_orders_confirmation_status_valid"
-    t.check_constraint "source::text = ANY (ARRAY['manual'::character varying, 'store'::character varying]::text[])", name: "retail_orders_source_valid"
+    t.check_constraint "confirmation_status::text = ANY (ARRAY['awaiting'::character varying::text, 'confirmed'::character varying::text, 'rejected'::character varying::text])", name: "retail_orders_confirmation_status_valid"
+    t.check_constraint "source::text = ANY (ARRAY['manual'::character varying::text, 'store'::character varying::text])", name: "retail_orders_source_valid"
   end
 
   create_table "retail_product_photos", force: :cascade do |t|
@@ -584,6 +589,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
     t.index ["retail_product_id", "checksum"], name: "index_retail_product_photos_unique_checksum", unique: true
     t.index ["retail_product_id"], name: "index_retail_product_photos_on_retail_product_id"
     t.index ["retail_product_id"], name: "index_retail_product_photos_one_primary", unique: true, where: "\"primary\""
+  end
+
+  create_table "retail_product_variants", force: :cascade do |t|
+    t.bigint "retail_product_id", null: false
+    t.string "name"
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.bigint "price_cents", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "stock_quantity"
+    t.bigint "product_id"
+    t.string "external_ref"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "retail_product_id, lower((COALESCE(name, ''::character varying))::text)", name: "index_retail_product_variants_on_product_and_name", unique: true
+    t.index ["external_ref"], name: "index_retail_product_variants_on_external_ref", unique: true, where: "(external_ref IS NOT NULL)"
+    t.index ["product_id"], name: "index_retail_product_variants_on_product_id"
+    t.index ["retail_product_id"], name: "index_retail_product_variants_on_retail_product_id"
+    t.check_constraint "price_cents >= 0", name: "retail_product_variants_price_non_negative"
+    t.check_constraint "stock_quantity IS NULL OR stock_quantity >= 0", name: "retail_product_variants_stock_non_negative"
   end
 
   create_table "retail_products", force: :cascade do |t|
@@ -614,7 +639,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_retail_service_closures_on_created_by_id"
     t.index ["date", "service"], name: "index_retail_service_closures_on_date_and_service", unique: true
-    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying, 'delivery'::character varying, 'all'::character varying]::text[])", name: "retail_service_closures_service_valid"
+    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying::text, 'delivery'::character varying::text, 'all'::character varying::text])", name: "retail_service_closures_service_valid"
   end
 
   create_table "retail_service_windows", force: :cascade do |t|
@@ -627,7 +652,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
     t.datetime "updated_at", null: false
     t.index ["service", "wday"], name: "index_retail_service_windows_on_service_and_wday", unique: true
     t.check_constraint "NOT enabled OR opens_minute IS NOT NULL AND closes_minute IS NOT NULL AND opens_minute >= 0 AND closes_minute <= 1440 AND opens_minute < closes_minute", name: "retail_service_windows_enabled_has_hours"
-    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying, 'delivery'::character varying]::text[])", name: "retail_service_windows_service_valid"
+    t.check_constraint "service::text = ANY (ARRAY['pickup'::character varying::text, 'delivery'::character varying::text])", name: "retail_service_windows_service_valid"
     t.check_constraint "wday >= 0 AND wday <= 6", name: "retail_service_windows_wday_valid"
   end
 
@@ -746,6 +771,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
   add_foreign_key "retail_order_confirmation_changes", "users"
   add_foreign_key "retail_order_items", "products"
   add_foreign_key "retail_order_items", "retail_orders"
+  add_foreign_key "retail_order_items", "retail_product_variants", on_delete: :nullify
   add_foreign_key "retail_order_items", "retail_products", on_delete: :nullify
   add_foreign_key "retail_order_payments", "retail_orders"
   add_foreign_key "retail_order_payments", "users"
@@ -757,6 +783,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_05_120000) do
   add_foreign_key "retail_orders", "users", column: "created_by_id"
   add_foreign_key "retail_orders", "users", column: "rejected_by_id"
   add_foreign_key "retail_product_photos", "retail_products", on_delete: :cascade
+  add_foreign_key "retail_product_variants", "products", on_delete: :nullify
+  add_foreign_key "retail_product_variants", "retail_products", on_delete: :cascade
   add_foreign_key "retail_products", "products", on_delete: :nullify
   add_foreign_key "retail_products", "retail_categories", on_delete: :restrict
   add_foreign_key "retail_service_closures", "users", column: "created_by_id", on_delete: :nullify

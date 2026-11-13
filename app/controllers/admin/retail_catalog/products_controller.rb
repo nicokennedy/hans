@@ -17,7 +17,7 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
     @status = STATUS_FILTERS.key?(params[:status]) ? params[:status] : nil
     @sort = SORTS.key?(params[:sort]) ? params[:sort] : "position"
     @categories = RetailCategory.ordered.to_a
-    @products = filtered_products.includes(:retail_category, :product, primary_photo: { image_attachment: :blob }).to_a
+    @products = filtered_products.includes(:retail_category, :product, :variants, primary_photo: { image_attachment: :blob }).to_a
     @total_count = RetailProduct.count
   end
 
@@ -26,7 +26,9 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
   end
 
   def new
-    @product = RetailProduct.new(position: (RetailProduct.maximum(:position) || 0) + 1, active: false, retail_category: @categories.find(&:active?))
+    # Publicado por defecto (igual se ve en la tienda recién cuando tiene foto principal).
+    @product = RetailProduct.new(position: (RetailProduct.maximum(:position) || 0) + 1, active: true, retail_category: @categories.find(&:active?))
+    @product.single_variant
   end
 
   def create
@@ -81,7 +83,7 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
   private
 
   def set_product
-    @product = RetailProduct.find(params[:id])
+    @product = RetailProduct.includes(:variants).find(params[:id])
   end
 
   def load_form_options
@@ -90,8 +92,10 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
   end
 
   def product_params
-    permitted = params.require(:retail_product).permit(:name, :code, :description, :price, :retail_category_id, :product_id, :active, :featured, :position)
+    permitted = params.require(:retail_product).permit(:name, :code, :description, :price, :retail_category_id, :product_id, :active, :featured, :position,
+      variants_attributes: [:id, :name, :description, :price, :position, :active, :stock_mode, :stock_input, :stock_quantity_seen, :product_id, :_destroy])
     permitted[:product_id] = nil if permitted[:product_id].blank?
+    permitted[:variants_attributes]&.each_value { |v| v[:product_id] = nil if v.key?(:product_id) && v[:product_id].blank? }
     permitted
   end
 

@@ -9,7 +9,8 @@
 | 2. Catálogo minorista, precios y fotos | Hecha: administrador en Tienda Minorista → Productos / Categorías. Fotos en Cloudflare R2 (conectado y habilitado en producción) |
 | 3. Reglas de retiro y delivery | Hecha: Tienda Minorista → Entregas (ver abajo) |
 | 4. Tienda pública, carrito, checkout y WhatsApp | Hecha, **cerrada al público** hasta que se publique desde Tienda Minorista → Tienda online (ver abajo) |
-| 5. Opcionales (stock, pago online, automatizaciones) | Pendiente |
+| 5a. Variantes (tamaños/presentaciones), disponibilidad y stock online + importador de TakePedido | Implementado en la rama `feature/retail-variants-online-stock`, sin desplegar (ver abajo) |
+| 5. Opcionales (pago online, automatizaciones) | Pendiente |
 
 ## Base que deja la Etapa 1 para la tienda
 
@@ -261,3 +262,71 @@ optimizadas, el volumen esperado es bajo; igual conviene revisar el panel de uso
 **Cloudflare R2 con Active Storage.** Las fotos se guardan fuera de PostgreSQL y fuera del disco
 de Heroku (efímero: se borra en cada deploy o reinicio del dyno). Los comprobantes de
 Administración siguen en PostgreSQL (`AdministrationAttachment`) y no cambian.
+
+
+## Etapa 5a — Variantes, disponibilidad y stock de venta online
+
+### Variantes (`RetailProductVariant`)
+
+- Todo producto de la tienda tiene **al menos una variante**. Los productos simples tienen una sola, sin
+  nombre (se carga como antes, con un precio). Las tortas tienen una por tamaño ("18 cm", "22 cm") y las
+  cajitas pueden tener presentaciones ("Caja x 6", "Caja x 12").
+- Cada variante tiene **precio, disponibilidad (habilitada) y stock online propios**, orden (de menor a
+  mayor tamaño), un vínculo mayorista opcional (si no tiene, usa el del producto) y `external_ref`
+  (trazabilidad de importaciones, ej. `takepedido:<id>`).
+- **Precio del catálogo** = el de la variante **más grande disponible** (`RetailProduct#display_variant`;
+  si está agotada o deshabilitada, la siguiente). `retail_products.price_cents` queda sincronizado con la
+  variante habilitada más grande para el administrador.
+- **Detalle**: el cliente elige el tamaño (arranca en el más grande disponible) y el precio cambia sin
+  recargar (`store_variant_controller.js`, solo visual). El carrito guarda `{ id de variante => cantidad }`
+  (clave de sesión `retail_store_cart_v2`; los carritos viejos con ids de producto se descartan).
+- **Pedido**: `Retail::PlaceStoreOrder` toma el precio de la variante en el servidor; cada ítem guarda
+  `retail_product_variant_id`, `variant_name_snapshot` y el nombre completo ("Torta nuez · 22 cm") en
+  `product_name_snapshot`, que es lo que ven el panel, el WhatsApp, la página del pedido y el Excel.
+- La migración crea una variante única para cada producto existente, con su precio: nada cambia para ellos.
+
+### Disponibilidad
+
+- **Publicado en la tienda** (`active`, casilla del formulario; los productos nuevos nacen publicados):
+  destildado, el producto no aparece en el catálogo ni se puede comprar, tampoco con un enlace directo o un
+  carrito viejo. Se cambia desde el panel, sin deploy. Para verse también necesita foto principal y
+  categoría activa (regla de la Etapa 2).
+- Cada variante se puede **deshabilitar**. Sin variantes habilitadas, el producto no se publica.
+
+### Stock de venta online (`Retail::OnlineStock`)
+
+- Por variante: **Sin límite** (por defecto; `stock_quantity` NULL, nunca un número ficticio) o **Stock
+  limitado** con las unidades que quedan para vender por la tienda. Restricción en la base: nunca negativo.
+- **Reserva**: cada ítem guarda cuántas unidades tiene descontadas (`online_stock_reserved`). Al crear,
+  editar, cancelar, rechazar o reactivar un pedido se aplica solo la diferencia contra lo ya reservado, con
+  las variantes bloqueadas (`FOR NO KEY UPDATE`, en orden de id):
+  - pendiente de confirmación o confirmado → reserva (así no se sobrevende mientras se confirma por WhatsApp);
+  - cancelado o rechazado → devuelve; borrar una línea → devuelve;
+  - reintentos (mismo `request_token`), estados repetidos o reconciliar dos veces → no descuentan de nuevo;
+  - si no alcanza, no se guarda nada y el cliente/equipo ve "quedan N unidades" o "está agotado".
+- En cero: **"Agotado"** en la tarjeta y el detalle, y no se puede agregar al carrito.
+- El administrador edita las unidades en el formulario; si cambiaron mientras lo tenía abierto (entró un
+  pedido), no se pisan y se avisa.
+- Pasar de "sin límite" a "limitado" no descuenta pedidos anteriores: el número es lo que queda desde ese momento.
+- **No toca** el stock de producción/mayorista (`stock_items`, `stock_movements`, `Stock::DispatchReconciler`).
+
+### Importador de TakePedido (`RetailCatalog::TakepedidoImport`)
+
+```bash
+bin/rails "retail_catalog:import_takepedido[ruta/productos.csv]"                 # simula (no guarda)
+APPLY=1 bin/rails "retail_catalog:import_takepedido[ruta/productos.csv]"         # importa
+APPLY=1 UPDATE_EXISTING=1 bin/rails "retail_catalog:import_takepedido[...]"     # además actualiza existentes
+heroku run --no-tty -a hans -- bin/rails "retail_catalog:import_takepedido[-]" < productos.csv   # en Heroku (lee la entrada)
+```
+
+- Agrupa tamaños del mismo producto (nombre normalizado: sin tildes, sin "y/con/de", singular) dentro de la
+  misma familia de categorías: Tortas grandes/medianas/Mini Tortas → **Tortas**; Cajitas, Vasitos y Box
+  Desayuno quedan como categorías propias. Tamaño: "NN cm" de la descripción; cajitas: "Caja x N" si la
+  descripción empieza con "Caja(ita) (de) N unidades/macarons/alfajores".
+- Descripción: la más completa del grupo, sin la referencia al tamaño. No inventa textos ni medidas.
+- No disponible en TakePedido → variante deshabilitada; producto sin variantes disponibles u **de temporada**
+  (Mamá, Halloween, Día del niño, …) → oculto y marcado para revisar. `manejo_de_stock` → stock limitado.
+- Idempotente: cada fila queda en `external_ref`; repetir no duplica. Un producto que ya existía (mismo
+  nombre normalizado) no se toca sin `UPDATE_EXISTING=1`; con él conserva nombre, código, fotos, destacado y
+  orden, completa la descripción si estaba vacía y su variante única pasa a ser el tamaño más grande.
+- No borra productos ni variantes y no toca pedidos, productos mayoristas ni stock de producción.

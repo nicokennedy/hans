@@ -37,6 +37,7 @@ module Retail
         from = order.status
         order.update!(status: @to_status)
         RetailOrderStatusChange.create!(retail_order: order, from_status: from, to_status: @to_status, user: @user, note: @note)
+        OnlineStock.reconcile!(order)
         Stock::DispatchReconciler.call(order)
         result = Result.new(record: order, errors: [])
       end
@@ -44,6 +45,8 @@ module Retail
       result
     rescue ActiveRecord::RecordInvalid => e
       Result.new(record: @order, errors: e.record.errors.full_messages)
+    rescue OnlineStock::Insufficient => e
+      Result.new(record: @order, errors: ["No se puede: #{e.message}"])
     end
   end
 end

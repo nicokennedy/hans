@@ -41,6 +41,7 @@ module Retail
         from = order.confirmation_status
         @action == "confirm" ? confirm(order) : reject(order)
         order.retail_order_confirmation_changes.create!(from_status: from, to_status: order.confirmation_status, user: @user, note: @reason)
+        OnlineStock.reconcile!(order)
         Stock::DispatchReconciler.call(order)
         result = Result.new(record: order, errors: [])
       end
@@ -48,6 +49,8 @@ module Retail
       result
     rescue ActiveRecord::RecordInvalid => e
       Result.new(record: @order, errors: e.record.errors.full_messages)
+    rescue OnlineStock::Insufficient => e
+      Result.new(record: @order, errors: ["No se puede: #{e.message}"])
     end
 
     private

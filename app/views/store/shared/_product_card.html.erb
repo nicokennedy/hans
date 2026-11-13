@@ -1,15 +1,30 @@
-<%# locals: product %>
-<article class="store-card" id="<%= dom_id(product, :store) %>">
+<%# locals: product (con variants cargadas). Precio: el de la variante más grande disponible. %>
+<% shown = product.display_variant %>
+<% buyable = product.purchasable? %>
+<% sizes = product.ordered_variants.select(&:active?) %>
+<article class="store-card <%= 'is-sold-out' unless buyable %>" id="<%= dom_id(product, :store) %>">
   <%= link_to store_product_path_for(product), class: "store-card-link" do %>
-    <div class="store-card-photo"><%= store_photo_tag(product.primary_photo, alt: product.name) %></div>
+    <div class="store-card-photo"><%= store_photo_tag(product.primary_photo, alt: product.name) %>
+      <% unless buyable %><span class="store-badge store-badge-soldout">Agotado</span><% end %>
+    </div>
     <div class="store-card-body">
       <h3 class="store-card-name"><%= product.name %></h3>
-      <div class="store-card-price"><%= store_money(product.price_cents) %></div>
+      <div class="store-card-price"><%= store_money(shown.price_cents) %></div>
+      <% if sizes.size > 1 %><div class="store-card-sizes"><%= sizes.map(&:label).join(" · ") %></div><% end %>
     </div>
   <% end %>
-  <%= form_with url: add_store_cart_path, method: :post, class: "store-card-add" do %>
-    <%= hidden_field_tag :product_id, product.id, id: nil %>
-    <%= hidden_field_tag :quantity, 1, id: nil %>
-    <button type="submit" class="store-btn store-btn-outline store-btn-sm w-100" aria-label="Agregar <%= product.name %> al carrito" data-turbo-submits-with="Agregando…">Agregar</button>
-  <% end %>
+  <div class="store-card-add">
+    <% if !buyable %>
+      <button type="button" class="store-btn store-btn-outline store-btn-sm w-100" disabled aria-disabled="true">Agotado</button>
+    <% elsif sizes.size > 1 %>
+      <% kind = store_variant_kind(sizes).downcase %>
+      <%= link_to "Elegir #{kind}", store_product_path_for(product), class: "store-btn store-btn-outline store-btn-sm w-100", "aria-label": "Elegir #{kind == 'tamaño' ? 'el tamaño' : 'la presentación'} de #{product.name}" %>
+    <% else %>
+      <%= form_with url: add_store_cart_path, method: :post do %>
+        <%= hidden_field_tag :variant_id, shown.id, id: nil %>
+        <%= hidden_field_tag :quantity, 1, id: nil %>
+        <button type="submit" class="store-btn store-btn-outline store-btn-sm w-100" aria-label="Agregar <%= product.name %> al carrito" data-turbo-submits-with="Agregando…">Agregar</button>
+      <% end %>
+    <% end %>
+  </div>
 </article>

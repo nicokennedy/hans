@@ -198,6 +198,21 @@ a { color: $ink; }
 .store-card-name { font-size: 15px; font-weight: 700; line-height: 1.25; margin: 0 0 4px; }
 .store-card-price { font-weight: 800; font-size: 16px; }
 .store-card-add { padding: 8px 12px 12px; }
+.store-card-sizes { color: $ink-soft; font-size: 13px; margin-top: 2px; }
+.store-card-photo { position: relative; }
+.store-card.is-sold-out .store-card-photo img { opacity: .55; }
+.store-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.store-badge-soldout { background: $ink; color: #fff; }
 .store-photo-empty { width: 100%; height: 100%; min-height: 64px; background: $accent-soft; }
 
 // Botones
@@ -267,6 +282,30 @@ a { color: $ink; }
 .store-product-description { color: $ink-soft; margin-bottom: 20px; p:last-child { margin-bottom: 0; } }
 .store-add-form { background: $paper; border: 1px solid $line; border-radius: $radius; padding: 16px; }
 .store-add-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.store-sold-out { color: $ink-soft; }
+.store-variants { border: 0; padding: 0; margin: 0 0 14px; }
+.store-variant-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.store-variant-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid $line;
+  border-radius: 12px;
+  background: $paper;
+  cursor: pointer;
+  input { position: absolute; opacity: 0; pointer-events: none; }
+  &:has(input:checked) { border-color: $ink; box-shadow: inset 0 0 0 1px $ink; }
+  &:has(input:focus-visible) { outline: 2px solid $accent; outline-offset: 2px; }
+  &.is-sold-out { opacity: .5; cursor: not-allowed; text-decoration: line-through; }
+}
+.store-variant-name { font-weight: 700; }
+.store-line-variant { font-size: 14px; color: $ink-soft; }
+.store-line-warning { font-size: 13px; color: $danger; font-weight: 600; }
+.store-variant-price { font-size: 13px; color: $ink-soft; }
 
 .store-stepper {
   display: inline-flex;

@@ -1,0 +1,49 @@
+"id","categoria","orden_en_categoria","nombre","codigo_ean","descripcion","precio","precio_rebaja","disponible","stock","manejo_de_stock","cantidad_stock","variante1_nombre","variante1_opciones","variante2_nombre","variante2_opciones"
+"1yudkNrZCY591Wv3QFI4","Tortas grandes","1","Cheescake frutos rojos ","","22 cm ","50000","","true","true","false","","","","",""
+"K1Cd5M8tW3t5HLq7Fxga","Mini Tortas","1","Tiramisu","","10cm","10000","","true","true","false","","","","",""
+"VnNfjD4OfGTvnTP5Hxje","Vasitos","1","Box 12 ","","Sabores: 
+- mousse de chocolate
+- ⁠Cheese frutos rojos 
+- frutillas
+- chocotorta
+- oreo
+- cheesecake maracuyá
+- tiramisú
+- ⁠Limón
+
+Box 12 unidades.  Mínimo 4 por variedad. 
+","33600","0","true","true","false","","","","",""
+"hSE5Otgki3vwPitD39M9","Tortas medianas","1","Cheescake frutos rojos ","","18cm","42000","","true","true","false","","","","",""
+"LPlqLo5ivSFmM89J30aZ","Tortas grandes","2","Tiramisu ","","18 cm ","42000","","false","true","false","","","","",""
+"Qz5yzU0Uvq372iyAcnQh","Vasitos","2","Box 30 vasitos ","","Shots:
+- mousse de chocolate
+- ⁠Cheese frutos rojos 
+- frutillas
+- chocotorta
+- oreo
+- cheesecake maracuyá
+- tiramisú
+- ⁠Limón
+
+Mínimo 5 variedades .
+","80000","0","true","true","false","","","","",""
+"qwRFM6uchWbuAZeDt6EZ","Mini Tortas","3","Cheescake frutos rojos ","","10cm","10000","","true","true","false","","","","",""
+"8sEhXTeamGfaFklUMkaD","Cajitas","4","Caja Hans ","","","30000","0","true","true","false","","","","",""
+"KC34FTVs57BR9KQSLjeE","Tortas grandes","5","Torta nuez ","","Base húmeda de nueces, dulce de leche y crema de 22 cm . 
+Opcional frutillas $5000","46000","","true","true","false","","","","",""
+"T0iQeHzvuskjhVmVEkeF","Tortas grandes","6","Tarta frutilla ","","Base sable, dulce de leche, crema chantilly y frutillas de 
+22 cm","50000","","true","true","false","","","","",""
+"x86FvBQz5UU0z1eOOmh0","Tortas medianas","6","Torta nuez ","","Base húmeda de nueces, dulce de leche, crema de 18cm. 
+Opcional frutillas $5000","38000","","true","true","false","","","","",""
+"XE8Q1adqZtxplxTbXuZj","Cajitas","7","Macarons ","","Cajita 12 macarons ","30000","0","true","true","false","","","","",""
+"hIQXvOYksn2qu6hJNyZx","Tortas medianas","7","Tarta frutillas ","","Base sable, dulce de leche, crema chantilly y frutillas de 18cm.","42000","","true","true","false","","","","",""
+"7Tfl7Mj45fY7VoDMOCkN","Cajitas","8","Macarons ","","Cajita 6 unidades ","15000","0","true","true","false","","","","",""
+"ca9czx3deKxP8lLeAdI3","Cajitas","11","BOX HALLOWEEN","","💜CAJA HALLOWEEN
+5 cookies para decorar
+2 manguitas de glasé de colores
+granas de colores
+
+Se retiran el 30/10 por la tarde.
+","18000","","true","true","true","16","","","",""
+"cXH6R9K3eAjNT7bpKXiD","Tortas grandes","12","Marquise mousse ","","Marquise de chocolate, dulce de leche, crema chantilly y mousse de chocolate de 22 cm .","50000","","true","true","false","","","","",""
+"ERu0yKc52lBaxCfVXaed","Tortas medianas","13","Marquise con mousse ","","Marquise de chocolate, dulce de leche, crema chantilly y mousse de chocolate de 18cm.","42000","","true","true","false","","","","",""

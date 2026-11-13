@@ -4,13 +4,29 @@
   <div class="product-card mb-4">
     <h2 class="fs-5 fw-bold mb-3">Datos principales</h2>
     <div class="row g-3">
-      <div class="col-12 col-md-6"><%= f.label :name, "Nombre *", class: "form-label" %><%= f.text_field :name, class: "form-control", required: true, maxlength: 150, placeholder: "Ej.: Box de cookies" %></div>
-      <div class="col-6 col-md-3"><%= f.label :price, "Precio minorista (ARS) *", class: "form-label" %>
-        <div class="input-group"><span class="input-group-text">$</span><%= f.text_field :price, class: "form-control", required: true, inputmode: "decimal", placeholder: "4.500" %></div></div>
-      <div class="col-6 col-md-3"><%= f.label :retail_category_id, "Categoría *", class: "form-label" %>
+      <div class="col-12 col-md-8"><%= f.label :name, "Nombre *", class: "form-label" %><%= f.text_field :name, class: "form-control", required: true, maxlength: 150, placeholder: "Ej.: Box de cookies" %></div>
+      <div class="col-12 col-md-4"><%= f.label :retail_category_id, "Categoría *", class: "form-label" %>
         <%= f.select :retail_category_id, @categories.map { |c| [c.active? ? c.name : "#{c.name} (inactiva)", c.id] }, {}, class: "form-select", required: true %></div>
       <div class="col-12"><%= f.label :description, "Descripción", class: "form-label" %><%= f.text_area :description, class: "form-control", rows: 4, maxlength: 2000, placeholder: "Lo que verá el cliente en el detalle del producto." %></div>
     </div>
+  </div>
+
+  <div class="product-card mb-4" id="retail-variants" data-controller="retail-variants">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="fs-5 fw-bold mb-0">Precio, tamaños y stock</h2>
+      <button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-variants#add">+ Agregar tamaño o presentación</button>
+    </div>
+    <p class="small text-muted mb-3">Un producto simple tiene una sola variante (dejá el nombre vacío). Para tortas con varios tamaños, cargá uno por fila en orden de menor a mayor: el catálogo muestra el precio del <strong>tamaño más grande disponible</strong> y el cliente elige el tamaño en el detalle.</p>
+    <div data-retail-variants-target="list">
+      <%= f.fields_for :variants, @product.variants.reject(&:marked_for_destruction?).sort_by { |v| [v.position.to_i, v.id || Float::INFINITY] } do |v| %>
+        <%= render "variant_fields", v: v, wholesale_products: @wholesale_products %>
+      <% end %>
+    </div>
+    <template data-retail-variants-target="template">
+      <%= f.fields_for :variants, RetailProductVariant.new(active: true), child_index: "NEW_INDEX" do |v| %>
+        <%= render "variant_fields", v: v, wholesale_products: @wholesale_products %>
+      <% end %>
+    </template>
   </div>
 
   <div class="product-card mb-4">
@@ -19,10 +35,11 @@
       <div class="col-6 col-md-3"><%= f.label :code, "Código interno", class: "form-label" %><%= f.text_field :code, class: "form-control text-uppercase", maxlength: 40, placeholder: "Se genera solo" %>
         <div class="form-text">Único. Si lo dejás vacío, se arma con el nombre.</div></div>
       <div class="col-6 col-md-2"><%= f.label :position, "Orden", class: "form-label" %><%= f.number_field :position, class: "form-control" %></div>
-      <div class="col-12 col-md-7"><%= f.label :product_id, "Producto mayorista vinculado (opcional)", class: "form-label" %>
+      <div class="col-12 col-md-7"><%= f.label :product_id, "Producto mayorista vinculado (opcional, para todas las variantes)", class: "form-label" %>
         <%= f.select :product_id, @wholesale_products.map { |name, id, active| [active ? name : "#{name} (inactivo)", id] }, { include_blank: "Sin vincular (producto especial)" }, class: "form-select" %>
         <div class="form-text">Solo prepara la relación para producción: no cambia el producto mayorista, su precio ni su stock.</div></div>
-      <div class="col-6 col-md-3"><div class="form-check"><%= f.check_box :active, class: "form-check-input" %><%= f.label :active, "Activo", class: "form-check-label" %></div></div>
+      <div class="col-12 col-md-6"><div class="form-check"><%= f.check_box :active, class: "form-check-input" %><%= f.label :active, "Publicado en la tienda", class: "form-check-label" %></div>
+        <div class="form-text">Destildado, el producto no aparece en el catálogo ni se puede comprar (tampoco con un enlace directo). Para verse también necesita foto principal y categoría activa.</div></div>
       <div class="col-6 col-md-3"><div class="form-check"><%= f.check_box :featured, class: "form-check-input" %><%= f.label :featured, "Destacado", class: "form-check-label" %></div></div>
     </div>
   </div>

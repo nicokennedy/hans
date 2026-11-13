@@ -9,6 +9,10 @@ class RetailOrderItem < ApplicationRecord
   # Producto de la tienda pública del que salió el ítem (Etapa 4). Los ítems cargados por el equipo
   # no lo tienen. El nombre y el precio quedan copiados en el ítem.
   belongs_to :retail_product, optional: true
+  # Variante elegida (tamaño o presentación). product_name_snapshot guarda el nombre completo que vio
+  # el cliente ("Torta nuez · 22 cm") y variant_name_snapshot solo el de la variante ("22 cm").
+  # online_stock_reserved: unidades descontadas del stock online de la variante (Retail::OnlineStock).
+  belongs_to :retail_product_variant, optional: true
 
   MAX_QUANTITY = 100_000
 
@@ -22,6 +26,8 @@ class RetailOrderItem < ApplicationRecord
   scope :manual, -> { where(product_id: nil) }
 
   before_validation :set_derived_fields
+  # Si se borra la línea (edición del pedido o borrado del pedido), su reserva vuelve al stock online.
+  before_destroy { Retail::OnlineStock.release_item!(self) }
 
   def catalog?
     product_id.present?

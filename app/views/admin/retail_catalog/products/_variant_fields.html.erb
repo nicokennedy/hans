@@ -1,0 +1,42 @@
+<%# locals: v (fields_for builder de una variante), wholesale_products %>
+<% variant = v.object %>
+<div class="border rounded p-3 mb-2 retail-variant-row" data-retail-variants-target="row">
+  <%= v.hidden_field :id if variant.persisted? %>
+  <%= v.hidden_field :stock_quantity_seen, value: variant.stock_quantity_in_database.to_s if variant.persisted? %>
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-4"><%= v.label :name, "Tamaño / presentación", class: "form-label small" %>
+      <%= v.text_field :name, class: "form-control", maxlength: 60, placeholder: "Ej.: 22 cm · vacío si es única" %></div>
+    <div class="col-6 col-md-3"><%= v.label :price, "Precio (ARS) *", class: "form-label small" %>
+      <div class="input-group"><span class="input-group-text">$</span><%= v.text_field :price, class: "form-control", inputmode: "decimal", placeholder: "46.000" %></div></div>
+    <div class="col-6 col-md-1"><%= v.label :position, "Orden", class: "form-label small" %><%= v.number_field :position, class: "form-control" %></div>
+    <div class="col-12 col-md-4"><%= v.label :product_id, "Producto mayorista (opcional)", class: "form-label small" %>
+      <%= v.select :product_id, wholesale_products.map { |name, id, active| [active ? name : "#{name} (inactivo)", id] }, { include_blank: "El del producto" }, class: "form-select" %></div>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+    <span class="small fw-semibold">Stock de venta online:</span>
+    <% RetailProductVariant::STOCK_MODES.each do |mode, label| %>
+      <div class="form-check form-check-inline mb-0">
+        <%= v.radio_button :stock_mode, mode, checked: variant.stock_mode == mode, class: "form-check-input", id: "#{v.object_name.parameterize(separator: '_')}_stock_mode_#{mode}" %>
+        <%= v.label :stock_mode, label, value: mode, class: "form-check-label small", for: "#{v.object_name.parameterize(separator: '_')}_stock_mode_#{mode}" %>
+      </div>
+    <% end %>
+    <%= v.text_field :stock_input, value: variant.stock_input, class: "form-control form-control-sm", style: "max-width: 7rem", inputmode: "numeric", placeholder: "Unidades",
+          "aria-label": "Unidades disponibles (solo con stock limitado)" %>
+    <span class="small text-muted">Con stock limitado, los pedidos online lo descuentan y los cancelados lo devuelven.</span>
+  </div>
+  <div class="mt-2"><%= v.label :description, "Descripción propia de esta variante (opcional)", class: "form-label small mb-1" %>
+    <%= v.text_area :description, class: "form-control form-control-sm", rows: 2, maxlength: 2000, placeholder: "Ej.: Mínimo 4 por variedad. Se muestra al elegir esta variante." %></div>
+  <div class="d-flex flex-wrap gap-3 mt-2 align-items-center">
+    <div class="form-check mb-0"><%= v.check_box :active, class: "form-check-input" %><%= v.label :active, "Habilitada (se puede comprar)", class: "form-check-label small" %></div>
+    <% if variant.persisted? %>
+      <% if variant.retail_order_items.exists? %>
+        <span class="small text-muted">Tiene pedidos: para que no se venda, deshabilitala.</span>
+      <% else %>
+        <div class="form-check mb-0"><%= v.check_box :_destroy, class: "form-check-input" %><%= v.label :_destroy, "Eliminar esta variante", class: "form-check-label small text-danger" %></div>
+      <% end %>
+      <% if variant.external_ref.present? %><span class="small text-muted">Origen: <%= variant.external_ref %></span><% end %>
+    <% else %>
+      <button type="button" class="btn btn-sm btn-link text-danger p-0" data-action="retail-variants#remove">Quitar</button>
+    <% end %>
+  </div>
+</div>
