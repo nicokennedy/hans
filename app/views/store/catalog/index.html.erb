@@ -3,31 +3,44 @@
 <% lead = @fulfillment[:min_lead_days] %>
 <% hero = @hero_products %>
 
-<section class="store-hero <%= 'store-hero-empty' if hero.empty? %>" aria-labelledby="store-hero-title">
+<% custom = store_setting.hero_image? %>
+<% title_lines = store_setting.hero_title_lines %>
+<section class="store-hero <%= 'store-hero-empty' if hero.empty? && !custom %> <%= 'store-hero-has-custom' if custom %>" aria-labelledby="store-hero-title" id="store-hero">
   <div class="store-container store-hero-grid">
     <div class="store-hero-copy">
       <p class="store-eyebrow store-hero-eyebrow">Pastelería artesanal · Tienda online</p>
-      <h1 class="store-hero-title" id="store-hero-title">Hecho a mano,<br><em>para compartir.</em></h1>
-      <p class="store-hero-text">Tortas y dulces de HANS, preparados por encargo. Elegí online, retirá o recibilo en tu casa, y lo confirmamos juntos por WhatsApp.</p>
+      <h1 class="store-hero-title <%= 'store-hero-title-long' if title_lines.any? { |l| l.length > 14 } %>" id="store-hero-title"><%= title_lines.first %><% if title_lines.size > 1 %><br><em><%= title_lines.second %></em><% end %></h1>
+      <p class="store-hero-text" id="store-hero-text"><%= store_setting.hero_subtitle_text %></p>
       <div class="store-hero-actions">
-        <a href="#productos" class="store-btn store-btn-primary store-btn-lg">Explorar productos <%= store_icon(:arrow_right, size: 18) %></a>
-        <a href="#como-comprar" class="store-btn store-btn-link">Cómo comprar</a>
+        <a href="#productos" class="store-btn store-btn-primary store-btn-lg" id="store-hero-cta">Explorar productos <%= store_icon(:arrow_right, size: 18) %></a>
+        <a href="#como-comprar" class="store-btn store-btn-link store-hero-how">Cómo comprar</a>
       </div>
     </div>
 
-    <div class="store-hero-visual store-hero-count-<%= hero.size %>" aria-hidden="<%= hero.empty? %>">
-      <% if hero.empty? %>
-        <%# Sin fotos todavía: el marco queda listo para la fotografía de portada. %>
-        <div class="store-hero-frame store-hero-main store-hero-placeholder"><span>H</span></div>
-      <% else %>
-        <% hero.each_with_index do |product, index| %>
-          <%= link_to store_product_path_for(product), class: "store-hero-frame #{%w[store-hero-main store-hero-side store-hero-round][index]}", tabindex: (index.zero? ? nil : -1), "aria-label": product.name do %>
-            <%= store_photo_tag(product.primary_photo, variant: (index.zero? ? :detail : :card), alt: (index.zero? ? product.name : ""), loading: "eager", fetchpriority: (index.zero? ? "high" : nil)) %>
-            <% if index.zero? %><span class="store-hero-caption"><%= product.name %></span><% end %>
+    <% if custom %>
+      <%# Foto de campaña cargada en Tienda Minorista → Tienda online → Portada. %>
+      <div class="store-hero-visual store-hero-custom" id="store-hero-custom">
+        <div class="store-hero-frame store-hero-main">
+          <%= image_tag store_hero_image_url(:hero), srcset: "#{store_hero_image_url(:hero_sm)} 900w, #{store_hero_image_url(:hero)} 1600w",
+                sizes: "(min-width: 1024px) 50vw, 100vw", alt: store_setting.hero_image_alt.to_s, loading: "eager", fetchpriority: "high", decoding: "async",
+                style: "object-position: center #{store_setting.hero_image_position}" %>
+        </div>
+      </div>
+    <% else %>
+      <div class="store-hero-visual store-hero-count-<%= hero.size %>" aria-hidden="<%= hero.empty? %>">
+        <% if hero.empty? %>
+          <%# Sin fotos todavía: el marco queda listo para la fotografía de portada. %>
+          <div class="store-hero-frame store-hero-main store-hero-placeholder"><span>H</span></div>
+        <% else %>
+          <% hero.each_with_index do |product, index| %>
+            <%= link_to store_product_path_for(product), class: "store-hero-frame #{%w[store-hero-main store-hero-side store-hero-round][index]}", tabindex: (index.zero? ? nil : -1), "aria-label": product.name do %>
+              <%= store_photo_tag(product.primary_photo, variant: (index.zero? ? :detail : :card), alt: (index.zero? ? product.name : ""), loading: "eager", fetchpriority: (index.zero? ? "high" : nil)) %>
+              <% if index.zero? %><span class="store-hero-caption"><%= product.name %></span><% end %>
+            <% end %>
           <% end %>
         <% end %>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
   </div>
 </section>
 

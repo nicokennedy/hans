@@ -16,6 +16,11 @@ module StoreHelper
     image_tag(store_photo_url(photo, variant), alt: alt, loading: options.delete(:loading) || "lazy", decoding: "async", **options)
   end
 
+  # Foto de portada configurada en el administrador (versión optimizada, nunca el original).
+  def store_hero_image_url(variant = :hero)
+    rails_storage_proxy_path(store_setting.hero_image.variant(variant))
+  end
+
   def store_product_path_for(product)
     store_product_path(id: store_product_slug(product))
   end

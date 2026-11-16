@@ -315,6 +315,11 @@ $header-h: 64px;
   letter-spacing: -.03em;
   em { display: inline-block; }
 }
+// Títulos de campaña más largos (cargados desde el administrador): un escalón más chico para que
+// no ocupen cuatro líneas.
+.store-hero-title-long { font-size: clamp(38px, 10vw, 64px); line-height: 1.02; }
+.store-hero-has-custom .store-hero-grid { @include lg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.store-hero-how { display: none; @media (min-width: 420px) { display: inline-flex; } }
 .store-hero-text { font-size: 16px; color: $cocoa; max-width: 440px; margin-bottom: 28px; @include md { font-size: 18px; } }
 .store-hero-actions { display: flex; flex-wrap: wrap; gap: 8px 4px; align-items: center; .store-btn-lg { padding: 16px 26px; } }
 
@@ -364,6 +369,38 @@ $header-h: 64px;
   text-overflow: ellipsis;
   display: none;
   @include md { display: block; }
+}
+// Foto de campaña (configurada en el administrador): un solo arco protagonista, con un círculo
+// manteca detrás que da profundidad. En el celular el arco es más bajo para que la foto no empuje
+// todo hacia abajo.
+.store-hero-custom {
+  grid-template-columns: 1fr;
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 46%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: $butter;
+    right: -6%;
+    bottom: -6%;
+    opacity: .7;
+  }
+  .store-hero-main {
+    grid-row: auto;
+    aspect-ratio: 1;
+    border-radius: #{"50% 50% 16px 16px / 50% 50% 16px 16px"};
+    width: 100%;
+  }
+  @include md {
+    width: 82%;
+    justify-self: center;
+    .store-hero-main { aspect-ratio: 4 / 5; border-radius: #{"50% 50% 16px 16px / 40% 40% 16px 16px"}; }
+  }
+  @include lg { width: 78%; }
 }
 .store-hero-placeholder {
   display: flex;

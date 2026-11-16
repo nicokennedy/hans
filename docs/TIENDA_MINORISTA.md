@@ -330,3 +330,26 @@ heroku run --no-tty -a hans -- bin/rails "retail_catalog:import_takepedido[-]" <
   nombre normalizado) no se toca sin `UPDATE_EXISTING=1`; con él conserva nombre, código, fotos, destacado y
   orden, completa la descripción si estaba vacía y su variante única pasa a ser el tamaño más grande.
 - No borra productos ni variantes y no toca pedidos, productos mayoristas ni stock de producción.
+
+## Diseño de la tienda y portada configurable
+
+Dirección de arte de la tienda pública (layout `store`, `app/assets/stylesheets/store.scss`):
+pastelería boutique + editorial gastronómica. Marfil, espresso, crema y manteca, con un único
+acento albaricoque (el naranja de HANS, más profundo para que sea legible). Titulares en Fraunces y
+todo lo funcional (precios, botones, formularios) en DM Sans (Google Fonts). Mobile first.
+
+### Portada (Tienda Minorista → Tienda online → Portada de la tienda)
+
+- **Título**: hasta 80 caracteres y dos líneas; la segunda (con Enter) se muestra en itálica y color
+  de acento. Vacío: “Hecho a mano, / para compartir.”
+- **Subtítulo**: hasta 240 caracteres. Vacío: el texto por defecto.
+- **Foto de portada** (opcional): JPEG, PNG o WebP de hasta 10 MB, validada por su contenido y
+  guardada en el mismo almacenamiento que las fotos del catálogo (R2 en producción;
+  `RetailCatalog::HeroImageUpload`). Se sirven versiones WebP optimizadas (`hero` 1600 px y
+  `hero_sm` 900 px). Subir otra la reemplaza; “Quitar la foto de portada” la borra.
+- **Descripción** (texto alternativo) y **encuadre** (centro, arriba o abajo) de la foto.
+- **Sin foto**, la portada arma sola una composición con las fotos reales de los productos
+  (destacados primero). El botón “Explorar productos” se muestra siempre.
+
+Pensado para campañas (Navidad, Pascuas, Día de la Madre): se cambia sin tocar código y no afecta
+precios, stock, checkout ni pedidos.
