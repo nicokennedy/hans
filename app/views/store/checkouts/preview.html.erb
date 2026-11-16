@@ -5,7 +5,7 @@
     La tienda está cerrada al público. Así quedaría el pedido con los datos cargados; el carrito sigue igual para seguir probando.
   </div>
   <section class="store-summary" aria-labelledby="preview-title">
-    <h1 class="store-panel-title" id="preview-title">Pedido de prueba</h1>
+    <h1 class="store-summary-title" id="preview-title">Pedido de prueba</h1>
     <ul class="store-summary-lines" id="store-preview-items">
       <% @preview[:items].each do |item| %>
         <li><span><%= item.quantity %> × <%= item.display_name %></span><span><%= store_money(item.line_total_cents) %></span></li>
@@ -16,7 +16,7 @@
     <div class="store-summary-row store-summary-total"><span>Total</span><strong id="store-preview-total"><%= store_money(@preview[:order].total_cents) %></strong></div>
   </section>
   <section class="store-summary mt-3">
-    <h2 class="store-panel-title">Mensaje de WhatsApp</h2>
+    <h2 class="store-summary-title">Mensaje de WhatsApp</h2>
     <pre class="store-message" id="store-preview-message"><%= @preview[:text] %></pre>
     <p class="store-help">En la tienda publicada, este mensaje se abre en WhatsApp dirigido a <%= store_setting.whatsapp_display %> después de registrar el pedido. En la vista previa no se abre solo; el enlace de abajo lo abre marcado como prueba.</p>
     <a href="<%= @preview[:url] %>" class="store-btn store-btn-outline w-100" target="_blank" rel="noopener noreferrer" id="store-preview-whatsapp">Abrir el mensaje de prueba en WhatsApp</a>

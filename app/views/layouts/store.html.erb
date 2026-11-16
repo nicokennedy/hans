@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="description" content="Tienda online de HANS Pastelería. Elegí tus productos, retiralos por zona Plaza del Agua o recibilos en tu casa.">
     <% unless store_setting.published? %><meta name="robots" content="noindex, nofollow"><% end %>
-    <meta name="theme-color" content="#f7f4ef">
+    <meta name="theme-color" content="#fbf8f3">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <link rel="icon" type="image/png" href="/icon-192.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&display=swap">
     <%= stylesheet_link_tag "store", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body class="store-body">
+    <a class="store-skip" href="#contenido">Saltar al contenido</a>
     <% if store_preview? %>
       <div class="store-preview-bar" id="store-preview-bar">
         <strong>Vista previa</strong> · La tienda está cerrada al público. Los pedidos de prueba no se registran.
@@ -24,37 +28,62 @@
 
     <header class="store-header">
       <div class="store-container store-header-inner">
+        <nav class="store-header-nav" aria-label="Tienda">
+          <%= link_to "Productos", store_root_path(anchor: "productos"), class: "store-header-link" %>
+          <%= link_to "Cómo comprar", store_root_path(anchor: "como-comprar"), class: "store-header-link" %>
+        </nav>
         <%= link_to store_root_path, class: "store-brand", "aria-label": "HANS Pastelería, inicio de la tienda" do %>
           <span class="store-brand-name">HANS</span><span class="store-brand-sub">Pastelería</span>
         <% end %>
-        <% if content_for?(:hide_cart) %>
-          <span></span>
-        <% else %>
-          <% count = store_cart.count %>
-          <%= link_to store_cart_path, class: "store-cart-link", id: "store-cart-link", "aria-label": "Carrito, #{count} #{count == 1 ? 'producto' : 'productos'}" do %>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
-            <span>Carrito</span>
-            <% if count.positive? %><span class="store-cart-count"><%= count %></span><% end %>
+        <div class="store-header-actions">
+          <% unless content_for?(:hide_cart) %>
+            <% count = store_cart.count %>
+            <%= link_to store_cart_path, class: "store-cart-link #{'has-items' if count.positive?}", id: "store-cart-link", "aria-label": "Carrito, #{count} #{count == 1 ? 'producto' : 'productos'}" do %>
+              <%= store_icon(:bag, size: 22) %>
+              <span class="store-cart-label">Carrito</span>
+              <% if count.positive? %><span class="store-cart-count <%= 'is-bumped' if flash[:store_added] %>"><%= count %></span><% end %>
+            <% end %>
           <% end %>
-        <% end %>
+        </div>
       </div>
     </header>
 
-    <main class="store-main">
-      <div class="store-container">
-        <% if notice.present? %><div class="store-flash store-flash-ok" role="status"><%= notice %></div><% end %>
-        <% if alert.present? %><div class="store-flash store-flash-error" role="alert"><%= alert %></div><% end %>
-      </div>
+    <main class="store-main" id="contenido">
+      <% if notice.present? || alert.present? %>
+        <div class="store-container store-flashes">
+          <% if notice.present? %><div class="store-flash store-flash-ok" role="status"><%= store_icon(:check, size: 18, stroke: 2) %><span><%= notice %></span></div><% end %>
+          <% if alert.present? %><div class="store-flash store-flash-error" role="alert"><span><%= alert %></span></div><% end %>
+        </div>
+      <% end %>
       <%= yield %>
     </main>
 
     <footer class="store-footer">
       <div class="store-container">
-        <div class="store-footer-brand">HANS Pastelería</div>
-        <p class="mb-2">Hacés el pedido acá y lo coordinamos por WhatsApp. El equipo de HANS confirma cada pedido.</p>
-        <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-footer-link", target: "_blank", rel: "noopener noreferrer" do %>
-          <%= store_whatsapp_icon(size: 18) %> WhatsApp <%= store_setting.whatsapp_display %>
-        <% end %>
+        <div class="store-footer-grid">
+          <div class="store-footer-brand-col">
+            <div class="store-footer-brand">HANS</div>
+            <p class="store-footer-tagline">Pastelería artesanal. Cada pedido se prepara a mano y lo confirmamos personalmente por WhatsApp.</p>
+          </div>
+          <div>
+            <h2 class="store-footer-title">Cómo comprar</h2>
+            <ol class="store-footer-steps">
+              <li>Elegí tus productos</li>
+              <li>Completá retiro o envío</li>
+              <li>Confirmamos por WhatsApp</li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="store-footer-title">Contacto</h2>
+            <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-footer-link", target: "_blank", rel: "noopener noreferrer" do %>
+              <%= store_whatsapp_icon(size: 18) %> <%= store_setting.whatsapp_display %>
+            <% end %>
+          </div>
+        </div>
+        <div class="store-footer-bottom">
+          <span>© <%= Date.current.year %> HANS Pastelería</span>
+          <span>Hecho con cuidado, todos los días.</span>
+        </div>
       </div>
     </footer>
   </body>

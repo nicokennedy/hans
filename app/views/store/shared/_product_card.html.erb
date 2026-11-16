@@ -2,29 +2,40 @@
 <% shown = product.display_variant %>
 <% buyable = product.purchasable? %>
 <% sizes = product.ordered_variants.select(&:active?) %>
+<% kind = store_variant_kind(sizes).downcase %>
 <article class="store-card <%= 'is-sold-out' unless buyable %>" id="<%= dom_id(product, :store) %>">
-  <%= link_to store_product_path_for(product), class: "store-card-link" do %>
-    <div class="store-card-photo"><%= store_photo_tag(product.primary_photo, alt: product.name) %>
-      <% unless buyable %><span class="store-badge store-badge-soldout">Agotado</span><% end %>
+  <div class="store-card-media">
+    <%= link_to store_product_path_for(product), class: "store-card-photo", tabindex: -1, "aria-hidden": true do %>
+      <%= store_photo_tag(product.primary_photo, alt: "") %>
+    <% end %>
+    <% if !buyable %>
+      <span class="store-badge store-badge-soldout">Agotado</span>
+    <% elsif product.featured? %>
+      <span class="store-badge store-badge-featured">Destacado</span>
+    <% end %>
+    <div class="store-card-add">
+      <% if !buyable %>
+        <%# Sin acción: el producto agotado no se puede pedir. %>
+      <% elsif sizes.size > 1 %>
+        <%= link_to store_product_path_for(product), class: "store-card-quick", "aria-label": "Elegir #{kind == 'tamaño' ? 'el tamaño' : 'la presentación'} de #{product.name}" do %>
+          <span class="store-card-quick-label">Elegir <%= kind %></span><%= store_icon(:arrow_right, size: 18) %>
+        <% end %>
+      <% else %>
+        <%= form_with url: add_store_cart_path, method: :post do %>
+          <%= hidden_field_tag :variant_id, shown.id, id: nil %>
+          <%= hidden_field_tag :quantity, 1, id: nil %>
+          <button type="submit" class="store-card-quick" aria-label="Agregar <%= product.name %> al carrito" data-turbo-submits-with="Agregando…">
+            <span class="store-card-quick-label">Agregar</span><%= store_icon(:plus, size: 18) %>
+          </button>
+        <% end %>
+      <% end %>
     </div>
-    <div class="store-card-body">
-      <h3 class="store-card-name"><%= product.name %></h3>
-      <div class="store-card-price"><%= store_money(shown.price_cents) %></div>
-      <% if sizes.size > 1 %><div class="store-card-sizes"><%= sizes.map(&:label).join(" · ") %></div><% end %>
+  </div>
+  <%= link_to store_product_path_for(product), class: "store-card-link" do %>
+    <h3 class="store-card-name"><%= product.name %></h3>
+    <div class="store-card-meta">
+      <span class="store-card-price"><%= store_money(shown.price_cents) %></span>
+      <% if sizes.size > 1 %><span class="store-card-sizes"><%= sizes.map(&:label).join(" · ") %></span><% end %>
     </div>
   <% end %>
-  <div class="store-card-add">
-    <% if !buyable %>
-      <button type="button" class="store-btn store-btn-outline store-btn-sm w-100" disabled aria-disabled="true">Agotado</button>
-    <% elsif sizes.size > 1 %>
-      <% kind = store_variant_kind(sizes).downcase %>
-      <%= link_to "Elegir #{kind}", store_product_path_for(product), class: "store-btn store-btn-outline store-btn-sm w-100", "aria-label": "Elegir #{kind == 'tamaño' ? 'el tamaño' : 'la presentación'} de #{product.name}" %>
-    <% else %>
-      <%= form_with url: add_store_cart_path, method: :post do %>
-        <%= hidden_field_tag :variant_id, shown.id, id: nil %>
-        <%= hidden_field_tag :quantity, 1, id: nil %>
-        <button type="submit" class="store-btn store-btn-outline store-btn-sm w-100" aria-label="Agregar <%= product.name %> al carrito" data-turbo-submits-with="Agregando…">Agregar</button>
-      <% end %>
-    <% end %>
-  </div>
 </article>

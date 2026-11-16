@@ -1,13 +1,22 @@
 <% content_for :title, @product.name %>
+<% sizes = @product.ordered_variants.select(&:active?) %>
+<% selected = @product.display_variant %>
+<% pickup = @fulfillment[:services].find { |s| s[:key] == "pickup" } %>
+<% delivery = @fulfillment[:services].find { |s| s[:key] == "delivery" } %>
+<% lead = @fulfillment[:min_lead_days] %>
 <div class="store-container store-product" id="store-product">
-  <nav class="store-breadcrumb" aria-label="Volver">
-    <%= link_to "← Seguir comprando", store_root_path(anchor: "categoria-#{@product.retail_category_id}") %>
+  <nav class="store-breadcrumb" aria-label="Ubicación">
+    <%= link_to store_root_path(anchor: "productos") do %><%= store_icon(:arrow_left, size: 16) %> Tienda<% end %>
+    <span aria-hidden="true">/</span>
+    <%= link_to @product.retail_category.name, store_root_path(anchor: "categoria-#{@product.retail_category_id}") %>
   </nav>
+
   <div class="store-product-grid">
     <div class="store-gallery" data-controller="store-gallery">
-      <div class="store-gallery-main">
+      <div class="store-gallery-main <%= 'is-sold-out' unless @product.purchasable? %>">
         <% main = @photos.first %>
-        <%= store_photo_tag(main, variant: :detail, alt: @product.name, loading: "eager", data: { store_gallery_target: "main" }) %>
+        <%= store_photo_tag(main, variant: :detail, alt: @product.name, loading: "eager", fetchpriority: "high", data: { store_gallery_target: "main" }) %>
+        <% unless @product.purchasable? %><span class="store-badge store-badge-soldout">Agotado</span><% end %>
       </div>
       <% if @photos.size > 1 %>
         <div class="store-gallery-thumbs" role="list">
@@ -24,10 +33,11 @@
     <div class="store-product-info">
       <p class="store-eyebrow"><%= @product.retail_category.name %></p>
       <h1 class="store-product-name"><%= @product.name %></h1>
-      <% sizes = @product.ordered_variants.select(&:active?) %>
-      <% selected = @product.display_variant %>
       <div data-controller="store-variant">
-        <div class="store-product-price" id="store-product-price" data-store-variant-target="price" aria-live="polite"><%= store_money(selected.price_cents) %></div>
+        <div class="store-product-price-row">
+          <div class="store-product-price" id="store-product-price" data-store-variant-target="price" aria-live="polite"><%= store_money(selected.price_cents) %></div>
+          <% if sizes.size > 1 %><span class="store-product-price-note" data-store-variant-target="label"><%= selected.label %></span><% end %>
+        </div>
         <% if @product.description.present? %>
           <div class="store-product-description"><%= simple_format(@product.description) %></div>
         <% end %>
@@ -43,12 +53,12 @@
           <%= form_with url: add_store_cart_path, method: :post, class: "store-add-form", id: "store-add-form" do %>
             <% if sizes.size > 1 %>
               <fieldset class="store-variants" id="store-variants">
-                <legend class="store-label"><%= store_variant_kind(sizes) %></legend>
-                <div class="store-variant-options">
+                <legend class="store-label">Elegí <%= store_variant_kind(sizes) == "Tamaño" ? "el tamaño" : "la presentación" %></legend>
+                <div class="store-variant-options store-variant-options-<%= [sizes.size, 4].min %>">
                   <% sizes.each do |variant| %>
                     <label class="store-variant-option <%= 'is-sold-out' unless variant.purchasable? %>">
                       <%= radio_button_tag :variant_id, variant.id, variant == selected, disabled: !variant.purchasable?, id: "variant-#{variant.id}",
-                            data: { action: "store-variant#select", price: store_money(variant.price_cents),
+                            data: { action: "store-variant#select", price: store_money(variant.price_cents), label: variant.label,
                                     max: [variant.stock_quantity || Retail::StoreCart::MAX_QUANTITY, Retail::StoreCart::MAX_QUANTITY].min } %>
                       <span class="store-variant-name"><%= variant.label %></span>
                       <span class="store-variant-price"><%= variant.purchasable? ? store_money(variant.price_cents) : "Agotado" %></span>
@@ -62,20 +72,39 @@
             <label class="store-label" for="quantity">Cantidad</label>
             <div class="store-add-row">
               <div class="store-stepper" data-controller="store-quantity">
-                <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno">−</button>
+                <button type="button" class="store-stepper-btn" data-action="store-quantity#decrement" aria-label="Restar uno"><%= store_icon(:minus, size: 18) %></button>
                 <%= number_field_tag :quantity, 1, min: 1, max: [selected.stock_quantity || Retail::StoreCart::MAX_QUANTITY, Retail::StoreCart::MAX_QUANTITY].min, step: 1, inputmode: "numeric", class: "store-stepper-input",
                       data: { store_quantity_target: "input", store_variant_target: "quantity" } %>
-                <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno">+</button>
+                <button type="button" class="store-stepper-btn" data-action="store-quantity#increment" aria-label="Sumar uno"><%= store_icon(:plus, size: 18) %></button>
               </div>
-              <button type="submit" class="store-btn store-btn-primary flex-grow-1" data-turbo-submits-with="Agregando…">Agregar al carrito</button>
+              <button type="submit" class="store-btn store-btn-primary store-btn-lg store-add-submit" data-store-variant-target="submit" data-turbo-submits-with="Agregando…"><%= store_icon(:bag, size: 20) %> Agregar al carrito</button>
             </div>
           <% end %>
+
+          <%# Celular: barra fija con precio y botón mientras el botón principal no está a la vista. %>
+          <div class="store-buybar" data-store-variant-target="buybar" aria-hidden="true">
+            <div class="store-buybar-info">
+              <span class="store-buybar-name"><%= @product.name %></span>
+              <span class="store-buybar-price" data-store-variant-target="price"><%= store_money(selected.price_cents) %></span>
+            </div>
+            <button type="submit" form="store-add-form" class="store-btn store-btn-primary" tabindex="-1">Agregar</button>
+          </div>
         <% else %>
           <div class="store-add-form store-sold-out" id="store-sold-out">
-            <strong>Agotado.</strong> Por ahora no se puede pedir por la tienda; escribinos por WhatsApp si lo necesitás.
+            <strong>Agotado por ahora.</strong> No se puede pedir por la tienda; escribinos por WhatsApp y te contamos cuándo vuelve.
+            <%= link_to "https://wa.me/#{store_setting.whatsapp_number}", class: "store-btn store-btn-outline mt-3", target: "_blank", rel: "noopener noreferrer" do %>
+              <%= store_whatsapp_icon(size: 18) %> Consultar por WhatsApp
+            <% end %>
           </div>
         <% end %>
       </div>
+
+      <ul class="store-product-perks">
+        <li><%= store_icon(:pin, size: 18) %><span><strong><%= pickup[:name] %></strong> sin costo</span></li>
+        <li><%= store_icon(:truck, size: 18) %><span><strong><%= delivery[:name] %></strong> según la zona</span></li>
+        <% if lead.positive? %><li><%= store_icon(:calendar, size: 18) %><span>Pedí con <strong><%= lead %> <%= lead == 1 ? "día" : "días" %></strong> de anticipación</span></li><% end %>
+        <li><%= store_icon(:chat, size: 18) %><span>Confirmamos cada pedido por WhatsApp</span></li>
+      </ul>
     </div>
   </div>
 </div>

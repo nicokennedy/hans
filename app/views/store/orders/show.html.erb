@@ -2,7 +2,7 @@
 <div class="store-container store-narrow" id="store-order"
      data-controller="store-whatsapp" data-store-whatsapp-url-value="<%= @whatsapp_url %>" data-store-whatsapp-auto-value="<%= @open_whatsapp %>">
   <div class="store-received">
-    <div class="store-received-icon" aria-hidden="true">✓</div>
+    <div class="store-received-icon" aria-hidden="true"><%= store_icon(:check, size: 30, stroke: 1.6) %></div>
     <p class="store-eyebrow">Pedido registrado</p>
     <h1 class="store-page-title mb-1">Recibimos tu pedido</h1>
     <p class="store-order-number">Número de pedido <strong id="store-order-number"><%= @order.number %></strong></p>
@@ -14,7 +14,7 @@
       <p class="store-received-text" id="store-order-not-confirmed">Este pedido no pudo confirmarse. Escribinos por WhatsApp si tenés dudas.</p>
     <% end %>
 
-    <a href="<%= @whatsapp_url %>" class="store-btn store-btn-whatsapp w-100" id="store-whatsapp-button" target="_blank" rel="noopener noreferrer">
+    <a href="<%= @whatsapp_url %>" class="store-btn store-btn-whatsapp store-btn-lg w-100" id="store-whatsapp-button" target="_blank" rel="noopener noreferrer">
       <%= store_whatsapp_icon %> <%= @order.confirmation_awaiting? ? "Enviar pedido por WhatsApp" : "Escribir a HANS por WhatsApp" %>
     </a>
     <p class="store-help mt-2" data-store-whatsapp-target="blocked" hidden>Si WhatsApp no se abrió solo, tocá el botón verde.</p>
@@ -22,7 +22,7 @@
   </div>
 
   <section class="store-summary mt-4" aria-labelledby="detalle-title">
-    <h2 class="store-panel-title" id="detalle-title">Detalle</h2>
+    <h2 class="store-summary-title" id="detalle-title">Detalle del pedido</h2>
     <ul class="store-summary-lines" id="store-order-items">
       <% @order.retail_order_items.each do |item| %>
         <li><span><%= item.quantity %> × <%= item.display_name %></span><span><%= store_money(item.line_total_cents) %></span></li>

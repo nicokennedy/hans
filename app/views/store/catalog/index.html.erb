@@ -1,16 +1,57 @@
 <% pickup = @fulfillment[:services].find { |s| s[:key] == "pickup" } %>
 <% delivery = @fulfillment[:services].find { |s| s[:key] == "delivery" } %>
-<section class="store-hero">
-  <div class="store-container">
-    <p class="store-eyebrow">Tienda online</p>
-    <h1 class="store-hero-title">HANS Pastelería</h1>
-    <p class="store-hero-text">Elegí tus productos, completá tus datos y envianos el pedido por WhatsApp. Te confirmamos desde HANS.</p>
-    <ul class="store-facts" aria-label="Entregas">
-      <li><strong><%= pickup[:name] %></strong><span>Gratis</span></li>
-      <li><strong><%= delivery[:name] %></strong><span>Según la zona</span></li>
-      <% if @fulfillment[:min_lead_days].positive? %>
-        <li><strong>Con <%= @fulfillment[:min_lead_days] %> <%= @fulfillment[:min_lead_days] == 1 ? "día" : "días" %> de anticipación</strong><span>Sin domingos</span></li>
+<% lead = @fulfillment[:min_lead_days] %>
+<% hero = @hero_products %>
+
+<section class="store-hero <%= 'store-hero-empty' if hero.empty? %>" aria-labelledby="store-hero-title">
+  <div class="store-container store-hero-grid">
+    <div class="store-hero-copy">
+      <p class="store-eyebrow store-hero-eyebrow">Pastelería artesanal · Tienda online</p>
+      <h1 class="store-hero-title" id="store-hero-title">Hecho a mano,<br><em>para compartir.</em></h1>
+      <p class="store-hero-text">Tortas y dulces de HANS, preparados por encargo. Elegí online, retirá o recibilo en tu casa, y lo confirmamos juntos por WhatsApp.</p>
+      <div class="store-hero-actions">
+        <a href="#productos" class="store-btn store-btn-primary store-btn-lg">Explorar productos <%= store_icon(:arrow_right, size: 18) %></a>
+        <a href="#como-comprar" class="store-btn store-btn-link">Cómo comprar</a>
+      </div>
+    </div>
+
+    <div class="store-hero-visual store-hero-count-<%= hero.size %>" aria-hidden="<%= hero.empty? %>">
+      <% if hero.empty? %>
+        <%# Sin fotos todavía: el marco queda listo para la fotografía de portada. %>
+        <div class="store-hero-frame store-hero-main store-hero-placeholder"><span>H</span></div>
+      <% else %>
+        <% hero.each_with_index do |product, index| %>
+          <%= link_to store_product_path_for(product), class: "store-hero-frame #{%w[store-hero-main store-hero-side store-hero-round][index]}", tabindex: (index.zero? ? nil : -1), "aria-label": product.name do %>
+            <%= store_photo_tag(product.primary_photo, variant: (index.zero? ? :detail : :card), alt: (index.zero? ? product.name : ""), loading: "eager", fetchpriority: (index.zero? ? "high" : nil)) %>
+            <% if index.zero? %><span class="store-hero-caption"><%= product.name %></span><% end %>
+          <% end %>
+        <% end %>
       <% end %>
+    </div>
+  </div>
+</section>
+
+<section class="store-perks" id="como-comprar" aria-label="Cómo comprar">
+  <div class="store-container">
+    <ul class="store-perks-list">
+      <li>
+        <%= store_icon(:pin, size: 22) %>
+        <div><strong><%= pickup[:name] %></strong><span>Sin costo</span></div>
+      </li>
+      <li>
+        <%= store_icon(:truck, size: 22) %>
+        <div><strong><%= delivery[:name] %></strong><span>Costo según la zona</span></div>
+      </li>
+      <% if lead.positive? %>
+        <li>
+          <%= store_icon(:calendar, size: 22) %>
+          <div><strong>Pedí con <%= lead %> <%= lead == 1 ? "día" : "días" %> de anticipación</strong><span>Sin entregas los domingos</span></div>
+        </li>
+      <% end %>
+      <li>
+        <%= store_icon(:chat, size: 22) %>
+        <div><strong>Confirmación por WhatsApp</strong><span>Te respondemos personalmente</span></div>
+      </li>
     </ul>
   </div>
 </section>
@@ -18,38 +59,68 @@
 <% if @categories.empty? %>
   <div class="store-container">
     <div class="store-empty" id="store-empty-catalog">
+      <%= store_icon(:sparkle, size: 28) %>
       <h2>Estamos preparando la tienda</h2>
       <p>Todavía no hay productos publicados. Mientras tanto podés escribirnos por WhatsApp.</p>
     </div>
   </div>
 <% else %>
-  <nav class="store-chips-wrap" aria-label="Categorías">
+  <section class="store-categories" aria-labelledby="categorias-title">
     <div class="store-container">
-      <div class="store-chips">
-        <% @categories.each do |category, _| %>
-          <a class="store-chip" href="#categoria-<%= category.id %>"><%= category.name %></a>
-        <% end %>
+      <div class="store-heading-row">
+        <h2 class="store-display-title" id="categorias-title">Nuestras <em>especialidades</em></h2>
       </div>
+      <ul class="store-category-tiles">
+        <% @categories.each do |category, products| %>
+          <% cover = products.find(&:purchasable?) || products.first %>
+          <li>
+            <a class="store-category-tile" href="#categoria-<%= category.id %>">
+              <span class="store-category-photo"><%= store_photo_tag(cover.primary_photo, alt: "") %></span>
+              <span class="store-category-name"><%= category.name %></span>
+              <span class="store-category-count"><%= products.size %> <%= products.size == 1 ? "producto" : "productos" %></span>
+            </a>
+          </li>
+        <% end %>
+      </ul>
     </div>
-  </nav>
+  </section>
 
-  <div class="store-container">
-    <% if @featured.any? %>
-      <section class="store-section" id="destacados" aria-labelledby="destacados-title">
-        <h2 class="store-section-title" id="destacados-title">Destacados</h2>
-        <div class="store-grid">
-          <% @featured.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
+  <div id="productos" class="store-catalog">
+    <nav class="store-chips-wrap" aria-label="Categorías">
+      <div class="store-container">
+        <div class="store-chips">
+          <% if @featured.any? %><a class="store-chip" href="#destacados">Destacados</a><% end %>
+          <% @categories.each do |category, _| %>
+            <a class="store-chip" href="#categoria-<%= category.id %>"><%= category.name %></a>
+          <% end %>
         </div>
-      </section>
-    <% end %>
+      </div>
+    </nav>
 
-    <% @categories.each do |category, products| %>
-      <section class="store-section" id="categoria-<%= category.id %>" aria-labelledby="categoria-<%= category.id %>-title">
-        <h2 class="store-section-title" id="categoria-<%= category.id %>-title"><%= category.name %></h2>
-        <div class="store-grid">
-          <% products.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
-        </div>
-      </section>
-    <% end %>
+    <div class="store-container">
+      <% if @featured.any? %>
+        <section class="store-section store-section-featured" id="destacados" aria-labelledby="destacados-title">
+          <header class="store-section-head">
+            <p class="store-eyebrow">Selección de la casa</p>
+            <h2 class="store-featured-title" id="destacados-title">Destacados</h2>
+          </header>
+          <div class="store-grid">
+            <% @featured.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
+          </div>
+        </section>
+      <% end %>
+
+      <% @categories.each do |category, products| %>
+        <section class="store-section" id="categoria-<%= category.id %>" aria-labelledby="categoria-<%= category.id %>-title">
+          <header class="store-section-head">
+            <h2 class="store-section-title" id="categoria-<%= category.id %>-title"><%= category.name %></h2>
+            <span class="store-section-count"><%= products.size %> <%= products.size == 1 ? "producto" : "productos" %></span>
+          </header>
+          <div class="store-grid">
+            <% products.each do |product| %><%= render "store/shared/product_card", product: product %><% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
   </div>
 <% end %>

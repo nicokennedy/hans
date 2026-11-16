@@ -6,6 +6,8 @@ class Store::CatalogController < Store::BaseController
     @categories = products.group_by(&:retail_category).sort_by { |category, _| [category.position, category.name.downcase, category.id] }
     @featured = products.select(&:featured?).first(8)
     @fulfillment = RetailFulfillment::Options.call
+    # Portada: fotos reales del catálogo (destacados primero, después los que se pueden comprar).
+    @hero_products = (products.select(&:featured?) + products.select(&:purchasable?) + products).uniq.first(3)
   end
 
   def show
@@ -13,5 +15,6 @@ class Store::CatalogController < Store::BaseController
     return render("store/not_found", status: :not_found) unless @product
 
     @photos = @product.photos.to_a
+    @fulfillment = RetailFulfillment::Options.call
   end
 end
