@@ -28,6 +28,14 @@ Rails.application.routes.draw do
     get "pedido/:token", to: "orders#show", as: :order, constraints: { token: /[A-Za-z0-9]{32}/ }
   end
 
+  # Portal del repartidor (Repartos y Rendiciones). Solo repartidor y admin (vista previa);
+  # ver Reparto::BaseController y docs/REPARTOS_Y_RENDICIONES.md.
+  scope "reparto", module: "reparto", as: "reparto" do
+    root "home#show"
+    # R1: prototipo navegable con datos de ejemplo. No lee ni guarda nada en la base.
+    get "prototipo", to: "prototype#show", as: :prototype
+  end
+
   resource :dashboard, only: [:show]
 
   resource :cart, only: [:show] do
@@ -213,6 +221,9 @@ Rails.application.routes.draw do
         patch :update_config
       end
     end
+
+    # R1: prototipo de la pantalla de Repartos de administración (datos de ejemplo).
+    get "repartos/prototipo", to: "delivery_routes_prototype#show", as: :delivery_routes_prototype
 
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title>HANS · Reparto</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1f1f1f">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="HANS">
+    <meta name="format-detection" content="telephone=no">
+
+    <%= stylesheet_link_tag "reparto", "data-turbo-track": "reload" %>
+  </head>
+
+  <body class="reparto">
+    <main class="reparto-main">
+      <% if alert.present? %>
+        <p class="reparto-message reparto-message-error" role="alert"><%= alert %></p>
+      <% end %>
+      <% if notice.present? %>
+        <p class="reparto-message" role="status"><%= notice %></p>
+      <% end %>
+
+      <%= yield %>
+    </main>
+  </body>
+</html>

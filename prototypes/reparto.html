@@ -1,0 +1,878 @@
+<title>Reparto HANS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HANS">
+<meta name="format-detection" content="telephone=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Prototipo R1 del portal del repartidor (HANS). Una columna, una decisión por pantalla,
+   botones de todo el ancho. Tema claro fijo y de alto contraste a propósito: se usa en la
+   calle, a pleno sol, por una persona mayor. */
+:root {
+  --page: #eef1ef;
+  --surface: #ffffff;
+  --ink: #111816;
+  --ink-soft: #3d4743;
+  --line: #111816;
+  --go: #15502f;        /* acción principal ("sí", "seguir") */
+  --go-ink: #ffffff;
+  --go-soft: #e3efe7;
+  --warn: #7a4b00;
+  --warn-soft: #fff1d6;
+  --stop: #8f1d1d;
+  --stop-soft: #fbe6e4;
+  --focus: #1c5fd6;
+  --font: "Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --text: 21px;
+  --title: 30px;
+  --money: 46px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--text);
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding-block: 0 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding-top: 8px;
+}
+.brand { font-weight: 700; letter-spacing: .08em; font-size: 17px; color: var(--ink-soft); }
+.back {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 56px; padding: 0 18px;
+  border: 3px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--ink);
+  font: 700 20px/1 var(--font);
+}
+h1 { margin: 0; font-size: var(--title); line-height: 1.15; text-wrap: balance; }
+h2 { margin: 0; font-size: 24px; line-height: 1.2; text-wrap: balance; }
+p { margin: 0; }
+.kicker { font-size: 17px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.muted { color: var(--ink-soft); }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.stack-sm { display: flex; flex-direction: column; gap: 8px; }
+
+.card {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.card-go { border-color: var(--go); box-shadow: inset 0 0 0 2px var(--go); }
+.stop-name { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.address { font-size: 22px; }
+.note { padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--ink); border: 2px solid var(--warn); }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  width: 100%; min-height: 80px; padding: 14px 18px;
+  border: 3px solid var(--line); border-radius: 18px;
+  background: var(--surface); color: var(--ink);
+  font: 700 23px/1.2 var(--font); text-align: center; text-decoration: none;
+  cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.btn .sub { display: block; font-size: 18px; font-weight: 400; }
+.btn-col { flex-direction: column; gap: 2px; }
+.btn-go { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+.btn-go .sub { color: var(--go-ink); }
+.btn-stop { border-color: var(--stop); color: var(--stop); }
+.btn[disabled] { opacity: .55; }
+.btn.is-busy { opacity: .75; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible, .back:focus-visible, .link:focus-visible, .keypad button:focus-visible, .stop-row:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+.icon { font-size: 28px; line-height: 1; }
+.gap-big { height: 10px; }
+.link {
+  display: block; width: 100%; min-height: 52px; padding: 10px;
+  background: none; border: 0; color: var(--ink);
+  font: 400 20px/1.3 var(--font); text-decoration: underline; text-underline-offset: 4px; text-align: center; cursor: pointer;
+}
+
+.money { font-size: var(--money); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.words { font-size: 19px; color: var(--ink-soft); }
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.items li { display: flex; gap: 14px; font-size: 22px; }
+.items .qty { min-width: 2.2em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.row .money-sm { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 26px; white-space: nowrap; }
+.divider { height: 0; border-top: 3px solid var(--line); }
+
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.bar { height: 14px; border-radius: 99px; background: var(--surface); border: 2px solid var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--go); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  padding: 6px 12px; border-radius: 10px; border: 2px solid var(--line);
+  font-size: 17px; font-weight: 700; letter-spacing: .02em; background: var(--surface);
+}
+.chip-go { background: var(--go-soft); border-color: var(--go); color: var(--go); }
+.chip-warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.chip-stop { background: var(--stop-soft); border-color: var(--stop); color: var(--stop); }
+
+.stop-row {
+  display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: start;
+  width: 100%; padding: 16px; text-align: left;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 18px;
+  color: var(--ink); font: inherit; cursor: pointer;
+}
+.stop-row.is-next { box-shadow: inset 0 0 0 3px var(--go); border-color: var(--go); }
+.num {
+  width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 24px;
+}
+.stop-row .name { font-size: 24px; font-weight: 700; line-height: 1.15; }
+.stop-row .stack-sm { min-width: 0; }
+
+.done {
+  display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+  padding: 28px 18px; background: var(--go-soft); border: 3px solid var(--go); border-radius: 22px;
+}
+.done .check {
+  width: 92px; height: 92px; border-radius: 50%; background: var(--go); color: var(--go-ink);
+  display: flex; align-items: center; justify-content: center; font-size: 56px; font-weight: 700;
+}
+.done h1 { color: var(--go); font-size: 34px; }
+.summary { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.summary li { font-size: 21px; }
+
+.display {
+  background: var(--surface); border: 3px solid var(--line); border-radius: 18px;
+  padding: 16px; text-align: center; display: flex; flex-direction: column; gap: 6px; min-height: 120px; justify-content: center;
+}
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.keypad button {
+  min-height: 72px; border-radius: 16px; border: 3px solid var(--line); background: var(--surface);
+  color: var(--ink); font: 700 32px/1 var(--font); touch-action: manipulation; cursor: pointer;
+}
+.keypad button.key-del { font-size: 20px; }
+.keypad button:active { background: var(--go-soft); }
+
+.photo-preview { width: 100%; max-height: 46vh; object-fit: contain; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); }
+.sr-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+
+.footer {
+  margin-top: auto; padding-top: 24px; border-top: 2px dashed var(--ink-soft);
+  display: flex; flex-direction: column; gap: 4px; text-align: center; font-size: 16px; color: var(--ink-soft);
+}
+.footer .link { font-size: 16px; min-height: 44px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen { animation: appear .18s ease-out; }
+  @keyframes appear { from { opacity: .4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+<div class="app" id="app" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- Datos de ejemplo (inventados) -------------------------------------------------------
+  const STOPS = [
+    { id: 1, kind: "order", name: "Café Aurora", address: "Av. Colón 2345", total: 48500, prevDebt: 0,
+      items: [[24, "Medialunas de manteca"], [6, "Budines de limón"], [2, "Tortas de ricota"]],
+      note: "Dejar por la puerta del costado." },
+    { id: 2, kind: "order", name: "Bar La Esquina", address: "Güemes 3120", total: 32000, prevDebt: 30000,
+      items: [[30, "Medialunas de manteca"], [12, "Alfajores de maicena"]] },
+    { id: 3, kind: "task", name: "Buscar insumos", address: "Juan B. Justo 4100", place: "Distribuidora El Molino",
+      items: [[2, "Bolsas de harina (ya están pagas)"]] },
+    { id: 4, kind: "order", name: "Panadería Sol de Mayo", address: "Rivadavia 2780", total: 21700, prevDebt: 0,
+      items: [[3, "Tortas de chocolate"], [10, "Scones"]] },
+    { id: 5, kind: "order", name: "Hotel Costa Azul", address: "Bv. Marítimo 1500", total: 96000, prevDebt: 45500,
+      items: [[60, "Medialunas de manteca"], [4, "Budines de naranja"], [20, "Cookies"]],
+      note: "Preguntar por Marta en recepción." },
+    { id: 6, kind: "order", name: "Bistró Verde", address: "", total: 27300, prevDebt: 0,
+      items: [[2, "Tartas de frutillas"], [8, "Brownies"]] }
+  ];
+
+  const NOT_DELIVERED_REASONS = ["Estaba cerrado", "No lo quisieron recibir", "No llegué", "Otro motivo"];
+  const TASK_FAIL_REASONS = ["Estaba cerrado", "No llegué", "Otro motivo"];
+  const PHOTO_EXCEPTIONS = ["El cliente no quiso firmar", "No puedo sacar la foto"];
+  const FIX_REASONS = ["Me equivoqué al escribir", "El cliente me dio otra cantidad", "Otro motivo"];
+  const EXPENSE_KINDS = {
+    fuel: { icon: "⛽", label: "Nafta", ask: "de nafta" },
+    supplies: { icon: "🛒", label: "Compra de insumos", ask: "de insumos" },
+    parking: { icon: "🅿️", label: "Estacionamiento", ask: "de estacionamiento" },
+    other: { icon: "🧾", label: "Otro gasto", ask: "en ese gasto" }
+  };
+  const STORAGE_KEY = "hans-reparto-prototipo-v1";
+
+  // --- Estado ------------------------------------------------------------------------------
+  function freshState() {
+    const stops = {};
+    STOPS.forEach(s => { stops[s.id] = { delivery: null, reason: null, cash: null, photo: null, fixes: [] }; });
+    return { stops, expenses: [], nextExpenseId: 1, submitted: false, submittedAmount: 0 };
+  }
+
+  let state = load() || freshState();
+  let ui = { screen: "home", params: {}, stack: [], busy: false, keypad: "", photoUrl: null };
+
+  function load() {
+    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento: sigue andando */ }
+  }
+
+  // --- Ayudas -------------------------------------------------------------------------------
+  const app = document.getElementById("app");
+  const byId = id => STOPS.find(s => s.id === Number(id));
+  const st = id => state.stops[id];
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = n => "$ " + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  const UNITS = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece",
+    "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve", "veinte", "veintiuno", "veintidós", "veintitrés",
+    "veinticuatro", "veinticinco", "veintiséis", "veintisiete", "veintiocho", "veintinueve"];
+  const TENS = ["", "", "", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"];
+  const HUNDREDS = ["", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos"];
+  function w99(n, short) {
+    if (n === 1) return short ? "un" : "uno";
+    if (n === 21) return short ? "veintiún" : "veintiuno";
+    if (n < 30) return UNITS[n];
+    const u = n % 10;
+    return TENS[Math.floor(n / 10)] + (u ? " y " + (u === 1 && short ? "un" : UNITS[u]) : "");
+  }
+  function w999(n, short) {
+    if (n === 100) return "cien";
+    const c = Math.floor(n / 100), r = n % 100;
+    return [HUNDREDS[c], r ? w99(r, short) : ""].filter(Boolean).join(" ");
+  }
+  function inWords(n) {
+    n = Math.round(n);
+    if (n === 0) return "cero pesos";
+    const m = Math.floor(n / 1e6), t = Math.floor((n % 1e6) / 1000), r = n % 1000;
+    const parts = [];
+    if (m) parts.push(m === 1 ? "un millón" : w999(m, true) + " millones");
+    if (t) parts.push(t === 1 ? "mil" : w999(t, true) + " mil");
+    if (r) parts.push(w999(r, false));
+    return parts.join(" ") + (m && !t && !r ? " de pesos" : " pesos");
+  }
+
+  function btn(label, action, arg, opts) {
+    opts = opts || {};
+    const cls = ["btn", opts.variant ? "btn-" + opts.variant : "", opts.sub ? "btn-col" : ""].join(" ");
+    const icon = opts.icon ? '<span class="icon" aria-hidden="true">' + opts.icon + "</span>" : "";
+    const sub = opts.sub ? '<span class="sub">' + opts.sub + "</span>" : "";
+    const inner = opts.sub ? "<span>" + icon + " " + label + "</span>" + sub : icon + "<span>" + label + "</span>";
+    return '<button type="button" class="' + cls + '" data-action="' + action + '" data-arg="' + esc(arg == null ? "" : arg) + '">' + inner + "</button>";
+  }
+  const link = (label, action, arg) => '<button type="button" class="link" data-action="' + action + '" data-arg="' + esc(arg == null ? "" : arg) + '">' + label + "</button>";
+
+  function topbar(withBack) {
+    return '<div class="topbar">' +
+      (withBack ? '<button type="button" class="back" data-action="back"><span aria-hidden="true">◀</span> VOLVER</button>' : '<span class="brand">HANS · REPARTO</span>') +
+      (withBack ? '<span class="brand">HANS</span>' : "") + "</div>";
+  }
+
+  const footer = () => '<div class="footer"><p>Prototipo de prueba. Los datos son de ejemplo y no se guarda nada de verdad.</p>' +
+    link("Empezar la prueba de nuevo", "reset-ask") +
+    (location.pathname.indexOf("/reparto/") === 0 ? '<a class="link" href="/reparto">Salir de la prueba</a>' : "") + "</div>";
+
+  function mapsUrl(stop) {
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(stop.address + ", Mar del Plata");
+  }
+
+  // --- Reglas del prototipo (las mismas que tendrá el sistema real) ------------------------
+  function nextStopId() {
+    const s = STOPS.find(x => !st(x.id).delivery);
+    return s ? s.id : null;
+  }
+  function doneCount() { return STOPS.filter(x => st(x.id).delivery).length; }
+  function cashOf(id) { const c = st(id).cash; return c ? c.amount : 0; }
+  // D9: foto obligatoria si se entregó y no pagó todo el pedido de hoy.
+  function needsPhoto(id) {
+    const stop = byId(id), s = st(id);
+    return stop.kind === "order" && s.delivery === "delivered" && s.cash !== null && s.cash.amount < stop.total;
+  }
+  function photoMissing(id) { return needsPhoto(id) && !st(id).photo; }
+  function allocation(stop, amount) {
+    const today = Math.min(amount, stop.total);
+    const prev = Math.min(amount - today, stop.prevDebt);
+    return { today, prev, extra: amount - today - prev, owedToday: stop.total - today, owedPrev: stop.prevDebt - prev };
+  }
+  function collected() { return STOPS.reduce((sum, x) => sum + cashOf(x.id), 0); }
+  function spent() { return state.expenses.reduce((sum, e) => sum + e.amount, 0); }
+  function toDeliver() { return collected() - spent(); }
+  function today() {
+    const d = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+    return d.charAt(0).toUpperCase() + d.slice(1);
+  }
+
+  function status(id) {
+    const stop = byId(id), s = st(id);
+    if (!s.delivery) return { text: "FALTA", cls: "" };
+    if (stop.kind === "task") return s.delivery === "done" ? { text: "✔ HECHO", cls: "chip-go" } : { text: "✖ NO SE PUDO", cls: "chip-stop" };
+    if (s.delivery === "not_delivered") return { text: "✖ NO SE ENTREGÓ", cls: "chip-stop" };
+    if (s.cash === null) return { text: "⚠ ENTREGADO · FALTA ANOTAR SI PAGÓ", cls: "chip-warn" };
+    let pay;
+    if (s.cash.amount === 0) pay = "NO PAGÓ";
+    else if (s.cash.amount < stop.total) pay = "PAGÓ UNA PARTE";
+    else pay = "PAGÓ " + money(s.cash.amount);
+    return { text: "✔ ENTREGADO · " + pay, cls: photoMissing(id) ? "chip-warn" : "chip-go" };
+  }
+
+  function summaryLines(id) {
+    const stop = byId(id), s = st(id), lines = [];
+    if (stop.kind === "task") {
+      lines.push(s.delivery === "done" ? "✔ Lo hiciste" : "✖ No se pudo: " + esc(s.reason));
+      return lines;
+    }
+    if (s.delivery === "delivered") lines.push("✔ Entregaste el pedido");
+    if (s.delivery === "not_delivered") lines.push("✖ No se entregó: " + esc(s.reason));
+    if (s.cash !== null) {
+      lines.push(s.cash.amount === 0 ? "✖ No te pagaron" : "💵 Te pagaron " + money(s.cash.amount));
+      if (s.fixes.length) lines.push("✎ Corregido (antes habías anotado " + money(s.fixes[s.fixes.length - 1].from) + ")");
+    }
+    if (s.photo === "ok") lines.push("📷 Foto del remito guardada");
+    else if (s.photo && s.photo.exception) lines.push("📷 Sin foto: " + esc(s.photo.exception));
+    else if (photoMissing(id)) lines.push("⚠ Falta la foto del remito");
+    return lines;
+  }
+
+  // --- Navegación ---------------------------------------------------------------------------
+  // mode: undefined = apilar (VOLVER regresa acá), "replace" = reemplazar la pantalla actual,
+  // "reset" = empezar de cero, "reset-photo" = la foto reemplaza el flujo y VOLVER va al inicio.
+  function go(screen, params, mode) {
+    if (mode === "reset-photo") { ui.stack = [{ screen: "home", params: {} }]; mode = "replace"; }
+    if (mode === "reset") ui.stack = [];
+    else if (mode !== "replace") ui.stack.push({ screen: ui.screen, params: ui.params });
+    ui.screen = screen;
+    ui.params = params || {};
+    render();
+  }
+  function back() {
+    const prev = ui.stack.pop();
+    if (prev) { ui.screen = prev.screen; ui.params = prev.params; } else { ui.screen = "home"; ui.params = {}; }
+    render();
+  }
+  // Simula el guardado en el servidor: el botón queda "Guardando…" y no acepta un segundo toque.
+  function save(button, change, then) {
+    if (ui.busy) return;
+    ui.busy = true;
+    if (button) { button.disabled = true; button.classList.add("is-busy"); button.innerHTML = "<span>Guardando…</span>"; }
+    setTimeout(function () {
+      change();
+      persist();
+      ui.busy = false;
+      then();
+    }, 650);
+  }
+
+  // --- Pantallas ----------------------------------------------------------------------------
+  const screens = {};
+
+  screens.home = function () {
+    const nextId = nextStopId(), total = STOPS.length, done = doneCount();
+    let html = topbar(false) +
+      '<div class="stack-sm"><p class="kicker">Reparto de hoy</p><h1>' + today() + "</h1></div>" +
+      '<div class="progress"><p>Hiciste <strong>' + done + " de " + total + "</strong> paradas</p>" +
+      '<div class="bar" aria-hidden="true"><span style="width:' + Math.round((done / total) * 100) + '%"></span></div></div>';
+
+    if (state.submitted) {
+      html += '<div class="done"><div class="check" aria-hidden="true">✔</div><h1>Ya enviaste la rendición</h1>' +
+        "<p>Entregale <strong>" + money(state.submittedAmount) + "</strong> a administración.</p></div>";
+    } else if (nextId) {
+      const stop = byId(nextId);
+      html += '<div class="card card-go"><p class="kicker">Próxima parada</p>' +
+        '<p class="stop-name">' + esc(stop.name) + "</p>" +
+        (stop.address ? '<p class="address">' + esc(stop.address) + "</p>" : '<p class="muted">Sin dirección cargada</p>') + "</div>" +
+        btn(stop.kind === "task" ? "VER QUÉ HAY QUE HACER" : "VER EL PEDIDO", "open-stop", nextId, { variant: "go", icon: "▶" }) +
+        (stop.address ? '<a class="btn" href="' + mapsUrl(stop) + '" target="_blank" rel="noopener"><span class="icon" aria-hidden="true">📍</span><span>CÓMO LLEGAR</span></a>' : "");
+    } else {
+      html += '<div class="done"><div class="check" aria-hidden="true">✔</div><h1>¡Terminaste todas las paradas!</h1></div>' +
+        btn("VER CUÁNTA PLATA ENTREGO", "cash", "", { variant: "go", icon: "$" });
+    }
+
+    html += '<div class="gap-big"></div>' +
+      btn("VER TODAS LAS PARADAS", "list", "", { icon: "☰" }) +
+      btn("GASTOS", "expenses", "", { icon: "⛽", sub: state.expenses.length ? "Anotaste " + state.expenses.length + " · " + money(spent()) : "Nafta, insumos y otros" }) +
+      btn("PLATA PARA ENTREGAR", "cash", "", { icon: "$", sub: "Hasta ahora: " + money(state.submitted ? state.submittedAmount : toDeliver()) });
+    return html + footer();
+  };
+
+  screens.list = function () {
+    const nextId = nextStopId();
+    let html = topbar(true) + "<h1>Todas las paradas</h1><p class='muted'>Tocá una parada para verla o corregirla.</p><div class='stack'>";
+    STOPS.forEach(function (stop, i) {
+      const s = status(stop.id), isNext = stop.id === nextId && !state.submitted;
+      html += '<button type="button" class="stop-row' + (isNext ? " is-next" : "") + '" data-action="open-stop" data-arg="' + stop.id + '">' +
+        '<span class="num" aria-hidden="true">' + (i + 1) + "</span>" +
+        '<span class="stack-sm"><span class="name">' + esc(stop.name) + "</span>" +
+        (isNext ? '<span class="chip chip-go">▶ PRÓXIMA</span>' : "") +
+        '<span class="chip ' + s.cls + '">' + s.text + "</span>" +
+        (photoMissing(stop.id) ? '<span class="chip chip-warn">⚠ FALTA LA FOTO</span>' : "") +
+        "</span></button>";
+    });
+    return html + "</div>";
+  };
+
+  function stopHeader(stop) {
+    const pos = STOPS.indexOf(stop) + 1;
+    return '<div class="stack-sm"><p class="kicker">Parada ' + pos + " de " + STOPS.length + "</p>" +
+      '<p class="stop-name">' + esc(stop.name) + "</p>" +
+      (stop.place ? '<p class="address">' + esc(stop.place) + "</p>" : "") +
+      (stop.address ? '<p class="address">' + esc(stop.address) + "</p>" : '<p class="muted">No tiene dirección cargada. Si no sabés llegar, llamá a administración.</p>') +
+      "</div>";
+  }
+
+  screens.stop = function (p) {
+    const stop = byId(p.id), s = st(p.id);
+    let html = topbar(true) + stopHeader(stop);
+    if (stop.address) html += '<a class="btn" href="' + mapsUrl(stop) + '" target="_blank" rel="noopener"><span class="icon" aria-hidden="true">📍</span><span>CÓMO LLEGAR</span></a>';
+
+    // Parada ya anotada: resumen y correcciones.
+    if (s.delivery) {
+      html += '<div class="card"><p class="kicker">Ya lo anotaste</p><ul class="summary">' +
+        summaryLines(p.id).map(l => "<li>" + l + "</li>").join("") + "</ul></div>";
+      if (state.submitted) {
+        return html + '<div class="note">Ya enviaste la rendición, así que no se puede cambiar. Si algo está mal, avisale a administración.</div>';
+      }
+      if (stop.kind === "order" && s.delivery === "delivered" && s.cash === null) {
+        html += "<h2>¿Te dieron plata en efectivo?</h2>" +
+          btn("SÍ, ME PAGARON", "paid-yes", p.id, { variant: "go", icon: "$" }) +
+          btn("NO ME PAGARON", "paid-no", p.id, { icon: "✖" });
+      }
+      if (photoMissing(p.id)) html += btn("SACAR FOTO DEL REMITO", "photo", p.id, { variant: "go", icon: "📷" });
+      if (stop.kind === "order" && s.cash !== null) html += btn("CORREGIR LO QUE COBRÉ", "fix", p.id, { icon: "✎" });
+      if (stop.kind === "order" && s.delivery === "delivered" && !s.photo && !needsPhoto(p.id)) html += link("Sacar foto del remito (si querés)", "photo-optional", p.id);
+      if (stop.kind === "order" && s.delivery === "delivered") html += link("Me equivoqué: no lo entregué", "undo-delivery", p.id);
+      if (stop.kind === "order" && s.delivery === "not_delivered") html += link("Me equivoqué: sí lo entregué", "redo-delivery", p.id);
+      const nextId = nextStopId();
+      if (nextId && nextId !== p.id) html += btn("IR A LA PRÓXIMA PARADA", "open-stop", nextId, { variant: "go", icon: "▶", sub: esc(byId(nextId).name) });
+      return html;
+    }
+
+    html += '<div class="card"><p class="kicker">' + (stop.kind === "task" ? "Qué hay que hacer" : "Llevás") + "</p><ul class='items'>" +
+      stop.items.map(it => '<li><span class="qty">' + it[0] + "</span><span>" + esc(it[1]) + "</span></li>").join("") + "</ul>" +
+      (stop.kind === "order" ? '<div class="divider"></div><div class="row"><span>Total del pedido</span><span class="money-sm">' + money(stop.total) + "</span></div>" +
+        (stop.prevDebt ? '<p class="muted">Además debe ' + money(stop.prevDebt) + " de pedidos anteriores.</p>" : "") : "") +
+      "</div>" +
+      (stop.note ? '<p class="note"><strong>Ojo:</strong> ' + esc(stop.note) + "</p>" : "");
+
+    if (stop.kind === "task") {
+      return html + "<h2>¿Lo pudiste hacer?</h2>" +
+        btn("SÍ, LISTO", "task-done", p.id, { variant: "go", icon: "✔" }) +
+        btn("NO PUDE", "not-delivered", p.id, { icon: "✖" });
+    }
+    return html + "<h2>¿Pudiste entregar el pedido?</h2>" +
+      btn("SÍ, LO ENTREGUÉ", "delivered", p.id, { variant: "go", icon: "✔" }) +
+      btn("NO PUDE ENTREGARLO", "not-delivered", p.id, { icon: "✖" });
+  };
+
+  screens.notDelivered = function (p) {
+    const stop = byId(p.id);
+    const reasons = stop.kind === "task" ? TASK_FAIL_REASONS : NOT_DELIVERED_REASONS;
+    return topbar(true) + '<p class="kicker">' + esc(stop.name) + "</p><h1>¿Qué pasó?</h1>" +
+      '<div class="stack">' + reasons.map(r => btn(r.toUpperCase(), "nd-reason", p.id + "|" + r)).join("") + "</div>";
+  };
+
+  screens.askPaid = function (p) {
+    const stop = byId(p.id);
+    return topbar(true) + '<p class="kicker">' + esc(stop.name) + "</p>" +
+      '<div class="card"><p class="chip chip-go">✔ Entrega guardada</p></div>' +
+      "<h1>¿Te dieron plata en efectivo?</h1>" +
+      btn("SÍ, ME PAGARON", "paid-yes", p.id, { variant: "go", icon: "$" }) +
+      btn("NO ME PAGARON", "paid-no", p.id, { icon: "✖" }) +
+      '<p class="muted">Si te dicen que pagaron por transferencia, tocá NO ME PAGARON. Las transferencias las controla administración.</p>';
+  };
+
+  screens.amount = function (p) {
+    const stop = byId(p.id);
+    let html = topbar(true) + '<p class="kicker">' + esc(stop.name) + "</p><h1>" + (p.fix ? "¿Cuánto te dieron en realidad?" : "¿Cuánto te dieron?") + "</h1>";
+    html += btn(money(stop.total), "amount-pick", p.id + "|" + stop.total, { variant: "go", sub: "Lo del pedido de hoy" });
+    if (stop.prevDebt) {
+      html += '<p class="muted">Este cliente además debe ' + money(stop.prevDebt) + " de pedidos anteriores.</p>" +
+        btn(money(stop.total + stop.prevDebt), "amount-pick", p.id + "|" + (stop.total + stop.prevDebt), { variant: "go", sub: "El pedido de hoy y lo que debía" });
+    }
+    html += btn("OTRO IMPORTE", "amount-other", p.id, { icon: "✎" });
+    if (p.fix) html += btn("NO ME PAGARON NADA", "amount-pick", p.id + "|0", { icon: "✖" });
+    return html;
+  };
+
+  screens.keypad = function (p) {
+    const value = Number(ui.keypad || "0");
+    const title = p.purpose === "expense" || p.purpose === "expEdit"
+      ? "¿Cuánto pagaste " + EXPENSE_KINDS[p.kind].ask + "?"
+      : "¿Cuánto te dieron?";
+    const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "000", "0"];
+    return topbar(true) + (p.id ? '<p class="kicker">' + esc(byId(p.id).name) + "</p>" : "") + "<h1>" + title + "</h1>" +
+      '<div class="display" aria-live="polite"><span class="money">' + money(value) + "</span>" +
+      '<span class="words">' + (value ? inWords(value) : "Escribí el número con las teclas") + "</span></div>" +
+      '<div class="keypad">' + keys.map(k => '<button type="button" data-action="key" data-arg="' + k + '">' + k + "</button>").join("") +
+      '<button type="button" class="key-del" data-action="key-del" aria-label="Borrar el último número">⌫ BORRAR</button></div>' +
+      '<button type="button" class="btn btn-go" data-action="key-ok"' + (value ? "" : " disabled") + "><span>LISTO</span></button>";
+  };
+
+  screens.confirm = function (p) {
+    const stop = byId(p.id), amount = Number(p.amount), a = allocation(stop, amount);
+    const lines = [];
+    if (amount === 0) lines.push("Queda anotado que no te pagaron nada.");
+    else if (a.today < stop.total) lines.push("Es una parte del pedido. Quedan debiendo " + money(a.owedToday) + ".");
+    else if (!a.prev && !a.extra) lines.push("Es justo lo del pedido de hoy.");
+    if (a.prev) lines.push(money(a.today) + " son del pedido de hoy y " + money(a.prev) + " de lo que debía de antes." + (a.owedPrev ? " Todavía debe " + money(a.owedPrev) + " de antes." : ""));
+    if (a.extra) lines.push("Te dieron " + money(a.extra) + " de más. Queda a favor del cliente y lo revisa administración.");
+    return topbar(true) + '<p class="kicker">' + esc(stop.name) + "</p>" +
+      "<h1>" + (amount === 0 ? "¿Seguro que no te pagaron?" : "¿Te dieron esta plata?") + "</h1>" +
+      '<div class="display"><span class="money">' + money(amount) + '</span><span class="words">' + inWords(amount) + "</span></div>" +
+      lines.map(l => "<p>" + l + "</p>").join("") +
+      btn("SÍ, ES CORRECTO", "confirm-yes", p.id + "|" + amount, { variant: "go", icon: "✔" }) +
+      btn("NO, CAMBIAR", "back", "", { icon: "✎" });
+  };
+
+  screens.fixReason = function (p) {
+    return topbar(true) + '<p class="kicker">' + esc(byId(p.id).name) + "</p><h1>¿Por qué lo cambiás?</h1>" +
+      '<p class="muted">Antes: ' + money(cashOf(p.id)) + " · Ahora: " + money(Number(p.amount)) + "</p>" +
+      '<div class="stack">' + FIX_REASONS.map(r => btn(r.toUpperCase(), "fix-reason", p.id + "|" + p.amount + "|" + r)).join("") + "</div>";
+  };
+
+  screens.photo = function (p) {
+    const stop = byId(p.id), required = p.required !== false;
+    let html = topbar(true) + '<p class="kicker">' + esc(stop.name) + "</p>" +
+      "<h1>" + (required ? "Sacale una foto al remito firmado" : "Foto del remito") + "</h1>";
+    if (required) html += "<p>Como no te pagaron todo, necesitamos la foto del remito con la firma del cliente.</p>";
+    if (ui.photoUrl) {
+      return html + '<img class="photo-preview" src="' + ui.photoUrl + '" alt="Foto del remito que sacaste">' +
+        "<h2>¿Se ve bien la firma?</h2>" +
+        btn("SÍ, GUARDAR LA FOTO", "photo-ok", p.id, { variant: "go", icon: "✔" }) +
+        '<label class="btn" for="photo-input"><span class="icon" aria-hidden="true">📷</span><span>SACAR OTRA</span></label>' +
+        '<input class="sr-file" id="photo-input" type="file" accept="image/*" capture="environment" data-photo>';
+    }
+    html += '<label class="btn btn-go" for="photo-input"><span class="icon" aria-hidden="true">📷</span><span>SACAR FOTO</span></label>' +
+      '<input class="sr-file" id="photo-input" type="file" accept="image/*" capture="environment" data-photo>';
+    if (required) html += '<div class="gap-big"></div><p class="muted">Si no se puede:</p>' +
+      PHOTO_EXCEPTIONS.map(r => btn(r.toUpperCase(), "photo-exception", p.id + "|" + r)).join("");
+    else html += btn("NO, SEGUIR SIN FOTO", "saved-from-photo", p.id);
+    return html;
+  };
+
+  screens.saved = function (p) {
+    const stop = byId(p.id), nextId = nextStopId();
+    let html = topbar(false) +
+      '<div class="done" role="status"><div class="check" aria-hidden="true">✔</div>' +
+      "<h1>" + (p.fixed ? "Listo, quedó corregido" : "Listo, quedó guardado") + "</h1>" +
+      "<p><strong>" + esc(stop.name) + "</strong></p>" +
+      '<ul class="summary">' + summaryLines(p.id).map(l => "<li>" + l + "</li>").join("") + "</ul></div>";
+    if (nextId) html += btn("SIGUIENTE PARADA", "open-stop-reset", nextId, { variant: "go", icon: "▶", sub: esc(byId(nextId).name) });
+    else html += btn("VER CUÁNTA PLATA ENTREGO", "cash-reset", "", { variant: "go", icon: "$", sub: "Ya hiciste todas las paradas" });
+    if (stop.kind === "order" && st(p.id).delivery === "delivered" && !st(p.id).photo && !needsPhoto(p.id)) html += link("Sacar foto del remito (si querés)", "photo-optional", p.id);
+    html += link("Me equivoqué, quiero corregir", "open-stop-reset-home", p.id) + link("Volver al inicio", "home");
+    return html;
+  };
+
+  // Gastos (D2: siempre pagados con la plata que cobró)
+  screens.expenses = function () {
+    let html = topbar(true) + "<h1>Gastos de hoy</h1>";
+    if (!state.expenses.length) html += '<p class="muted">Todavía no anotaste gastos.</p>';
+    else {
+      html += '<div class="stack">' + state.expenses.map(function (e) {
+        const k = EXPENSE_KINDS[e.kind];
+        return '<button type="button" class="stop-row" data-action="exp-open" data-arg="' + e.id + '">' +
+          '<span class="num" aria-hidden="true">' + k.icon + "</span>" +
+          '<span class="stack-sm"><span class="name">' + k.label + " · " + money(e.amount) + "</span>" +
+          '<span class="chip ' + (e.photo ? "chip-go" : "") + '">' + (e.photo ? "📷 CON FOTO DEL TICKET" : "SIN FOTO DEL TICKET") + "</span></span></button>";
+      }).join("") + "</div>" +
+        '<div class="row"><span>Gastaste en total</span><span class="money-sm">' + money(spent()) + "</span></div>";
+    }
+    if (state.submitted) return html + '<div class="note">Ya enviaste la rendición. Los gastos no se pueden cambiar.</div>';
+    return html + btn("ANOTAR UN GASTO", "exp-new", "", { variant: "go", icon: "+" }) +
+      '<p class="muted">Los gastos se pagan con la plata que cobraste y se descuentan de lo que tenés que entregar.</p>';
+  };
+
+  screens.expKind = function () {
+    return topbar(true) + "<h1>¿En qué gastaste?</h1><div class='stack'>" +
+      Object.keys(EXPENSE_KINDS).map(k => btn(EXPENSE_KINDS[k].label.toUpperCase(), "exp-kind", k, { icon: EXPENSE_KINDS[k].icon })).join("") + "</div>";
+  };
+
+  screens.expConfirm = function (p) {
+    const k = EXPENSE_KINDS[p.kind], amount = Number(p.amount);
+    return topbar(true) + "<h1>¿Pagaste esto " + k.ask + "?</h1>" +
+      '<div class="display"><span class="money">' + money(amount) + '</span><span class="words">' + inWords(amount) + "</span></div>" +
+      "<p>Lo pagaste con la plata que cobraste. Se descuenta de lo que tenés que entregar.</p>" +
+      btn("SÍ, ANOTARLO", "exp-save", p.kind + "|" + amount, { variant: "go", icon: "✔" }) +
+      btn("NO, CAMBIAR", "back", "", { icon: "✎" });
+  };
+
+  screens.expPhoto = function (p) {
+    let html = topbar(false) + "<h1>¿Tenés el ticket?</h1><p>Sacale una foto así administración lo tiene.</p>";
+    if (ui.photoUrl) {
+      return html + '<img class="photo-preview" src="' + ui.photoUrl + '" alt="Foto del ticket que sacaste">' +
+        btn("GUARDAR LA FOTO", "exp-photo-ok", p.expId, { variant: "go", icon: "✔" }) +
+        '<label class="btn" for="photo-input"><span class="icon" aria-hidden="true">📷</span><span>SACAR OTRA</span></label>' +
+        '<input class="sr-file" id="photo-input" type="file" accept="image/*" capture="environment" data-photo>';
+    }
+    return html + '<label class="btn btn-go" for="photo-input"><span class="icon" aria-hidden="true">📷</span><span>SACAR FOTO DEL TICKET</span></label>' +
+      '<input class="sr-file" id="photo-input" type="file" accept="image/*" capture="environment" data-photo>' +
+      btn("NO TENGO TICKET", "exp-no-ticket", p.expId, { icon: "✖" });
+  };
+
+  screens.expSaved = function (p) {
+    const e = state.expenses.find(x => x.id === Number(p.expId));
+    const label = e ? EXPENSE_KINDS[e.kind].label + " · " + money(e.amount) : "Gasto borrado";
+    return topbar(false) + '<div class="done" role="status"><div class="check" aria-hidden="true">✔</div><h1>' + (p.deleted ? "Listo, gasto borrado" : "Listo, quedó guardado") + "</h1>" +
+      "<p><strong>" + label + "</strong></p><p>Tenés que entregar " + money(toDeliver()) + ".</p></div>" +
+      btn("VOLVER AL REPARTO", "home", "", { variant: "go", icon: "▶" }) +
+      btn("ANOTAR OTRO GASTO", "exp-new-reset", "", { icon: "+" });
+  };
+
+  screens.expEdit = function (p) {
+    const e = state.expenses.find(x => x.id === Number(p.expId)), k = EXPENSE_KINDS[e.kind];
+    let html = topbar(true) + '<p class="kicker">Gasto</p><h1>' + k.icon + " " + k.label + "</h1>" +
+      '<div class="display"><span class="money">' + money(e.amount) + "</span><span class='words'>" + (e.photo ? "Con foto del ticket" : "Sin foto del ticket") + "</span></div>";
+    if (state.submitted) return html + '<div class="note">Ya enviaste la rendición. Si algo está mal, avisale a administración.</div>';
+    return html + btn("CAMBIAR EL IMPORTE", "exp-amount", e.id, { icon: "✎" }) +
+      (e.photo ? "" : btn("SACAR FOTO DEL TICKET", "exp-photo-later", e.id, { icon: "📷" })) +
+      btn("BORRAR ESTE GASTO", "exp-delete", e.id, { variant: "stop", icon: "🗑" });
+  };
+
+  screens.expDelete = function (p) {
+    const e = state.expenses.find(x => x.id === Number(p.expId)), k = EXPENSE_KINDS[e.kind];
+    return topbar(true) + "<h1>¿Borrar el gasto de " + k.label.toLowerCase() + " de " + money(e.amount) + "?</h1>" +
+      btn("SÍ, BORRARLO", "exp-delete-yes", e.id, { variant: "stop", icon: "🗑" }) +
+      btn("NO, DEJARLO", "back", "", { variant: "go" });
+  };
+
+  // Rendición: siempre calculada, nunca editable.
+  screens.cash = function () {
+    const amount = state.submitted ? state.submittedAmount : toDeliver();
+    const cobros = STOPS.filter(x => st(x.id).cash && st(x.id).cash.amount > 0).length;
+    let html = topbar(true) + '<p class="kicker">Plata para entregar</p>' +
+      '<div class="card"><div class="row"><span>Cobraste (' + cobros + (cobros === 1 ? " cliente" : " clientes") + ')</span><span class="money-sm">' + money(collected()) + "</span></div>" +
+      '<div class="row"><span>Gastaste (' + state.expenses.length + (state.expenses.length === 1 ? " gasto" : " gastos") + ')</span><span class="money-sm">− ' + money(spent()) + "</span></div>" +
+      '<div class="divider"></div><p class="kicker">Tenés que entregar</p><p class="money">' + money(amount) + '</p><p class="words">' + inWords(Math.max(amount, 0)) + "</p></div>";
+    if (amount < 0) html += '<p class="note">Gastaste más de lo que cobraste. Revisá los importes o avisale a administración.</p>';
+    html += '<p class="muted">Este número lo calcula HANS con lo que anotaste. No se cambia a mano: si algo está mal, corregí el cobro o el gasto.</p>' +
+      btn("VER CADA COBRO Y GASTO", "detail", "", { icon: "☰" });
+    if (state.submitted) return html + '<div class="note">Ya enviaste la rendición. Si algo está mal, avisale a administración.</div>';
+    return html + btn("TERMINÉ EL REPARTO", "finish", "", { variant: "go", icon: "✔" });
+  };
+
+  screens.cashDetail = function () {
+    let html = topbar(true) + "<h1>De dónde sale la plata</h1><h2>Cobros</h2><div class='stack'>";
+    STOPS.filter(x => x.kind === "order").forEach(function (stop) {
+      const s = st(stop.id);
+      const what = s.cash === null ? "Sin anotar" : s.cash.amount === 0 ? "No pagó" : money(s.cash.amount);
+      html += '<button type="button" class="stop-row" data-action="open-stop" data-arg="' + stop.id + '"><span class="num" aria-hidden="true">$</span>' +
+        '<span class="stack-sm"><span class="name">' + esc(stop.name) + "</span><span>" + what + "</span>" +
+        (s.fixes.length ? '<span class="chip">✎ CORREGIDO · ANTES ' + money(s.fixes[s.fixes.length - 1].from) + "</span>" : "") + "</span></button>";
+    });
+    html += "</div><h2>Gastos</h2>";
+    if (!state.expenses.length) html += '<p class="muted">No anotaste gastos.</p>';
+    else html += '<div class="stack">' + state.expenses.map(e => '<button type="button" class="stop-row" data-action="exp-open" data-arg="' + e.id + '"><span class="num" aria-hidden="true">' + EXPENSE_KINDS[e.kind].icon + '</span><span class="stack-sm"><span class="name">' + EXPENSE_KINDS[e.kind].label + "</span><span>− " + money(e.amount) + "</span></span></button>").join("") + "</div>";
+    return html;
+  };
+
+  screens.finishCheck = function () {
+    const pending = STOPS.filter(x => !st(x.id).delivery);
+    const unpaid = STOPS.filter(x => x.kind === "order" && st(x.id).delivery === "delivered" && st(x.id).cash === null);
+    const photos = STOPS.filter(x => photoMissing(x.id));
+    let html = topbar(true) + "<h1>Antes de terminar, revisá esto</h1>";
+    if (pending.length) html += '<div class="card"><p class="kicker">Paradas sin anotar</p><ul class="summary">' + pending.map(x => "<li>• " + esc(x.name) + "</li>").join("") + "</ul><p class='muted'>Si no fuiste, entrá a la parada y tocá NO PUDE ENTREGARLO.</p></div>";
+    if (unpaid.length) html += '<div class="card"><p class="kicker">Falta decir si te pagaron</p><ul class="summary">' + unpaid.map(x => "<li>• " + esc(x.name) + "</li>").join("") + "</ul></div>";
+    if (photos.length) html += '<div class="card"><p class="kicker">Falta la foto del remito</p><ul class="summary">' + photos.map(x => "<li>• " + esc(x.name) + "</li>").join("") + "</ul></div>";
+    return html + btn("VER LAS PARADAS", "list", "", { variant: "go", icon: "☰" }) + btn("TERMINAR IGUAL", "finish-anyway", "", { icon: "▶" });
+  };
+
+  screens.finishConfirm = function () {
+    const amount = toDeliver();
+    return topbar(true) + "<h1>¿Terminaste el reparto?</h1>" +
+      '<div class="display"><span class="kicker">Vas a entregar</span><span class="money">' + money(amount) + '</span><span class="words">' + inWords(Math.max(amount, 0)) + "</span></div>" +
+      "<p>Después de esto ya no vas a poder cambiar los cobros ni los gastos.</p>" +
+      btn("SÍ, TERMINÉ", "finish-yes", "", { variant: "go", icon: "✔" }) +
+      btn("NO, VOLVER", "back", "", { icon: "◀" });
+  };
+
+  screens.finished = function () {
+    return topbar(false) + '<div class="done" role="status"><div class="check" aria-hidden="true">✔</div><h1>Rendición enviada</h1>' +
+      "<p>Entregale a administración</p><p class='money'>" + money(state.submittedAmount) + "</p><p class='words'>" + inWords(Math.max(state.submittedAmount, 0)) + "</p></div>" +
+      btn("VOLVER AL INICIO", "home", "", { variant: "go" });
+  };
+
+  screens.resetConfirm = function () {
+    return topbar(true) + "<h1>¿Empezar la prueba de nuevo?</h1><p>Se borra todo lo que anotaste en esta prueba.</p>" +
+      btn("SÍ, EMPEZAR DE NUEVO", "reset-yes", "", { variant: "stop" }) + btn("NO, SEGUIR", "back", "", { variant: "go" });
+  };
+
+  // --- Acciones -----------------------------------------------------------------------------
+  function parts(arg) { return String(arg).split("|"); }
+  function afterCash(id, mode) {
+    if (photoMissing(id)) go("photo", { id: id, required: true }, mode || "replace");
+    else go("saved", { id: id }, "reset");
+  }
+
+  const actions = {
+    back: back,
+    home: () => go("home", {}, "reset"),
+    list: () => go("list"),
+    cash: () => go("cash"),
+    "cash-reset": () => { ui.stack = [{ screen: "home", params: {} }]; go("cash", {}, "replace"); },
+    expenses: () => go("expenses"),
+    detail: () => go("cashDetail"),
+    "open-stop": id => go("stop", { id: Number(id) }),
+    "open-stop-reset": id => { ui.stack = [{ screen: "home", params: {} }]; go("stop", { id: Number(id) }, "replace"); },
+    "open-stop-reset-home": id => { ui.stack = [{ screen: "home", params: {} }]; go("stop", { id: Number(id) }, "replace"); },
+
+    delivered: (id, b) => save(b, () => { st(id).delivery = "delivered"; }, () => go("askPaid", { id: Number(id) }, "replace")),
+    "redo-delivery": (id, b) => save(b, () => { st(id).delivery = "delivered"; st(id).reason = null; }, () => go("stop", { id: Number(id) }, "replace")),
+    "task-done": (id, b) => save(b, () => { st(id).delivery = "done"; }, () => go("saved", { id: Number(id) }, "reset")),
+    "not-delivered": id => go("notDelivered", { id: Number(id) }),
+    "undo-delivery": id => state.submitted ? null : go("notDelivered", { id: Number(id) }),
+    "nd-reason": (arg, b) => {
+      const [id, reason] = parts(arg), stop = byId(id);
+      save(b, () => { st(id).delivery = stop.kind === "task" ? "failed" : "not_delivered"; st(id).reason = reason; }, () => go("saved", { id: Number(id) }, "reset"));
+    },
+
+    "paid-yes": id => go("amount", { id: Number(id) }),
+    "paid-no": (id, b) => save(b, () => { st(id).cash = { amount: 0 }; }, () => afterCash(Number(id))),
+    "amount-pick": arg => { const [id, amount] = parts(arg); go("confirm", { id: Number(id), amount: Number(amount), fix: ui.params.fix }); },
+    "amount-other": id => { ui.keypad = ""; go("keypad", { purpose: ui.params.fix ? "fix" : "cash", id: Number(id) }); },
+    "confirm-yes": (arg, b) => {
+      const [id, amount] = parts(arg).map(Number);
+      if (ui.params.fix) { go("fixReason", { id: id, amount: amount }); return; }
+      save(b, () => { st(id).cash = { amount: amount }; }, () => afterCash(id, "reset-photo"));
+    },
+    fix: id => state.submitted ? null : go("amount", { id: Number(id), fix: true }),
+    "fix-reason": (arg, b) => {
+      const [id, amount, reason] = parts(arg);
+      save(b, () => {
+        const s = st(id);
+        s.fixes.push({ from: s.cash ? s.cash.amount : 0, to: Number(amount), reason: reason, at: new Date().toISOString() });
+        s.cash = { amount: Number(amount) };
+      }, () => photoMissing(Number(id)) ? go("photo", { id: Number(id), required: true }, "reset") : go("saved", { id: Number(id), fixed: true }, "reset"));
+    },
+
+    photo: id => { ui.photoUrl = null; go("photo", { id: Number(id), required: true }); },
+    "photo-optional": id => { ui.photoUrl = null; go("photo", { id: Number(id), required: false }); },
+    "photo-ok": (id, b) => save(b, () => { st(id).photo = "ok"; }, () => { ui.photoUrl = null; go("saved", { id: Number(id) }, "reset"); }),
+    "photo-exception": (arg, b) => { const [id, reason] = parts(arg); save(b, () => { st(id).photo = { exception: reason }; }, () => go("saved", { id: Number(id) }, "reset")); },
+    "saved-from-photo": id => go("saved", { id: Number(id) }, "reset"),
+
+    "exp-new": () => go("expKind"),
+    "exp-new-reset": () => { ui.stack = [{ screen: "home", params: {} }, { screen: "expenses", params: {} }]; go("expKind", {}, "replace"); },
+    "exp-kind": kind => { ui.keypad = ""; go("keypad", { purpose: "expense", kind: kind }); },
+    "exp-save": (arg, b) => {
+      const [kind, amount] = parts(arg); let id;
+      save(b, () => { id = state.nextExpenseId++; state.expenses.push({ id: id, kind: kind, amount: Number(amount), photo: false }); },
+        () => { ui.photoUrl = null; go("expPhoto", { expId: id }, "reset"); });
+    },
+    "exp-photo-ok": (id, b) => save(b, () => { state.expenses.find(e => e.id === Number(id)).photo = true; }, () => { ui.photoUrl = null; go("expSaved", { expId: Number(id) }, "reset"); }),
+    "exp-no-ticket": id => go("expSaved", { expId: Number(id) }, "reset"),
+    "exp-open": id => go("expEdit", { expId: Number(id) }),
+    "exp-amount": id => { const e = state.expenses.find(x => x.id === Number(id)); ui.keypad = ""; go("keypad", { purpose: "expEdit", kind: e.kind, expId: e.id }); },
+    "exp-photo-later": id => { ui.photoUrl = null; go("expPhoto", { expId: Number(id) }); },
+    "exp-delete": id => go("expDelete", { expId: Number(id) }),
+    "exp-delete-yes": (id, b) => save(b, () => { state.expenses = state.expenses.filter(e => e.id !== Number(id)); }, () => go("expSaved", { expId: Number(id), deleted: true }, "reset")),
+
+    key: k => { if ((ui.keypad + k).replace(/^0+/, "").length <= 8) { ui.keypad = (ui.keypad + k).replace(/^0+/, ""); render(); } },
+    "key-del": () => { ui.keypad = ui.keypad.slice(0, -1); render(); },
+    "key-ok": (arg, b) => {
+      const value = Number(ui.keypad || "0"), p = ui.params;
+      if (!value) return;
+      if (p.purpose === "cash" || p.purpose === "fix") go("confirm", { id: p.id, amount: value, fix: p.purpose === "fix" });
+      else if (p.purpose === "expense") go("expConfirm", { kind: p.kind, amount: value });
+      else if (p.purpose === "expEdit") save(b, () => { state.expenses.find(e => e.id === p.expId).amount = value; }, () => go("expSaved", { expId: p.expId }, "reset"));
+    },
+
+    finish: () => {
+      const issues = STOPS.some(x => !st(x.id).delivery || photoMissing(x.id) || (x.kind === "order" && st(x.id).delivery === "delivered" && st(x.id).cash === null));
+      go(issues ? "finishCheck" : "finishConfirm");
+    },
+    "finish-anyway": () => go("finishConfirm"),
+    "finish-yes": (arg, b) => save(b, () => { state.submitted = true; state.submittedAmount = toDeliver(); }, () => go("finished", {}, "reset")),
+
+    "reset-ask": () => go("resetConfirm"),
+    "reset-yes": () => { state = freshState(); persist(); ui.photoUrl = null; go("home", {}, "reset"); }
+  };
+
+  app.addEventListener("click", function (event) {
+    const el = event.target.closest("[data-action]");
+    if (!el || ui.busy) return;
+    const fn = actions[el.dataset.action];
+    if (fn) fn(el.dataset.arg, el);
+  });
+
+  app.addEventListener("change", function (event) {
+    const input = event.target.closest("[data-photo]");
+    if (!input || !input.files || !input.files[0]) return;
+    if (ui.photoUrl) { try { URL.revokeObjectURL(ui.photoUrl); } catch (e) { /* nada */ } }
+    ui.photoUrl = URL.createObjectURL(input.files[0]);
+    render();
+  });
+
+  function render() {
+    const fn = screens[ui.screen] || screens.home;
+    app.innerHTML = '<div class="screen stack">' + fn(ui.params) + "</div>";
+    window.scrollTo(0, 0);
+  }
+
+  // --- Pantallas de ejemplo para capturas: #demo-<pantalla> ---------------------------------
+  function demo(name) {
+    state = freshState();
+    const s = state.stops;
+    if (name !== "inicio") { s[1].delivery = "delivered"; s[1].cash = { amount: 48500 }; s[1].photo = "ok"; }
+    const presets = {
+      inicio: ["home", {}],
+      parada: ["stop", { id: 2 }],
+      entregado: ["askPaid", { id: 2 }],
+      importe: ["amount", { id: 2 }],
+      teclado: ["keypad", { purpose: "cash", id: 2 }, "20000"],
+      confirmar: ["confirm", { id: 2, amount: 20000 }],
+      foto: ["photo", { id: 2, required: true }],
+      listo: ["saved", { id: 2 }],
+      lista: ["list", {}],
+      gastos: ["expenses", {}],
+      rendicion: ["cash", {}],
+      terminar: ["finishConfirm", {}],
+      corregida: ["saved", { id: 1, fixed: true }]
+    };
+    if (["parada", "entregado", "importe", "teclado", "confirmar", "foto"].includes(name)) { if (name !== "parada") s[2].delivery = "delivered"; }
+    if (["listo", "lista", "gastos", "rendicion", "terminar"].includes(name)) {
+      s[2].delivery = "delivered"; s[2].cash = { amount: 20000 }; s[2].photo = "ok";
+      s[3].delivery = "done";
+    }
+    if (["lista", "gastos", "rendicion", "terminar"].includes(name)) {
+      s[4].delivery = "delivered"; s[4].cash = { amount: 0 };
+      state.expenses = [{ id: 1, kind: "fuel", amount: 15000, photo: true }];
+      state.nextExpenseId = 2;
+    }
+    if (name === "corregida") s[1].fixes = [{ from: 45800, to: 48500, reason: "Me equivoqué al escribir" }];
+    const p = presets[name] || presets.inicio;
+    ui = { screen: p[0], params: p[1], stack: [{ screen: "home", params: {} }], busy: false, keypad: p[2] || "", photoUrl: null };
+    render();
+  }
+
+  const hash = (location.hash || "").replace("#", "");
+  if (hash.indexOf("demo-") === 0) demo(hash.slice(5));
+  else render();
+})();
+</script>

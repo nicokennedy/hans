@@ -6,6 +6,8 @@ class ApplicationController < ActionController::Base
       admin_root_path
     elsif resource.production?
       admin_production_index_path
+    elsif resource.driver?
+      reparto_root_path
     else
       dashboard_path
     end
@@ -15,7 +17,7 @@ class ApplicationController < ActionController::Base
 
   def ensure_active_customer!
     return unless user_signed_in?
-    return if current_user.admin_or_production?
+    return if current_user.admin_or_production? || current_user.driver?
 
     if current_user.customer.blank?
       sign_out(current_user)
@@ -43,7 +45,20 @@ class ApplicationController < ActionController::Base
   end
 
   def admin_unauthorized_fallback_path
-    current_user&.production? ? admin_production_index_path : dashboard_path
+    if current_user&.production?
+      admin_production_index_path
+    elsif current_user&.driver?
+      reparto_root_path
+    else
+      dashboard_path
+    end
+  end
+
+  # Portal del repartidor (/reparto). Admin también entra, como vista previa.
+  def require_driver_or_admin!
+    return if current_user&.driver? || current_user&.admin?
+
+    redirect_to admin_unauthorized_fallback_path, alert: "No tenés permisos para acceder."
   end
 
   # Bloquea rutas exclusivas de clientes (carrito, pedidos propios, portal).
@@ -53,6 +68,8 @@ class ApplicationController < ActionController::Base
       redirect_to admin_root_path
     elsif current_user.production?
       redirect_to admin_production_index_path
+    elsif current_user.driver?
+      redirect_to reparto_root_path
     end
   end
 end

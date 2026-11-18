@@ -1,0 +1,442 @@
+<title>Repartos HANS · Administración</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Prototipo R1 de Repartos (administración). Panel de trabajo: resumen arriba, una tabla por
+   bloque (en el recorrido / fuera / sin asignar), acciones al costado de cada fila. Tema claro
+   fijo, como el resto del panel de HANS. */
+:root {
+  --page: #f3f4f2;
+  --surface: #ffffff;
+  --ink: #161b19;
+  --ink-soft: #55605b;
+  --line: #d5dad7;
+  --line-strong: #161b19;
+  --go: #15502f;
+  --go-ink: #ffffff;
+  --go-soft: #e3efe7;
+  --warn: #7a4b00;
+  --warn-soft: #fff1d6;
+  --stop: #8f1d1d;
+  --stop-soft: #fbe6e4;
+  --focus: #1c5fd6;
+  --font: "Atkinson Hyperlegible", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+h1 { margin: 0; font-size: 28px; line-height: 1.2; }
+h2 { margin: 0; font-size: 19px; }
+p { margin: 0; }
+.muted { color: var(--ink-soft); }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.date { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1.5px solid currentColor; font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+.pill-draft { color: var(--ink-soft); }
+.pill-live { color: var(--go); background: var(--go-soft); }
+.pill-sent { color: var(--warn); background: var(--warn-soft); }
+.pill-done { color: var(--go); background: var(--go-soft); }
+.alert { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--warn); background: var(--warn-soft); }
+.alert strong { display: block; }
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--line); overflow-x: auto; }
+.tab { padding: 10px 16px; border: 0; background: none; font: 700 16px var(--font); color: var(--ink-soft); border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--go); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.removing td { background: var(--stop-soft); }
+.order-no { font-size: 13px; color: var(--ink-soft); }
+.obs { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+.kind { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+.warn-text { color: var(--warn); font-weight: 700; }
+.stop-text { color: var(--stop); font-weight: 700; }
+.go-text { color: var(--go); font-weight: 700; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 6px 14px; border-radius: 8px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); font: 700 15px var(--font); cursor: pointer; white-space: nowrap; text-decoration: none; }
+.btn-go { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+.btn-stop { border-color: var(--stop); color: var(--stop); }
+.btn-sm { min-height: 32px; padding: 4px 10px; font-size: 14px; }
+.btn-icon { min-width: 34px; padding: 4px 8px; }
+.btn[disabled] { opacity: .4; cursor: not-allowed; }
+.btn:focus-visible, .tab:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.inline-form { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1.5px dashed var(--line-strong); border-radius: 10px; background: var(--page); }
+.choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--surface); cursor: pointer; font-size: 15px; }
+.choice input { margin: 0; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 700; }
+input[type=text], input[type=number], textarea, select { font: 400 16px var(--font); padding: 8px 10px; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+textarea { min-height: 64px; resize: vertical; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+.sum { display: flex; flex-direction: column; gap: 6px; }
+.sum .row { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.sum .total { font-size: 22px; font-weight: 700; border-top: 2px solid var(--line-strong); padding-top: 8px; }
+.diff { padding: 10px 12px; border-radius: 8px; font-weight: 700; }
+.diff-zero { background: var(--go-soft); color: var(--go); }
+.diff-bad { background: var(--stop-soft); color: var(--stop); }
+.empty { padding: 10px 0; color: var(--ink-soft); }
+.sheet { background: #fff; color: #000; border: 1px solid var(--line); padding: 24px; font-size: 14px; }
+.sheet h2 { font-size: 20px; }
+.sheet table td, .sheet table th { border-bottom: 1px solid #999; }
+.sheet .box { display: inline-block; width: 16px; height: 16px; border: 1.5px solid #000; vertical-align: middle; }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.log li { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.log time { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.note-proto { font-size: 13px; color: var(--ink-soft); text-align: center; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 18px; border-radius: 10px; font-weight: 700; max-width: calc(100% - 32px); }
+</style>
+
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- Datos de ejemplo (inventados) -----------------------------------------------------------
+  function freshState() {
+    return {
+      status: "draft",          // draft · live
+      tab: "route",
+      sheet: false,
+      removing: null,           // id de la parada que se está quitando
+      adding: false,
+      stops: [
+        { id: 1, kind: "order", customer: "Café Aurora", order: "HANS-20261118-A1F", total: 48500, balance: 48500, debt: 0, address: "Av. Colón 2345", obs: "Dejar por la puerta del costado." },
+        { id: 2, kind: "order", customer: "Bar La Esquina", order: "HANS-20261118-B27", total: 32000, balance: 32000, debt: 30000, address: "Güemes 3120", obs: "" },
+        { id: 3, kind: "task", customer: "Buscar insumos", order: "", total: 0, balance: 0, debt: 0, address: "Juan B. Justo 4100", obs: "Distribuidora El Molino: 2 bolsas de harina (pagas)." },
+        { id: 4, kind: "order", customer: "Panadería Sol de Mayo", order: "HANS-20261118-C03", total: 21700, balance: 21700, debt: 0, address: "Rivadavia 2780", obs: "" },
+        { id: 5, kind: "order", customer: "Hotel Costa Azul", order: "HANS-20261118-D9E", total: 96000, balance: 96000, debt: 45500, address: "Bv. Marítimo 1500", obs: "Preguntar por Marta en recepción." },
+        { id: 6, kind: "order", customer: "Bistró Verde", order: "HANS-20261118-E44", total: 27300, balance: 27300, debt: 0, address: "", obs: "" }
+      ],
+      outside: [
+        { id: 7, customer: "Estancia Los Álamos", order: "HANS-20261118-F10", total: 64000, who: "Lo entregan las dueñas", reason: "Queda lejos del recorrido.", delivered: false }
+      ],
+      unassigned: [
+        { id: 8, customer: "Café del Puerto", order: "HANS-20261118-G55", total: 18900, balance: 18900, debt: 0, address: "12 de Octubre 3400", obs: "Pedido cargado después de armar el recorrido." }
+      ],
+      deliveredIds: [],
+      events: [
+        { at: "09:12", who: "admin@hans.com", text: "Armó el recorrido del miércoles 18/11 con 6 pedidos." },
+        { at: "09:14", who: "admin@hans.com", text: "Quitó a Estancia Los Álamos del recorrido: lo entregan las dueñas (queda lejos del recorrido)." },
+        { at: "09:15", who: "admin@hans.com", text: "Agregó la parada manual \"Buscar insumos\" en la posición 3." }
+      ],
+      nextId: 20,
+      // Rendición de ejemplo, ya enviada por el repartidor.
+      rendition: { status: "sent", counted: "", reason: "", confirmedAt: null }
+    };
+  }
+
+  const RENDITION = {
+    sentAt: "18:42",
+    driver: "envios@hans.com",
+    stops: [
+      { customer: "Café Aurora", delivery: "Entregado", cash: 48500, fixed: null, photo: "No hacía falta: pagó todo" },
+      { customer: "Bar La Esquina", delivery: "Entregado", cash: 67000, fixed: 62000, photo: "Sin foto: el cliente no quiso firmar", review: "Dejó $ 5.000 de más: quedaron como saldo a favor del cliente." },
+      { customer: "Buscar insumos", delivery: "Hecho", cash: null, fixed: null, photo: "—" },
+      { customer: "Panadería Sol de Mayo", delivery: "Entregado", cash: 0, fixed: null, photo: "📷 Foto del remito" },
+      { customer: "Hotel Costa Azul", delivery: "Entregado", cash: 141500, fixed: null, photo: "📷 Foto (pagó todo)" },
+      { customer: "Bistró Verde", delivery: "No se entregó: estaba cerrado", cash: null, fixed: null, photo: "—" }
+    ],
+    expenses: [
+      { kind: "Nafta", amount: 15000, photo: true, category: "Nafta y reparto" },
+      { kind: "Estacionamiento", amount: 1500, photo: false, category: "Nafta y reparto" }
+    ],
+    adjustments: 0
+  };
+
+  const STORAGE_KEY = "hans-repartos-admin-prototipo-v1";
+  let state = load() || freshState();
+  function load() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function persist() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ } }
+
+  const app = document.getElementById("app");
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const money = n => "$ " + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const now = () => new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  function log(text) { state.events.push({ at: now(), who: "admin@hans.com", text: text }); }
+  function toast(text) {
+    const t = document.getElementById("toast");
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+  const live = () => state.status === "live";
+  // Una parada con entrega o cobro ya registrados no se puede quitar (solo "no corresponde" con motivo, en R2).
+  const locked = stop => live() && state.deliveredIds.includes(stop.id);
+
+  // --- Vistas -------------------------------------------------------------------------------------
+  function header() {
+    const pill = live() ? '<span class="pill pill-live">● En reparto</span>' : '<span class="pill pill-draft">Preparando</span>';
+    return '<div class="head"><div class="stack"><p class="muted">Administración · Repartos</p><h1>Repartos</h1></div>' +
+      '<div class="date"><button class="btn btn-sm btn-icon" data-action="noop" aria-label="Día anterior">◀</button>' +
+      '<strong>Miércoles 18/11/2026</strong><button class="btn btn-sm btn-icon" data-action="noop" aria-label="Día siguiente">▶</button>' +
+      "<span class='muted'>Repartidor: <strong>envios@hans.com</strong></span>" + (state.tab === "route" ? pill : "") + "</div></div>" +
+      '<div class="alert" role="alert"><span aria-hidden="true">⚠</span><div><strong>Falta la rendición del martes 17/11 (envios@hans.com).</strong>' +
+      '<span class="muted">Se tenía que enviar el mismo día. Avisale al repartidor o revisala desde ese día.</span></div></div>' +
+      '<div class="tabs" role="tablist">' +
+      tab("route", "Armar recorrido") + tab("rendition", "Rendición") + tab("history", "Historial") + "</div>";
+  }
+  function tab(id, label) { return '<button class="tab" role="tab" aria-selected="' + (state.tab === id) + '" data-action="tab" data-arg="' + id + '">' + label + "</button>"; }
+
+  function reasonField(id, required) {
+    return '<label class="field">Motivo' + (required ? " (obligatorio: el reparto ya empezó)" : " (opcional)") +
+      '<input type="text" id="' + id + '" placeholder="Ej.: el cliente pidió cambiar el horario"></label>';
+  }
+
+  function routeView() {
+    const totalOrders = state.stops.filter(s => s.kind === "order");
+    let html = '<div class="panel"><div class="panel-head"><h2>En el recorrido · ' + state.stops.length + " paradas</h2>" +
+      '<span class="muted">' + totalOrders.length + " pedidos · " + money(totalOrders.reduce((a, s) => a + s.total, 0)) + "</span></div>";
+    html += '<div class="table-scroll"><table><thead><tr><th>#</th><th>Orden</th><th>Cliente / parada</th><th>Pedido</th><th class="num">Total</th><th class="num">Saldo pedido</th><th class="num">Deuda anterior</th><th>Dirección</th><th></th></tr></thead><tbody>';
+    state.stops.forEach(function (s, i) {
+      html += '<tr class="' + (state.removing === s.id ? "removing" : "") + '"><td>' + (i + 1) + "</td>" +
+        '<td><div class="actions"><button class="btn btn-sm btn-icon" data-action="up" data-arg="' + s.id + '" aria-label="Subir ' + esc(s.customer) + '"' + (i === 0 ? " disabled" : "") + ">▲</button>" +
+        '<button class="btn btn-sm btn-icon" data-action="down" data-arg="' + s.id + '" aria-label="Bajar ' + esc(s.customer) + '"' + (i === state.stops.length - 1 ? " disabled" : "") + ">▼</button></div></td>" +
+        "<td>" + (s.kind !== "order" ? '<div class="kind">' + esc(s.kindLabel || "Retiro de insumos") + "</div>" : "") + "<strong>" + esc(s.customer) + "</strong>" +
+        (s.obs ? '<div class="obs">' + esc(s.obs) + "</div>" : "") +
+        (locked(s) ? '<div class="go-text">✔ Entregado · cobró ' + money(s.total) + "</div>" : "") + "</td>" +
+        '<td class="order-no">' + (s.order ? esc(s.order) : "—") + "</td>" +
+        '<td class="num">' + (s.total ? money(s.total) : "—") + "</td>" +
+        '<td class="num">' + (s.total ? money(s.balance) : "—") + "</td>" +
+        '<td class="num">' + (s.debt ? '<span class="warn-text">' + money(s.debt) + "</span>" : "—") + "</td>" +
+        "<td>" + (s.address ? esc(s.address) : '<span class="warn-text">⚠ Sin dirección</span> <button class="btn btn-sm" data-action="noop-address">Cargar</button>') + "</td>" +
+        '<td><button class="btn btn-sm btn-stop" data-action="remove" data-arg="' + s.id + '"' + (locked(s) ? ' disabled title="Ya tiene una entrega o un cobro registrados: no se puede quitar."' : "") + ">Quitar</button></td></tr>";
+      if (state.removing === s.id) {
+        html += '<tr class="removing"><td colspan="9"><div class="inline-form"><strong>¿Quién entrega ' + esc(s.customer) + "?</strong>" +
+          '<p class="muted">El pedido no se cancela ni se modifica: solo sale del recorrido del repartidor.</p>' +
+          '<div class="choice-row" role="radiogroup">' +
+          ["Lo entregan las dueñas", "Pasa a otro día", "Otro"].map((w, k) => '<label class="choice"><input type="radio" name="who" value="' + w + '"' + (k === 0 ? " checked" : "") + "> " + w + "</label>").join("") + "</div>" +
+          reasonField("remove-reason", live()) +
+          '<div class="actions"><button class="btn btn-stop" data-action="remove-yes" data-arg="' + s.id + '">Quitar del recorrido</button><button class="btn" data-action="remove-cancel">Cancelar</button></div></div></td></tr>';
+      }
+    });
+    html += "</tbody></table></div>";
+
+    if (state.adding) {
+      html += '<div class="inline-form"><strong>Agregar una parada</strong><div class="choice-row" role="radiogroup">' +
+        ["Retiro de insumos", "Compra", "Gestión", "Otra parada"].map((w, k) => '<label class="choice"><input type="radio" name="kind" value="' + w + '"' + (k === 0 ? " checked" : "") + "> " + w + "</label>").join("") +
+        '</div><label class="field">Qué hay que hacer<input type="text" id="add-title" placeholder="Ej.: Buscar cajas en Packaging Sur"></label>' +
+        '<label class="field">Dirección (opcional)<input type="text" id="add-address" placeholder="Calle y número"></label>' +
+        (live() ? reasonField("add-reason", true) : "") +
+        '<p class="muted">Para sumar un pedido de otro día, usá "Agregar al recorrido" desde la lista de pedidos.</p>' +
+        '<div class="actions"><button class="btn btn-go" data-action="add-yes">Agregar al final</button><button class="btn" data-action="add-cancel">Cancelar</button></div></div>';
+    }
+
+    html += '<div class="actions">' + (state.adding ? "" : '<button class="btn" data-action="add">+ Agregar parada</button>') +
+      '<button class="btn" data-action="sheet">' + (state.sheet ? "Ocultar hoja de ruta" : "Ver hoja de ruta para imprimir") + "</button>" +
+      (live() ? "" : '<button class="btn btn-go" data-action="start">Dar el recorrido al repartidor</button>') + "</div></div>";
+
+    if (state.sheet) html += sheetView();
+
+    html += '<div class="panel"><div class="panel-head"><h2>Fuera del recorrido · ' + state.outside.length + "</h2><span class='muted'>Pedidos de este día que no lleva el repartidor</span></div>";
+    if (!state.outside.length) html += '<p class="empty">Ninguno.</p>';
+    else html += '<div class="table-scroll"><table><thead><tr><th>Cliente</th><th>Pedido</th><th class="num">Total</th><th>Quién lo entrega</th><th>Estado</th><th></th></tr></thead><tbody>' +
+      state.outside.map(o => "<tr><td><strong>" + esc(o.customer) + "</strong>" + (o.reason ? '<div class="obs">' + esc(o.reason) + "</div>" : "") + "</td>" +
+        '<td class="order-no">' + esc(o.order) + '</td><td class="num">' + money(o.total) + "</td><td>" + esc(o.who) + "</td>" +
+        "<td>" + (o.delivered ? '<span class="go-text">✔ Entregado por HANS</span>' : '<span class="warn-text">Pendiente de entrega</span>') + "</td>" +
+        '<td><div class="actions">' + (o.delivered ? "" : '<button class="btn btn-sm" data-action="out-delivered" data-arg="' + o.id + '">Marcar entregado</button>') +
+        '<button class="btn btn-sm" data-action="back-in" data-arg="' + o.id + '">Volver a agregar</button></div></td></tr>').join("") + "</tbody></table></div>";
+    html += "</div>";
+
+    html += '<div class="panel"><div class="panel-head"><h2>' + (state.unassigned.length ? '<span class="warn-text">⚠ Pedidos de este día sin asignar · ' + state.unassigned.length + "</span>" : "Pedidos de este día sin asignar · 0") + "</h2>" +
+      '<span class="muted">No están en ningún recorrido ni fueron quitados a propósito</span></div>';
+    if (!state.unassigned.length) html += '<p class="empty">Ninguno: todos los pedidos del día tienen quién los entregue.</p>';
+    else html += '<div class="table-scroll"><table><thead><tr><th>Cliente</th><th>Pedido</th><th class="num">Total</th><th></th></tr></thead><tbody>' +
+      state.unassigned.map(o => "<tr><td><strong>" + esc(o.customer) + "</strong>" + (o.obs ? '<div class="obs">' + esc(o.obs) + "</div>" : "") + '</td><td class="order-no">' + esc(o.order) + '</td><td class="num">' + money(o.total) + "</td>" +
+        '<td><button class="btn btn-sm btn-go" data-action="assign" data-arg="' + o.id + '">Agregar al recorrido</button></td></tr>').join("") + "</tbody></table></div>";
+    return html + "</div>";
+  }
+
+  function sheetView() {
+    return '<div class="sheet"><h2>Hoja de ruta · Miércoles 18/11/2026</h2><p>Repartidor: envios@hans.com · Es una guía: los cobros se anotan en el celular.</p>' +
+      '<div class="table-scroll"><table><thead><tr><th>#</th><th>Cliente</th><th>Dirección</th><th class="num">Total</th><th>Entregado</th><th>Cobrado $</th></tr></thead><tbody>' +
+      state.stops.map((s, i) => "<tr><td>" + (i + 1) + "</td><td>" + esc(s.customer) + (s.obs ? '<div class="obs">' + esc(s.obs) + "</div>" : "") + "</td><td>" + esc(s.address || "—") + '</td><td class="num">' + (s.total ? money(s.total) : "—") + '</td><td><span class="box"></span></td><td>______________</td></tr>').join("") +
+      "</tbody></table></div></div>";
+  }
+
+  function renditionTotals() {
+    const collected = RENDITION.stops.reduce((a, s) => a + (s.cash || 0), 0);
+    const spent = RENDITION.expenses.reduce((a, e) => a + e.amount, 0);
+    return { collected: collected, spent: spent, expected: collected - spent + RENDITION.adjustments };
+  }
+
+  function renditionView() {
+    const r = state.rendition, t = renditionTotals(), confirmed = r.status === "confirmed";
+    const pill = confirmed ? '<span class="pill pill-done">✔ Confirmada</span>' : '<span class="pill pill-sent">Enviada · falta contar</span>';
+    let html = '<div class="grid-2"><div class="stack" style="display:flex;flex-direction:column;gap:18px;min-width:0">';
+    html += '<div class="panel"><div class="panel-head"><h2>Paradas y cobros</h2>' + pill + '</div><p class="muted">Enviada a las ' + RENDITION.sentAt + " por " + RENDITION.driver + ".</p>" +
+      '<div class="table-scroll"><table><thead><tr><th>Cliente</th><th>Entrega</th><th class="num">Efectivo</th><th>Remito</th></tr></thead><tbody>' +
+      RENDITION.stops.map(s => "<tr><td><strong>" + esc(s.customer) + "</strong></td><td>" + esc(s.delivery) + "</td>" +
+        '<td class="num">' + (s.cash === null ? "—" : s.cash === 0 ? '<span class="stop-text">No pagó</span>' : money(s.cash)) +
+        (s.fixed ? '<div class="obs">✎ Corregido por el repartidor: antes ' + money(s.fixed) + "</div>" : "") + "</td><td>" + esc(s.photo) + "</td></tr>").join("") +
+      "</tbody></table></div></div>";
+    html += '<div class="panel"><h2>A revisar</h2>' + RENDITION.stops.filter(s => s.review).map(s => '<div class="alert"><span aria-hidden="true">⚠</span><div><strong>' + esc(s.customer) + "</strong>" + esc(s.review) +
+      ' <span class="muted">Se aplica desde la cuenta corriente del cliente.</span></div></div>').join("") + "</div>";
+    html += '<div class="panel"><h2>Gastos del recorrido</h2><p class="muted">Pagados con el efectivo del reparto. Al confirmar se cargan en Administración → Gastos, una sola vez.</p>' +
+      '<div class="table-scroll"><table><thead><tr><th>Gasto</th><th class="num">Importe</th><th>Ticket</th><th>Categoría</th></tr></thead><tbody>' +
+      RENDITION.expenses.map((e, i) => "<tr><td>" + esc(e.kind) + '</td><td class="num">' + money(e.amount) + "</td><td>" + (e.photo ? "📷 Foto" : "Sin ticket") + "</td><td>" +
+        (confirmed ? esc(e.category) + ' <span class="go-text">✔ cargado</span>' : '<select id="cat-' + i + '" aria-label="Categoría del gasto"><option>Nafta y reparto</option><option>Insumos</option><option>Otros</option></select>') + "</td></tr>").join("") +
+      "</tbody></table></div></div></div>";
+
+    // Cierre
+    html += '<div class="panel"><h2>Cierre de caja</h2><div class="sum">' +
+      '<div class="row"><span>Efectivo cobrado</span><span>' + money(t.collected) + "</span></div>" +
+      '<div class="row"><span>Gastos con ese efectivo</span><span>− ' + money(t.spent) + "</span></div>" +
+      '<div class="row"><span>Ajustes autorizados</span><span>' + money(RENDITION.adjustments) + "</span></div>" +
+      '<div class="row total"><span>Efectivo esperado</span><span>' + money(t.expected) + "</span></div></div>" +
+      '<p class="muted">Se calcula con los cobros y gastos registrados. Nadie lo edita a mano.</p>';
+    if (confirmed) {
+      const diff = Number(r.counted) - t.expected;
+      html += '<div class="sum"><div class="row"><span>Recibido por HANS</span><strong>' + money(Number(r.counted)) + "</strong></div></div>" +
+        '<div class="diff ' + (diff === 0 ? "diff-zero" : "diff-bad") + '">' + (diff === 0 ? "✔ Sin diferencia de caja" : "Diferencia de caja: " + (diff < 0 ? "faltan " : "sobran ") + money(Math.abs(diff))) + "</div>" +
+        (diff !== 0 ? '<p class="muted">Registrada como diferencia de caja (no es un gasto). Motivo: ' + esc(r.reason) + "</p>" : "") +
+        '<p class="muted">Confirmada a las ' + r.confirmedAt + " por admin@hans.com.</p>";
+      return html + "</div></div>";
+    }
+    const diff = r.counted === "" ? null : Number(r.counted) - t.expected;
+    html += '<label class="field">Efectivo que recibió HANS (contado)<input type="number" inputmode="numeric" id="counted" min="0" step="100" value="' + esc(r.counted) + '" placeholder="Ej.: ' + t.expected + '"></label>' +
+      '<div id="diff">' + diffHtml(diff) + "</div>" +
+      '<label class="field">Motivo de la diferencia<textarea id="diff-reason" placeholder="Obligatorio si hay diferencia">' + esc(r.reason) + "</textarea></label>" +
+      '<button class="btn btn-go" data-action="confirm">Confirmar rendición</button>' +
+      '<button class="btn" data-action="reopen">Reabrir para que el repartidor corrija</button></div></div>';
+    return html;
+  }
+
+  function diffHtml(diff) {
+    if (diff === null || isNaN(diff)) return '<p class="muted">Escribí cuánto contaste para ver la diferencia.</p>';
+    if (diff === 0) return '<div class="diff diff-zero">✔ Coincide: sin diferencia de caja</div>';
+    return '<div class="diff diff-bad">Diferencia de caja: ' + (diff < 0 ? "faltan " : "sobran ") + money(Math.abs(diff)) + "</div>";
+  }
+
+  function historyView() {
+    return '<div class="panel"><h2>Historial del recorrido</h2><p class="muted">Todo cambio queda con usuario, hora y motivo. No se puede borrar.</p><ul class="log">' +
+      state.events.slice().reverse().map(e => '<li><time>' + esc(e.at) + "</time><div><strong>" + esc(e.who) + "</strong> · " + esc(e.text) + "</div></li>").join("") + "</ul></div>";
+  }
+
+  function render() {
+    let body = state.tab === "route" ? routeView() : state.tab === "rendition" ? renditionView() : historyView();
+    app.innerHTML = header() + body +
+      '<p class="note-proto">Prototipo de prueba con datos de ejemplo: no se guarda nada en HANS. <button class="btn btn-sm" data-action="reset">Empezar de nuevo</button>' +
+      (location.pathname.indexOf("/admin/") === 0 ? ' <a class="btn btn-sm" href="/admin">Volver al panel de HANS</a>' : "") + "</p>";
+  }
+
+  // --- Acciones -----------------------------------------------------------------------------------
+  function reasonOrWarn(id) {
+    const el = document.getElementById(id);
+    const value = el ? el.value.trim() : "";
+    if (live() && !value) { toast("Escribí el motivo: el reparto ya empezó."); if (el) el.focus(); return null; }
+    return value;
+  }
+  function move(id, delta) {
+    const i = state.stops.findIndex(s => s.id === id), j = i + delta;
+    if (j < 0 || j >= state.stops.length) return;
+    const [s] = state.stops.splice(i, 1);
+    state.stops.splice(j, 0, s);
+    log("Movió a " + s.customer + " a la posición " + (j + 1) + ".");
+  }
+
+  const actions = {
+    noop: () => toast("En el prototipo solo se muestra el miércoles 18/11."),
+    "noop-address": () => toast("En el sistema real abre la ficha del cliente para cargar la dirección."),
+    tab: id => { state.tab = id; },
+    up: id => move(Number(id), -1),
+    down: id => move(Number(id), +1),
+    remove: id => { state.removing = Number(id); state.adding = false; },
+    "remove-cancel": () => { state.removing = null; },
+    "remove-yes": id => {
+      const reason = reasonOrWarn("remove-reason"); if (reason === null) return false;
+      const who = (document.querySelector('input[name="who"]:checked') || {}).value || "Otro";
+      const i = state.stops.findIndex(s => s.id === Number(id)), s = state.stops[i];
+      state.stops.splice(i, 1);
+      if (s.kind === "order") state.outside.push({ id: s.id, customer: s.customer, order: s.order, total: s.total, who: who, reason: reason, delivered: false, original: s });
+      log("Quitó a " + s.customer + " del recorrido: " + who.toLowerCase() + (reason ? " (" + reason + ")" : "") + ".");
+      state.removing = null;
+      toast("Listo: " + s.customer + " salió del recorrido. El pedido no se modificó.");
+    },
+    add: () => { state.adding = true; state.removing = null; },
+    "add-cancel": () => { state.adding = false; },
+    "add-yes": () => {
+      const title = (document.getElementById("add-title").value || "").trim();
+      if (!title) { toast("Escribí qué hay que hacer en esa parada."); document.getElementById("add-title").focus(); return false; }
+      const reason = live() ? reasonOrWarn("add-reason") : ""; if (reason === null) return false;
+      const kind = (document.querySelector('input[name="kind"]:checked') || {}).value || "Otra parada";
+      state.stops.push({ id: state.nextId++, kind: "task", kindLabel: kind, customer: title, order: "", total: 0, balance: 0, debt: 0, address: (document.getElementById("add-address").value || "").trim(), obs: "" });
+      log("Agregó la parada manual \"" + title + "\" (" + kind.toLowerCase() + ")" + (reason ? ": " + reason : "") + ".");
+      state.adding = false;
+      toast("Parada agregada al final del recorrido.");
+    },
+    "out-delivered": id => { const o = state.outside.find(x => x.id === Number(id)); o.delivered = true; log("Marcó entregado " + o.customer + " (" + o.who.toLowerCase() + ")."); },
+    "back-in": id => {
+      const i = state.outside.findIndex(x => x.id === Number(id)), o = state.outside[i];
+      state.outside.splice(i, 1);
+      state.stops.push(o.original || { id: o.id, kind: "order", customer: o.customer, order: o.order, total: o.total, balance: o.total, debt: 0, address: "", obs: "" });
+      log("Volvió a agregar a " + o.customer + " al recorrido.");
+    },
+    assign: id => {
+      const i = state.unassigned.findIndex(x => x.id === Number(id)), o = state.unassigned[i];
+      state.unassigned.splice(i, 1);
+      state.stops.push(Object.assign({ kind: "order" }, o));
+      log("Agregó el pedido de " + o.customer + " al recorrido.");
+      toast(o.customer + " quedó al final del recorrido. Movelo con ▲ ▼.");
+    },
+    sheet: () => { state.sheet = !state.sheet; },
+    start: () => {
+      state.status = "live";
+      state.deliveredIds = [state.stops[0].id];
+      log("Dio el recorrido al repartidor envios@hans.com. Desde ahora, cada cambio pide motivo.");
+      toast("El repartidor ya ve su recorrido en el celular.");
+    },
+    confirm: () => {
+      const r = state.rendition, t = renditionTotals();
+      r.counted = document.getElementById("counted").value;
+      r.reason = document.getElementById("diff-reason").value.trim();
+      if (r.counted === "") { toast("Escribí cuánto efectivo contaste."); return false; }
+      const diff = Number(r.counted) - t.expected;
+      if (diff !== 0 && !r.reason) { toast("Hay diferencia de caja: escribí el motivo."); document.getElementById("diff-reason").focus(); return false; }
+      r.status = "confirmed"; r.confirmedAt = now();
+      log("Confirmó la rendición: esperado " + money(t.expected) + ", recibido " + money(Number(r.counted)) + (diff ? ", diferencia de caja: " + (diff < 0 ? "faltan " : "sobran ") + money(Math.abs(diff)) + " (" + r.reason + ")" : ", sin diferencia") + ". Cargó 2 gastos en Administración.");
+      toast("Rendición confirmada.");
+    },
+    reopen: () => { log("Reabrió la rendición para que el repartidor corrija."); toast("En el sistema real, el repartidor vuelve a poder corregir (pide motivo)."); },
+    reset: () => { state = freshState(); toast("Prototipo reiniciado."); }
+  };
+
+  app.addEventListener("click", function (event) {
+    const el = event.target.closest("[data-action]");
+    if (!el || el.disabled) return;
+    const fn = actions[el.dataset.action];
+    if (!fn) return;
+    if (fn(el.dataset.arg) === false) return;
+    persist();
+    render();
+  });
+  app.addEventListener("input", function (event) {
+    if (event.target.id === "counted") {
+      state.rendition.counted = event.target.value;
+      const v = event.target.value;
+      document.getElementById("diff").innerHTML = diffHtml(v === "" ? null : Number(v) - renditionTotals().expected);
+      persist();
+    }
+  });
+
+  // Vistas de ejemplo para capturas: #demo-armar, #demo-quitar, #demo-rendicion, #demo-historial
+  const hash = (location.hash || "").replace("#", "");
+  if (hash.indexOf("demo-") === 0) {
+    state = freshState();
+    const v = hash.slice(5);
+    if (v === "quitar") state.removing = 6;
+    if (v === "rendicion") { state.tab = "rendition"; state.rendition.counted = String(renditionTotals().expected - 500); }
+    if (v === "historial") { state.tab = "history"; state.status = "live"; state.deliveredIds = [1]; log("Dio el recorrido al repartidor envios@hans.com."); }
+    if (v === "hoja") state.sheet = true;
+  }
+  render();
+})();
+</script>

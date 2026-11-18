@@ -1,0 +1,25 @@
+<header class="reparto-header">
+  <p class="reparto-kicker">REPARTO DE HOY</p>
+  <h1 class="reparto-date"><%= reparto_date(Date.current) %></h1>
+</header>
+
+<section class="reparto-card">
+  <p class="reparto-big">Hoy no tenés reparto.</p>
+  <p class="reparto-text">Cuando administración arme el recorrido, va a aparecer acá.</p>
+</section>
+
+<%= link_to reparto_prototype_path, class: "reparto-button reparto-button-primary" do %>
+  PROBAR CÓMO VA A FUNCIONAR
+<% end %>
+<p class="reparto-text reparto-center">Es una prueba: no se guarda nada.</p>
+
+<% if current_user.admin? %>
+  <p class="reparto-text reparto-center">Estás viendo el portal del repartidor como administrador.
+    <%= link_to "Volver al panel", admin_root_path %></p>
+<% end %>
+
+<footer class="reparto-footer">
+  <%= button_to "Cerrar sesión", destroy_user_session_path, method: :delete,
+        class: "reparto-link-button",
+        form: { onsubmit: "return confirm('¿Seguro que querés cerrar la sesión? Vas a tener que escribir el usuario y la contraseña de nuevo.')" } %>
+</footer>
