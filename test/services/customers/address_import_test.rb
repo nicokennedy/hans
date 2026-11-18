@@ -169,7 +169,18 @@ class Customers::AddressImportTest < ActiveSupport::TestCase
     assert_raises(Customers::XlsxRows::Error) { import("esto no es un excel") }
   end
 
+  test "an existing invalid value that did not change does not block the row" do
+    @esquina.update_columns(address: "Dirección demo")
+
+    result = import(workbook(row(@esquina, address: "Dirección demo", city: "Mar del Plata")), apply: true)
+
+    assert_empty result.errors
+    assert_equal "Mar del Plata", @esquina.reload.city
+    assert_equal "Dirección demo", @esquina.address
+  end
+
   test "the exported file can be imported back without changes" do
+    @viejo.update_columns(address: "Sin numero conocido")
     data = Customers::AddressExport.new(Customer.where(id: [@aurora.id, @esquina.id, @viejo.id])).call
     result = import(data)
 

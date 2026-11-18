@@ -38,7 +38,7 @@ referencias de entrega. Se agregan con la migración de la sección 2.
   versión anterior de la app no rompe nada aunque las columnas sigan en la base.
 - Pendiente para más adelante: mostrarlas y editarlas en la ficha del cliente.
 
-**Estado:** creada y aplicada solo en la base local. **No** se aplicó en producción.
+**Estado:** aplicada en producción el 18/11/2026 (release v109, respaldo previo b008).
 
 **Para producción (requiere autorización de HANS):** HANS no tiene una fase de release que
 migre sola, así que después del deploy:
@@ -70,6 +70,8 @@ Reglas (`Customers::AddressImport`):
   (protege contra un ID modificado por error).
 - No crea ni borra clientes. Nombre, estado, teléfono y cualquier otra columna se ignoran (si
   cambiaron, se avisa).
+- Un valor igual al que ya tiene HANS no se valida ni se toca (así un dato viejo con otro
+  formato no traba la fila).
 - Solo actualiza los seis campos de dirección (los que existan en la base; si faltara alguna
   columna, ese dato se informa como "pendiente" y no se guarda). **Una celda vacía no borra
   nada.**

@@ -82,6 +82,9 @@ module Customers
         AddressFields::ALL.each do |field|
           col = index[:fields][field.column]
           next if col.nil? || cells[col].blank?
+          # Lo que ya tiene HANS no se valida ni se toca (ej. una dirección vieja sin número):
+          # solo se revisan los valores nuevos.
+          next if field.stored? && cells[col].to_s.squish == customer[field.column].to_s.squish
 
           value, problem = AddressFields.normalize(field, cells[col])
           if problem
