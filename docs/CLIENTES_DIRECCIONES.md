@@ -17,35 +17,38 @@ Tabla `customers` (revisada en `db/schema.rb`):
 | Teléfono | `phone` | Sí, gris (no se importa) |
 | Contacto, email, condiciones de pago, notas internas | `contact_name`, `email`, `payment_terms`, `internal_notes` | **No** (no hacen falta y algunas son sensibles) |
 
-**No existen** piso/depto/local, localidad, provincia, código postal ni referencias de entrega.
+Hasta el 18/11/2026 **no existían** piso/depto/local, localidad, provincia, código postal ni
+referencias de entrega. Se agregan con la migración de la sección 2.
 
-## 2. Migración propuesta (pendiente de autorización)
+## 2. Migración `20261118120000_add_delivery_address_fields_to_customers` (aprobada por HANS)
 
-Para guardar la información de entrega completa hace falta agregar columnas. Propuesta:
-
-```ruby
-class AddDeliveryAddressFieldsToCustomers < ActiveRecord::Migration[7.1]
-  def change
-    add_column :customers, :address_unit, :string          # Piso / depto / local
-    add_column :customers, :city, :string                  # Localidad
-    add_column :customers, :province, :string              # Provincia
-    add_column :customers, :postal_code, :string           # Código postal
-    add_column :customers, :delivery_instructions, :text   # Referencias de entrega
-  end
-end
-```
+| Columna | Tipo | En el Excel |
+|---|---|---|
+| `address_unit` | string | Piso / depto / local |
+| `city` | string | Localidad |
+| `province` | string | Provincia |
+| `postal_code` | string | Código postal |
+| `delivery_instructions` | text | Referencias de entrega |
 
 - Solo agrega columnas opcionales, sin valores por defecto ni índices: los clientes actuales
   no cambian y en Postgres es instantáneo (no reescribe la tabla).
 - `address` sigue siendo "calle y número", como hoy.
-- El exportador y el importador ya conocen estos campos (`Customers::AddressFields`): apenas
-  existan las columnas, el Excel las trae con datos y la importación las escribe, sin cambiar
-  código.
-- Opcional, después: mostrarlos y editarlos en la ficha del cliente.
+- El exportador y el importador las usan apenas existen (`Customers::AddressFields`); el
+  código también funciona sin ellas (las trata como "pendientes"), así que volver a una
+  versión anterior de la app no rompe nada aunque las columnas sigan en la base.
+- Pendiente para más adelante: mostrarlas y editarlas en la ficha del cliente.
 
-Mientras la migración no exista, esas columnas salen **vacías** en el Excel y, si alguien las
-completa, la importación las informa como "pendientes" y **no las guarda**. El Excel completado
-se puede volver a importar después de la migración.
+**Estado:** creada y aplicada solo en la base local. **No** se aplicó en producción.
+
+**Para producción (requiere autorización de HANS):** HANS no tiene una fase de release que
+migre sola, así que después del deploy:
+
+1. `heroku pg:backups:capture --app hans`
+2. `heroku run --app hans -- bin/rails db:migrate`
+3. Verificar: `heroku run --app hans -- bin/rails runner 'puts Customer.column_names.grep(/city|province|postal|unit|instructions/)'`
+
+Si hubiera que deshacerla: `heroku run --app hans -- bin/rails db:rollback STEP=1` (borra las
+cinco columnas y lo que se haya cargado en ellas; restaurar el respaldo si hiciera falta).
 
 ## 3. Exportar
 
@@ -67,7 +70,8 @@ Reglas (`Customers::AddressImport`):
   (protege contra un ID modificado por error).
 - No crea ni borra clientes. Nombre, estado, teléfono y cualquier otra columna se ignoran (si
   cambiaron, se avisa).
-- Solo actualiza los campos de dirección que existen en la base. **Una celda vacía no borra
+- Solo actualiza los seis campos de dirección (los que existan en la base; si faltara alguna
+  columna, ese dato se informa como "pendiente" y no se guarda). **Una celda vacía no borra
   nada.**
 - Rechaza la fila entera (y lo informa) si: el ID no es un número, está repetido en el Excel,
   no existe, el nombre no coincide, o algún valor es inválido:
@@ -90,7 +94,7 @@ bin/rails hans:customer_addresses:import FILE=HANS_Clientes_Direcciones.xlsx CON
 
 ### En producción (Heroku) — solo con autorización de HANS
 
-Requisito: que esta funcionalidad esté desplegada. El archivo no está en el servidor, así que se
+Requisito: que esta funcionalidad esté desplegada y la migración aplicada (sección 2). El archivo no está en el servidor, así que se
 manda por la entrada estándar en base64 (`FILE=-`).
 
 1. Respaldo de la base: `heroku pg:backups:capture --app hans`

@@ -112,15 +112,27 @@ class Customers::AddressImportTest < ActiveSupport::TestCase
     assert_equal 1, result.changes.size
   end
 
-  test "fields that do not exist yet in HANS are reported but not written" do
-    skip "todas las columnas propuestas ya existen" if Customers::AddressFields.pending.empty?
+  test "all delivery fields are imported and normalized" do
+    assert_empty Customers::AddressFields.pending, "la migración agrega todos los campos de entrega"
 
-    pending_field = Customers::AddressFields.pending.first
-    value = { "province" => "Buenos Aires", "postal_code" => "7600" }.fetch(pending_field.column, "Algo válido 1")
-    result = import(workbook(row(@aurora, pending_field.column.to_sym => value)), apply: true)
+    result = import(workbook(row(@aurora, address: "Av. Colón 2345", address_unit: "Local 3", city: "Mar del Plata",
+                                          province: "bs as", postal_code: "b7600abc", delivery_instructions: "Timbre verde, preguntar por Marta")), apply: true)
+
+    assert_equal 6, result.changes.size
+    assert_empty result.pending
+    @aurora.reload
+    assert_equal ["Av. Colón 2345", "Local 3", "Mar del Plata", "Buenos Aires", "B7600ABC", "Timbre verde, preguntar por Marta"],
+                 [@aurora.address, @aurora.address_unit, @aurora.city, @aurora.province, @aurora.postal_code, @aurora.delivery_instructions]
+  end
+
+  test "an invalid new field rejects the whole row" do
+    result = import(workbook(row(@aurora, address: "Av. Colón 2345", city: "Mar del Plata", postal_code: "76")), apply: true)
 
     assert_empty result.changes
-    assert_equal 1, result.pending.size
+    assert_match "Código postal", result.errors.first.message
+    @aurora.reload
+    assert_nil @aurora.address
+    assert_nil @aurora.city
   end
 
   test "province and postal code values are validated and normalized" do

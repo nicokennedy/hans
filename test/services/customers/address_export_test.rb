@@ -3,8 +3,9 @@ require_relative "../../support/xlsx_reader"
 
 class Customers::AddressExportTest < ActiveSupport::TestCase
   setup do
-    @active = Customer.create!(name: "Café Aurora", email: "aurora@example.com", phone: "223 555-1234", address: "Av. Colón 2345",
-                               payment_terms: "30 días", internal_notes: "Nota interna secreta", contact_name: "Zulema Contacto", active: true)
+    @active = Customer.create!(name: "Café Aurora", email: "aurora@example.com", phone: "223 555-1234", address: "Av. Colón 2345", address_unit: "Local 3",
+                               city: "Mar del Plata", province: "Buenos Aires", postal_code: "7600",
+                               delivery_instructions: "Timbre verde", payment_terms: "30 días", internal_notes: "Nota interna secreta", contact_name: "Zulema Contacto", active: true)
     @inactive = Customer.create!(name: "bar viejo", phone: nil, address: nil, active: false)
   end
 
@@ -20,7 +21,7 @@ class Customers::AddressExportTest < ActiveSupport::TestCase
     assert_equal 3, rows.size
     aurora = rows.find { |r| r[1] == "Café Aurora" }
     viejo = rows.find { |r| r[1] == "bar viejo" }
-    assert_equal [@active.id, "Café Aurora", "Activo", "Av. Colón 2345"], aurora.first(4)
+    assert_equal [@active.id, "Café Aurora", "Activo", "Av. Colón 2345", "Local 3", "Mar del Plata", "Buenos Aires", "7600", "Timbre verde"], aurora.first(9)
     assert_equal "223 555-1234", aurora.last
     assert_equal "Inactivo", viejo[2]
     assert viejo[3..].all?(&:blank?), "los datos que no existen quedan vacíos"
@@ -51,5 +52,9 @@ class Customers::AddressExportTest < ActiveSupport::TestCase
     @active.update!(address: "=HYPERLINK(\"http://x\")")
     sheet = export.parts.select { |name, _| name.start_with?("xl/worksheets/") }.values.join
     assert_no_match %r{<f>}, sheet
+  end
+
+  test "the instructions no longer mention pending fields" do
+    assert_no_match "todavía no se guardan", export.rows("Instrucciones").flatten.join(" ")
   end
 end
