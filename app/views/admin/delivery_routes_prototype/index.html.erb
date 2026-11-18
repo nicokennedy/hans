@@ -1,0 +1,45 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="mb-1">Repartos</h1>
+      <p class="text-muted mb-0">Recorridos del repartidor, cobros en efectivo y rendiciones.</p>
+    </div>
+    <span class="badge text-bg-warning fs-6">MODO DEMOSTRACIÓN</span>
+  </div>
+
+  <div class="alert alert-warning">
+    <strong>Esto es una demostración con datos ficticios.</strong>
+    No usa ni modifica pedidos, cobros, cuentas corrientes, gastos ni stock reales:
+    todo lo que hagas queda solo en este navegador y se borra con "Empezar de nuevo".
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-6">
+      <div class="product-card h-100 d-flex flex-column gap-2">
+        <span class="badge text-bg-warning align-self-start">MODO DEMOSTRACIÓN</span>
+        <h2 class="h4 mb-0">Celular del repartidor</h2>
+        <p class="text-muted mb-2">
+          La misma experiencia que va a tener el repartidor en el iPhone: próxima parada, entrega,
+          cobro, foto del remito, gastos y plata para entregar. Ideal para abrir desde el celular.
+        </p>
+        <%= link_to "Probar como repartidor", reparto_prototype_path, class: "btn btn-dark btn-lg mt-auto" %>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="product-card h-100 d-flex flex-column gap-2">
+        <span class="badge text-bg-warning align-self-start">MODO DEMOSTRACIÓN</span>
+        <h2 class="h4 mb-0">Administración</h2>
+        <p class="text-muted mb-2">
+          Armar el recorrido del día, quitar o agregar paradas, pedidos sin asignar, confirmar la
+          rendición con el efectivo contado e historial.
+        </p>
+        <%= link_to "Probar administración", admin_delivery_routes_prototype_path, class: "btn btn-outline-dark btn-lg mt-auto" %>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-3 mb-0">
+    El módulo real (recorridos y rendiciones con datos de HANS) se implementa después de validar estas pantallas.
+  </p>
+</div>

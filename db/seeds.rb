@@ -68,7 +68,6 @@ products.each_with_index do |(category_name, product_name, price), index|
   end
 end
 
-puts "Seeds OK"
 # Repartidor (Repartos y Rendiciones, R0). SOLO en desarrollo: en producción el usuario
 # envios@hans.com se crea a mano, con una contraseña segura y autorización de HANS.
 if Rails.env.development?
@@ -77,3 +76,5 @@ if Rails.env.development?
     u.role = "driver"
   end
 end
+
+puts "Seeds OK"

@@ -222,7 +222,9 @@ Rails.application.routes.draw do
       end
     end
 
-    # R1: prototipo de la pantalla de Repartos de administración (datos de ejemplo).
+    # Repartos — por ahora solo MODO DEMOSTRACIÓN (R1): una portada con los dos prototipos
+    # (administración y repartidor), con datos ficticios. No lee ni escribe la base.
+    get "repartos", to: "delivery_routes_prototype#index", as: :delivery_routes_demo
     get "repartos/prototipo", to: "delivery_routes_prototype#show", as: :delivery_routes_prototype
 
     resource :push_settings, only: [:show]

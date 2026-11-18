@@ -58,7 +58,7 @@ class Reparto::DriverAccessTest < ActionDispatch::IntegrationTest
     sign_in @driver
     [admin_root_path, admin_orders_path, admin_customers_path, admin_production_index_path,
      admin_administration_root_path, admin_retail_orders_path, admin_stock_path,
-     admin_push_settings_path, admin_delivery_routes_prototype_path].each do |path|
+     admin_push_settings_path, admin_delivery_routes_demo_path, admin_delivery_routes_prototype_path].each do |path|
       get path
       assert_redirected_to reparto_root_path, "#{path} no debería abrirse para el repartidor"
     end

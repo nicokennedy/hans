@@ -179,6 +179,13 @@ p { margin: 0; }
 .photo-preview { width: 100%; max-height: 46vh; object-fit: contain; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); }
 .sr-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
 
+.demo-band {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  padding: 6px max(16px, env(safe-area-inset-right, 0px)) 6px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--warn-soft); color: var(--warn); border-bottom: 2px solid var(--warn);
+  font-size: 15px; text-align: center; letter-spacing: .02em;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--warn-soft); }
 .footer {
   margin-top: auto; padding-top: 24px; border-top: 2px dashed var(--ink-soft);
   display: flex; flex-direction: column; gap: 4px; text-align: center; font-size: 16px; color: var(--ink-soft);
@@ -191,6 +198,7 @@ p { margin: 0; }
 }
 </style>
 
+<div class="demo-band" role="note"><strong>MODO DEMOSTRACIÓN</strong> · datos ficticios · no se guarda nada</div>
 <div class="app" id="app" aria-live="polite"></div>
 
 <script>
@@ -295,9 +303,9 @@ p { margin: 0; }
       (withBack ? '<span class="brand">HANS</span>' : "") + "</div>";
   }
 
-  const footer = () => '<div class="footer"><p>Prototipo de prueba. Los datos son de ejemplo y no se guarda nada de verdad.</p>' +
+  const footer = () => '<div class="footer"><p>MODO DEMOSTRACIÓN. Los datos son ficticios y no se guarda nada en HANS.</p>' +
     link("Empezar la prueba de nuevo", "reset-ask") +
-    (location.pathname.indexOf("/reparto/") === 0 ? '<a class="link" href="/reparto">Salir de la prueba</a>' : "") + "</div>";
+    (window.HANS_EXIT_URL ? '<a class="link" href="' + esc(window.HANS_EXIT_URL) + '">Salir de la demostración</a>' : "") + "</div>";
 
   function mapsUrl(stop) {
     return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(stop.address + ", Mar del Plata");

@@ -454,7 +454,7 @@ la base de HANS**; el avance de una prueba queda solo en ese celular y se borra 
 | Prototipo | Archivo | Dentro de HANS (con login) | Enlace privado de prueba |
 |---|---|---|---|
 | Repartidor (iPhone) | `prototypes/reparto.html` | `/reparto/prototipo` (repartidor y admin) | https://claude.ai/artifact/Nj227Rcf6DJPLvZFimj3jT |
-| Administración | `prototypes/repartos-admin.html` | `/admin/repartos/prototipo` (admin; menú "Repartos (prueba)") | https://claude.ai/artifact/Jin4jbJ5EyoKdxxFLgDsgL |
+| Administración | `prototypes/repartos-admin.html` | `/admin/repartos/prototipo` (admin; menú "Repartos") | https://claude.ai/artifact/Jin4jbJ5EyoKdxxFLgDsgL |
 
 **Cómo abrirlo en el iPhone**
 
@@ -487,3 +487,42 @@ anote que le pagaron solo $ 20.000. Observar dónde duda; anotar cada pregunta q
 **Capturas:** `docs/repartos/capturas/` (12 del repartidor en tamaño iPhone y 5 de
 administración). Cada pantalla se abre directa agregando `#demo-<nombre>` a la dirección
 (por ejemplo `#demo-importe`, `#demo-rendicion`).
+
+---
+
+## 11. Despliegue de la demostración en producción (R0 + R1)
+
+Autorizado por HANS el 18/11/2026: desplegar R0 y R1 para probar el prototipo desde el
+iPhone con el HANS real, **sin impacto operativo ni financiero**.
+
+**Acceso:** menú del admin → **Repartos** (debajo de "Pedidos Minoristas") →
+`/admin/repartos`. Desde ahí, con la etiqueta **MODO DEMOSTRACIÓN**:
+"Probar como repartidor" (`/reparto/prototipo`) y "Probar administración"
+(`/admin/repartos/prototipo`). El admin prueba la experiencia del repartidor sin iniciar
+sesión como repartidor. El usuario `envios@hans.com` **no** se crea en producción hasta que
+HANS lo autorice.
+
+**Aislamiento (verificado con tests, `test/controllers/reparto/prototype_isolation_test.rb`):**
+- Los prototipos son HTML estático con datos ficticios: no tienen formularios, `fetch`, XHR,
+  sockets ni envíos al servidor; lo simulado queda en el navegador (`localStorage`).
+- Abrir todas las pantallas de la demo no cambia ninguna tabla (pedidos, ítems, pagos,
+  pagos de cuenta corriente, clientes, gastos, obligaciones, pagos a proveedores, stock,
+  adjuntos, pedidos minoristas, usuarios).
+- Solo entran admin (las dos demos) y repartidor (su demo); producción, clientes y visitantes
+  sin sesión no.
+- Las páginas de la demo se sirven con `Cache-Control: no-store` y `noindex`.
+
+**Verificaciones previas al deploy:** sin migraciones nuevas (producción tiene las mismas 38,
+última `20261116120000`); sin cambios de variables de entorno; cambios en archivos existentes
+limitados a ramas para el rol `driver` y al enlace del menú; suite completa en verde.
+
+**Plan de rollback:** la release anterior es **v107** (commit `96a5c36`). Como no hay
+cambios de base de datos ni de configuración, volver atrás es inmediato y seguro:
+
+```
+heroku rollback v107 --app hans
+```
+
+Después del rollback, el menú Repartos y `/reparto` desaparecen; nada más cambia. Si se
+volviera a desplegar desde `main` sin incorporar esta rama, también se quitaría la demo (ver
+pendiente: integrar la rama a `main`).
