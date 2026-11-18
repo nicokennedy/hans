@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_18_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -113,12 +113,68 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_120000) do
     t.text "delivery_instructions"
   end
 
+  create_table "delivery_events", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.bigint "delivery_stop_id"
+    t.bigint "user_id", null: false
+    t.string "event_type", null: false
+    t.jsonb "data", default: {}, null: false
+    t.text "reason"
+    t.datetime "created_at", null: false
+    t.index ["delivery_route_id"], name: "index_delivery_events_on_delivery_route_id"
+    t.index ["delivery_stop_id"], name: "index_delivery_events_on_delivery_stop_id"
+    t.index ["user_id"], name: "index_delivery_events_on_user_id"
+  end
+
+  create_table "delivery_routes", force: :cascade do |t|
+    t.date "date", null: false
+    t.bigint "driver_id"
+    t.string "status", default: "draft", null: false
+    t.bigint "created_by_id", null: false
+    t.text "notes"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_delivery_routes_on_created_by_id"
+    t.index ["date", "driver_id"], name: "index_delivery_routes_on_date_and_driver", unique: true, where: "(driver_id IS NOT NULL)"
+    t.index ["date"], name: "index_delivery_routes_on_date_without_driver", unique: true, where: "(driver_id IS NULL)"
+    t.index ["driver_id"], name: "index_delivery_routes_on_driver_id"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'in_progress'::character varying, 'submitted'::character varying, 'confirmed'::character varying]::text[])", name: "delivery_routes_status_valid"
+  end
+
   create_table "delivery_settings", force: :cascade do |t|
     t.integer "cutoff_hour"
     t.jsonb "unavailable_weekdays"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.jsonb "exceptional_available_dates", default: [], null: false
+  end
+
+  create_table "delivery_stops", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.integer "position", null: false
+    t.string "kind", null: false
+    t.bigint "order_id"
+    t.bigint "customer_id"
+    t.string "title"
+    t.string "address"
+    t.text "notes"
+    t.datetime "removed_at"
+    t.bigint "removed_by_id"
+    t.string "removal_kind"
+    t.text "removal_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_delivery_stops_on_customer_id"
+    t.index ["delivery_route_id", "position"], name: "index_delivery_stops_on_delivery_route_id_and_position"
+    t.index ["delivery_route_id"], name: "index_delivery_stops_on_delivery_route_id"
+    t.index ["order_id"], name: "index_delivery_stops_on_active_order", unique: true, where: "((order_id IS NOT NULL) AND (removed_at IS NULL))"
+    t.index ["order_id"], name: "index_delivery_stops_on_order_id"
+    t.index ["removed_by_id"], name: "index_delivery_stops_on_removed_by_id"
+    t.check_constraint "(kind::text = 'order'::text) = (order_id IS NOT NULL)", name: "delivery_stops_order_matches_kind"
+    t.check_constraint "kind::text = 'order'::text OR title IS NOT NULL", name: "delivery_stops_manual_has_title"
+    t.check_constraint "kind::text = ANY (ARRAY['order'::character varying, 'supplies_pickup'::character varying, 'purchase'::character varying, 'errand'::character varying, 'other'::character varying]::text[])", name: "delivery_stops_kind_valid"
+    t.check_constraint "removed_at IS NULL OR removal_kind IS NOT NULL", name: "delivery_stops_removed_has_kind"
   end
 
   create_table "expense_categories", force: :cascade do |t|
@@ -742,6 +798,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_120000) do
   add_foreign_key "customer_payments", "customers"
   add_foreign_key "customer_payments", "users"
   add_foreign_key "customer_payments", "users", column: "voided_by_id"
+  add_foreign_key "delivery_events", "delivery_routes"
+  add_foreign_key "delivery_events", "delivery_stops"
+  add_foreign_key "delivery_events", "users"
+  add_foreign_key "delivery_routes", "users", column: "created_by_id"
+  add_foreign_key "delivery_routes", "users", column: "driver_id"
+  add_foreign_key "delivery_stops", "customers"
+  add_foreign_key "delivery_stops", "delivery_routes"
+  add_foreign_key "delivery_stops", "orders"
+  add_foreign_key "delivery_stops", "users", column: "removed_by_id"
   add_foreign_key "expense_recurrences", "expense_categories"
   add_foreign_key "expense_recurrences", "suppliers"
   add_foreign_key "expense_recurrences", "users"

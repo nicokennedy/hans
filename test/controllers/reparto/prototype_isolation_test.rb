@@ -58,7 +58,9 @@ class Reparto::PrototypeIsolationTest < ActionDispatch::IntegrationTest
   test "admins reach both demos from the Repartos menu without signing in as the driver" do
     sign_in @admin
     get admin_root_path
-    assert_select "a[href=?]", admin_delivery_routes_demo_path, text: "Repartos"
+    assert_select "a[href=?]", admin_delivery_routes_path, text: "Repartos"
+    get admin_delivery_routes_path
+    assert_select "a[href=?]", admin_delivery_routes_demo_path, text: "Modo demostración"
 
     get admin_delivery_routes_demo_path
     assert_response :success

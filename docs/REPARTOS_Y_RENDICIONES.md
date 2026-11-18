@@ -526,3 +526,46 @@ heroku rollback v107 --app hans
 Después del rollback, el menú Repartos y `/reparto` desaparecen; nada más cambia. Si se
 volviera a desplegar desde `main` sin incorporar esta rama, también se quitaría la demo (ver
 pendiente: integrar la rama a `main`).
+
+---
+
+## 12. R2 — Planificación real de recorridos (rama `repartos-r2`, solo local)
+
+Autorizado por HANS el 18/11/2026. Implementado y probado en local; **sin migraciones en
+producción ni deploy** hasta nueva autorización.
+
+**Pantallas (solo admin):**
+- **Administración → Repartos** (`/admin/repartos`): elegir fecha → pedidos mayoristas del día
+  (sin cancelados ni pedidos que ya están en otro recorrido) con cliente, dirección, pedido,
+  total, cobrado y saldo; tildar/destildar y **Crear recorrido**. Los clientes sin dirección
+  muestran "⚠ Sin dirección cargada" (nunca se inventa). Lista de recorridos recientes.
+- **Recorrido** (`/admin/repartos/:id`): paradas con ▲/▼, Quitar (¿quién lo entrega? / motivo),
+  Editar (paradas manuales), **+ Agregar parada manual** (retiro de insumos, compra, gestión,
+  otra; con dirección e indicaciones), **Pedidos del día sin asignar** (agregar), **Fuera del
+  recorrido** (volver a agregar), repartidor (opcional) e **Historial**.
+- **Ver como repartidor** (`/admin/repartos/:id/vista-repartidor`): lista y detalle de cada
+  parada en el formato del celular (letra grande, Cómo llegar, Llevás, total), solo lectura.
+- **Hoja de ruta** (`/admin/repartos/:id/hoja-de-ruta`): para imprimir.
+- La demostración R1 sigue aparte en `/admin/repartos/demo` ("Modo demostración").
+
+**Datos:** migración `20261118150000_create_delivery_routes` — tablas nuevas
+`delivery_routes`, `delivery_stops`, `delivery_events` (ninguna tabla existente cambia).
+- Un recorrido por fecha (y por repartidor cuando se asigne).
+- Un pedido solo puede estar en **una** parada vigente: lo garantiza un índice único parcial en
+  la base, además de la validación.
+- Quitar una parada la marca como quitada (quién, cuándo, por qué); no borra nada.
+- La dirección de las paradas de pedidos se lee siempre del cliente (la vigente).
+- Historial de solo inserción.
+
+**Decisiones de esta etapa:**
+- Solo se agregan pedidos de la fecha del recorrido (no de otros días).
+- El orden inicial repite el del último recorrido de cada cliente; los nuevos van al final.
+- "Marcar entregado" (pedidos que entregan las dueñas) y "Dar el recorrido al repartidor"
+  quedan para R3: cambiarían estados de pedidos o habilitarían al repartidor.
+- Reordenar con botones ▲/▼; arrastrar y soltar no se implementó.
+- Si un pedido se cancela o cambia de fecha después de armar el recorrido, la parada muestra un
+  aviso; no se quita sola.
+
+**Aislamiento (tests):** armar, reordenar, quitar, volver a agregar y ver el recorrido no
+cambian pedidos (estado, pago, totales, fecha, `updated_at`), pagos, pagos de cuenta corriente,
+movimientos de stock, gastos ni obligaciones.

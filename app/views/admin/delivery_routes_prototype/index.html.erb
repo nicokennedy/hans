@@ -1,8 +1,9 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <div>
-      <h1 class="mb-1">Repartos</h1>
-      <p class="text-muted mb-0">Recorridos del repartidor, cobros en efectivo y rendiciones.</p>
+      <p class="text-muted mb-1"><%= link_to "← Repartos", admin_delivery_routes_path %></p>
+      <h1 class="mb-1">Repartos · demostración</h1>
+      <p class="text-muted mb-0">Prototipo con datos ficticios, separado de los recorridos reales.</p>
     </div>
     <span class="badge text-bg-warning fs-6">MODO DEMOSTRACIÓN</span>
   </div>
@@ -40,6 +41,6 @@
   </div>
 
   <p class="text-muted small mt-3 mb-0">
-    El módulo real (recorridos y rendiciones con datos de HANS) se implementa después de validar estas pantallas.
+    Los recorridos reales se arman desde Repartos. Entregas, cobros y rendición reales llegan en las próximas etapas.
   </p>
 </div>

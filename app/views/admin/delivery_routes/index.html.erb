@@ -1,0 +1,83 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="mb-1">Repartos</h1>
+      <p class="text-muted mb-0">Armá el recorrido del día con los pedidos mayoristas.</p>
+    </div>
+    <%= link_to "Modo demostración", admin_delivery_routes_demo_path, class: "btn btn-outline-secondary btn-sm",
+          title: "Prototipo con datos ficticios (R1), separado de los recorridos reales" %>
+  </div>
+
+  <div class="product-card mb-4">
+    <%= form_with url: admin_delivery_routes_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-8 col-md-3">
+        <label class="form-label" for="route-date">Fecha de reparto</label>
+        <%= date_field_tag :date, @date.iso8601, id: "route-date", class: "form-control" %>
+      </div>
+      <div class="col-4 col-md-2">
+        <%= submit_tag "Ver", name: nil, class: "btn btn-dark w-100" %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @route %>
+    <div class="product-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h2 class="h5 mb-1">Recorrido del <%= l(@date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h2>
+        <p class="text-muted mb-0"><%= @route.active_stops.count %> parada(s) · <%= @route.driver&.email || "sin repartidor asignado" %></p>
+      </div>
+      <%= link_to "Abrir recorrido", admin_delivery_route_path(@route), class: "btn btn-dark" %>
+    </div>
+  <% else %>
+    <div class="product-card mb-4">
+      <h2 class="h5">Pedidos mayoristas del <%= l(@date, format: "%d/%m/%Y") %></h2>
+      <p class="text-muted small mb-3">Sin cancelados ni pedidos que ya están en otro recorrido. Destildá los que no lleva el repartidor; después podés agregarlos.</p>
+
+      <%= form_with url: admin_delivery_routes_path, method: :post, local: true do %>
+        <%= hidden_field_tag :date, @date.iso8601 %>
+        <% if @orders.any? %>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr><th></th><th>Cliente</th><th>Dirección</th><th>Pedido</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th></tr>
+              </thead>
+              <tbody>
+                <% @orders.each do |order| %>
+                  <tr>
+                    <td><%= check_box_tag "order_ids[]", order.id, true, id: "order-#{order.id}", class: "form-check-input", "aria-label": "Incluir #{order.customer.name}" %></td>
+                    <td><label for="order-<%= order.id %>" class="fw-semibold"><%= order.customer.name %></label></td>
+                    <td><%= delivery_address_cell(customer_address_line(order.customer)) %></td>
+                    <td class="small"><%= link_to order.number, admin_order_path(order) %></td>
+                    <td class="text-end"><%= format_money(order.total_cents) %></td>
+                    <td class="text-end"><%= format_money(order.amount_paid_cents) %></td>
+                    <td class="text-end <%= 'fw-bold' if order.balance_due_cents.positive? %>"><%= format_money(order.balance_due_cents) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <%= submit_tag "Crear recorrido con los pedidos elegidos", class: "btn btn-dark", data: { turbo_submits_with: "Guardando…" } %>
+        <% else %>
+          <p class="mb-3">No hay pedidos mayoristas para asignar en esta fecha.</p>
+          <%= submit_tag "Crear recorrido vacío (para paradas manuales)", class: "btn btn-outline-dark", data: { turbo_submits_with: "Guardando…" } %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="product-card">
+    <h2 class="h5">Recorridos recientes</h2>
+    <% if @recent_routes.empty? %>
+      <p class="text-muted mb-0">Todavía no hay recorridos guardados.</p>
+    <% else %>
+      <ul class="list-group">
+        <% @recent_routes.each do |route| %>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <%= link_to "#{l(route.date, format: '%d/%m/%Y')} · #{@stops_count.fetch(route.id, 0)} parada(s)", admin_delivery_route_path(route) %>
+            <%= delivery_route_status_badge(route) %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</div>

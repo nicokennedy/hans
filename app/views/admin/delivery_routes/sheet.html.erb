@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hoja de ruta <%= l(@route.date, format: "%d-%m-%Y") %></title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; color: #000; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #999; padding: 6px 4px; text-align: left; vertical-align: top; }
+    th { font-size: 11px; text-transform: uppercase; }
+    .num { text-align: right; white-space: nowrap; }
+    .small { font-size: 11px; color: #333; }
+    .box { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #000; }
+    .actions { margin-bottom: 16px; }
+    @media print { .actions { display: none; } body { margin: 0; } }
+  </style>
+</head>
+<body>
+  <div class="actions"><button onclick="window.print()">Imprimir</button></div>
+  <h1>Hoja de ruta · <%= l(@route.date, format: "%d/%m/%Y") %></h1>
+  <p>Repartidor: <%= @route.driver&.email || "sin asignar" %> · <%= @stops.size %> paradas · Es una guía en papel: no reemplaza el registro digital de entregas y cobros.</p>
+  <table>
+    <thead><tr><th>#</th><th>Cliente / parada</th><th>Dirección</th><th>Pedido</th><th class="num">Total</th><th class="num">Saldo</th><th>Entregado</th><th>Cobrado $</th></tr></thead>
+    <tbody>
+      <% @stops.each do |stop| %>
+        <tr>
+          <td><%= stop.position %></td>
+          <td><strong><%= stop.display_name %></strong><% if stop.manual? %><div class="small"><%= stop.kind_label %></div><% end %></td>
+          <td><%= stop.address_line || "SIN DIRECCIÓN" %><% if stop.instructions %><div class="small"><%= stop.instructions %></div><% end %></td>
+          <td class="small"><%= stop.order&.number %></td>
+          <td class="num"><%= stop.order? ? format_money(stop.order.total_cents) : "" %></td>
+          <td class="num"><%= stop.order? ? format_money(stop.order.balance_due_cents) : "" %></td>
+          <td><span class="box"></span></td>
+          <td>____________</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</body>
+</html>

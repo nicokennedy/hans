@@ -1,0 +1,186 @@
+<% order_stops = @stops.select(&:order?) %>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <p class="text-muted mb-1"><%= link_to "← Repartos", admin_delivery_routes_path(date: @route.date.iso8601) %></p>
+      <h1 class="mb-1">Recorrido del <%= l(@route.date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h1>
+      <p class="text-muted mb-0">
+        <%= @stops.size %> parada(s) · <%= order_stops.size %> pedido(s) ·
+        Total <%= format_money(order_stops.sum { |s| s.order.total_cents }) %> ·
+        Saldo pendiente <%= format_money(order_stops.sum { |s| s.order.balance_due_cents }) %>
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Ver como repartidor", preview_admin_delivery_route_path(@route), class: "btn btn-outline-dark" %>
+      <%= link_to "Hoja de ruta", sheet_admin_delivery_route_path(@route), class: "btn btn-outline-dark", target: "_blank", rel: "noopener" %>
+    </div>
+  </div>
+
+  <div class="product-card mb-3">
+    <%= form_with url: driver_admin_delivery_route_path(@route), method: :patch, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-12 col-md-5">
+        <label class="form-label" for="route-driver">Repartidor</label>
+        <%= select_tag :driver_id, options_for_select([["Sin asignar", ""]] + @drivers.map { |d| [d.email, d.id] }, @route.driver_id),
+              id: "route-driver", class: "form-select", disabled: !@route.editable? %>
+      </div>
+      <div class="col-12 col-md-3">
+        <%= submit_tag "Guardar repartidor", name: nil, class: "btn btn-outline-dark w-100", disabled: !@route.editable? %>
+      </div>
+      <% if @drivers.empty? %>
+        <div class="col-12 form-text">Todavía no hay usuarios repartidor. El recorrido se puede armar igual.</div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-3">
+    <h2 class="h5">En el recorrido · <%= @stops.size %></h2>
+    <% if @stops.empty? %>
+      <p class="text-muted mb-0">No hay paradas. Agregá pedidos del día o paradas manuales.</p>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr><th>#</th><th>Orden</th><th>Cliente / parada</th><th>Dirección</th><th>Pedido</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% @stops.each_with_index do |stop, index| %>
+              <tr id="parada-<%= stop.id %>">
+                <td class="fw-bold"><%= stop.position %></td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <%= button_to "▲", move_admin_delivery_route_stop_path(@route, stop), method: :patch, params: { direction: "up" },
+                          class: "btn btn-sm btn-outline-dark", disabled: index.zero? || !@route.editable?, form: { "aria-label": "Subir #{stop.display_name}" } %>
+                    <%= button_to "▼", move_admin_delivery_route_stop_path(@route, stop), method: :patch, params: { direction: "down" },
+                          class: "btn btn-sm btn-outline-dark", disabled: index == @stops.size - 1 || !@route.editable?, form: { "aria-label": "Bajar #{stop.display_name}" } %>
+                  </div>
+                </td>
+                <td>
+                  <% if stop.manual? %><div class="small text-uppercase text-muted fw-semibold"><%= stop.kind_label %></div><% end %>
+                  <div class="fw-semibold"><%= stop.display_name %></div>
+                  <% if stop.order? && stop.order.customer_comment.present? %><div class="small text-muted">Pedido: <%= stop.order.customer_comment %></div><% end %>
+                  <% stop.order_warnings.each do |warning| %><div class="small text-danger fw-semibold">⚠ <%= warning %></div><% end %>
+                </td>
+                <td><%= delivery_address_cell(stop.address_line, maps_url: stop.google_maps_url, instructions: stop.instructions) %></td>
+                <td class="small"><%= stop.order? ? link_to(stop.order.number, admin_order_path(stop.order)) : "—" %></td>
+                <td class="text-end"><%= stop.order? ? format_money(stop.order.total_cents) : "—" %></td>
+                <td class="text-end"><%= stop.order? ? format_money(stop.order.amount_paid_cents) : "—" %></td>
+                <td class="text-end <%= 'fw-bold' if stop.order&.balance_due_cents.to_i.positive? %>"><%= stop.order? ? format_money(stop.order.balance_due_cents) : "—" %></td>
+                <td>
+                  <% if @route.editable? %>
+                    <details>
+                      <summary class="btn btn-sm btn-outline-danger">Quitar</summary>
+                      <%= form_with url: remove_admin_delivery_route_stop_path(@route, stop), method: :patch, local: true, class: "mt-2 p-2 border rounded bg-light", style: "min-width: 240px" do %>
+                        <p class="small mb-2"><% if stop.order? %>¿Quién lo entrega? El pedido no se cancela ni se modifica.<% else %>¿Por qué se quita?<% end %></p>
+                        <% DeliveryStop::REMOVAL_KINDS.each_with_index do |(value, label), i| %>
+                          <% next if stop.manual? && value == "owners_deliver" %>
+                          <div class="form-check">
+                            <%= radio_button_tag :removal_kind, value, (stop.order? ? i.zero? : value == "other"), id: "remove-#{stop.id}-#{value}", class: "form-check-input" %>
+                            <label class="form-check-label small" for="remove-<%= stop.id %>-<%= value %>"><%= label %></label>
+                          </div>
+                        <% end %>
+                        <%= text_field_tag :removal_reason, nil, id: "remove-#{stop.id}-reason", class: "form-control form-control-sm my-2", placeholder: "Motivo (obligatorio si es \"Otro\")", "aria-label": "Motivo" %>
+                        <%= submit_tag "Quitar del recorrido", name: nil, class: "btn btn-sm btn-danger" %>
+                      <% end %>
+                    </details>
+                    <% if stop.manual? %>
+                      <details class="mt-1">
+                        <summary class="btn btn-sm btn-outline-dark">Editar</summary>
+                        <%= form_with url: admin_delivery_route_stop_path(@route, stop), method: :patch, scope: :stop, local: true, class: "mt-2 p-2 border rounded bg-light", style: "min-width: 240px" do |f| %>
+                          <%= f.text_field :title, value: stop.title, class: "form-control form-control-sm mb-1", "aria-label": "Qué hay que hacer", required: true %>
+                          <%= f.text_field :address, value: stop.address, class: "form-control form-control-sm mb-1", placeholder: "Dirección", "aria-label": "Dirección" %>
+                          <%= f.text_area :notes, value: stop.notes, rows: 2, class: "form-control form-control-sm mb-1", placeholder: "Indicaciones", "aria-label": "Indicaciones" %>
+                          <%= f.submit "Guardar", class: "btn btn-sm btn-dark" %>
+                        <% end %>
+                      </details>
+                    <% end %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+
+    <% if @route.editable? %>
+      <details class="mt-2">
+        <summary class="btn btn-outline-dark">+ Agregar parada manual</summary>
+        <%= form_with url: admin_delivery_route_stops_path(@route), method: :post, scope: :stop, local: true, class: "row g-2 mt-2" do |f| %>
+          <div class="col-12 col-md-3">
+            <%= f.label :kind, "Tipo", class: "form-label" %>
+            <%= f.select :kind, DeliveryStop::MANUAL_KINDS.map { |k, v| [v, k] }, {}, class: "form-select" %>
+          </div>
+          <div class="col-12 col-md-4">
+            <%= f.label :title, "Qué hay que hacer", class: "form-label" %>
+            <%= f.text_field :title, class: "form-control", required: true, placeholder: "Ej.: Buscar cajas en Packaging Sur" %>
+          </div>
+          <div class="col-12 col-md-5">
+            <%= f.label :address, "Dirección (opcional)", class: "form-label" %>
+            <%= f.text_field :address, class: "form-control", placeholder: "Calle y número" %>
+          </div>
+          <div class="col-12">
+            <%= f.label :notes, "Indicaciones (opcional)", class: "form-label" %>
+            <%= f.text_area :notes, rows: 2, class: "form-control" %>
+          </div>
+          <div class="col-12"><%= f.submit "Agregar al final", class: "btn btn-dark" %></div>
+        <% end %>
+      </details>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-3">
+    <h2 class="h5 <%= 'text-warning-emphasis' if @unassigned.any? %>"><%= "⚠ " if @unassigned.any? %>Pedidos del día sin asignar · <%= @unassigned.size %></h2>
+    <p class="text-muted small">Pedidos mayoristas del <%= l(@route.date, format: "%d/%m") %> (sin cancelados) que no están en ningún recorrido ni fueron quitados a propósito.</p>
+    <% if @unassigned.empty? %>
+      <p class="mb-0">Ninguno: todos los pedidos del día tienen recorrido o fueron quitados a propósito.</p>
+    <% else %>
+      <%= form_with url: add_orders_admin_delivery_route_stops_path(@route), method: :post, local: true do %>
+        <ul class="list-unstyled mb-2">
+          <% @unassigned.each do |order| %>
+            <li class="form-check">
+              <%= check_box_tag "order_ids[]", order.id, false, id: "unassigned-#{order.id}", class: "form-check-input", disabled: !@route.editable? %>
+              <label class="form-check-label" for="unassigned-<%= order.id %>">
+                <strong><%= order.customer.name %></strong> · <%= order.number %> · <%= format_money(order.total_cents) %>
+                <% if customer_address_line(order.customer).blank? %><span class="badge text-bg-warning">⚠ Sin dirección cargada</span><% end %>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+        <%= submit_tag "Agregar al recorrido", name: nil, class: "btn btn-dark", disabled: !@route.editable? %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="product-card mb-3">
+    <h2 class="h5">Fuera del recorrido · <%= @removed.size %></h2>
+    <% if @removed.empty? %>
+      <p class="text-muted mb-0">Ninguna parada quitada.</p>
+    <% else %>
+      <ul class="list-group">
+        <% @removed.each do |stop| %>
+          <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+              <strong><%= stop.display_name %></strong><% if stop.order? %> · <%= stop.order.number %><% end %>
+              <div class="small text-muted"><%= stop.removal_label %><%= ": #{stop.removal_reason}" if stop.removal_reason.present? %> · <%= stop.removed_by&.email %>, <%= l(stop.removed_at, format: "%d/%m %H:%M") %></div>
+            </div>
+            <% if @route.editable? %>
+              <%= button_to "Volver a agregar", restore_admin_delivery_route_stop_path(@route, stop), method: :patch, class: "btn btn-sm btn-outline-dark" %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+
+  <div class="product-card">
+    <h2 class="h5">Historial</h2>
+    <ul class="list-unstyled mb-0">
+      <% @events.each do |event| %>
+        <li class="py-1 border-bottom small">
+          <span class="text-muted"><%= l(event.created_at, format: "%d/%m %H:%M") %></span> ·
+          <strong><%= event.user.email %></strong> · <%= event.summary %><%= " (#{event.reason})" if event.reason.present? && !event.summary.include?(event.reason) %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</div>

@@ -225,10 +225,26 @@ Rails.application.routes.draw do
       end
     end
 
-    # Repartos — por ahora solo MODO DEMOSTRACIÓN (R1): una portada con los dos prototipos
-    # (administración y repartidor), con datos ficticios. No lee ni escribe la base.
-    get "repartos", to: "delivery_routes_prototype#index", as: :delivery_routes_demo
+    # Repartos — MODO DEMOSTRACIÓN (R1): una portada con los dos prototipos (administración y
+    # repartidor), con datos ficticios. No lee ni escribe la base. Separado del módulo real (R2).
+    get "repartos/demo", to: "delivery_routes_prototype#index", as: :delivery_routes_demo
     get "repartos/prototipo", to: "delivery_routes_prototype#show", as: :delivery_routes_prototype
+    # R2: recorridos reales armados con pedidos mayoristas (ver DeliveryRoutes::*). Solo admin.
+    resources :delivery_routes, path: "repartos", only: [:index, :show, :create], constraints: { id: /\d+/ } do
+      member do
+        patch :driver, path: "repartidor"
+        get :sheet, path: "hoja-de-ruta"
+        get "vista-repartidor(/:stop_id)", action: :preview, as: :preview, constraints: { stop_id: /\d+/ }
+      end
+      resources :stops, controller: "delivery_route_stops", path: "paradas", only: [:create, :update], constraints: { id: /\d+/ } do
+        collection { post :add_orders, path: "agregar-pedidos" }
+        member do
+          patch :move, path: "mover"
+          patch :remove, path: "quitar"
+          patch :restore, path: "volver"
+        end
+      end
+    end
 
     resource :push_settings, only: [:show]
     resources :push_subscriptions, only: [:create, :destroy] do

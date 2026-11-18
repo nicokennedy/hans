@@ -67,3 +67,23 @@ body.reparto {
 
 .reparto-footer { margin-top: 56px; text-align: center; }
 .reparto-link-button { background: none; border: 0; color: var(--r-muted); font-size: 16px; text-decoration: underline; padding: 12px; }
+
+/* Recorrido (vista del repartidor) */
+.reparto-preview-band { margin: 0 0 16px; padding: 10px 14px; border-radius: 12px; background: #fff1d6; color: #7a4b00; border: 2px solid #7a4b00; font-size: 16px; }
+.reparto-back { display: inline-flex; align-items: center; min-height: 56px; padding: 0 18px; margin-bottom: 12px; border: 3px solid var(--r-border); border-radius: 14px; background: var(--r-surface); color: var(--r-ink); font-weight: 800; text-decoration: none; }
+.reparto-name { margin: 4px 0; font-size: 32px; font-weight: 800; line-height: 1.1; }
+.reparto-address { margin: 0; font-size: 22px; }
+.reparto-note { padding: 12px 14px; border-radius: 12px; background: #fff1d6; border: 2px solid #7a4b00; }
+.reparto-items { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 21px; }
+.reparto-items li { display: grid; grid-template-columns: 2.4em 1fr; gap: 10px; align-items: baseline; }
+.reparto-qty { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.reparto-total { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding-top: 10px; border-top: 3px solid var(--r-border); font-size: 21px; }
+.reparto-total strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.reparto-stop { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: start; margin-bottom: 14px; padding: 16px; background: var(--r-surface); border: 2px solid var(--r-border); border-radius: 18px; color: var(--r-ink); text-decoration: none; }
+.reparto-num { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--r-border); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; }
+.reparto-stop-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.reparto-stop-name { font-size: 24px; font-weight: 800; line-height: 1.15; }
+.reparto-stop-address { font-size: 19px; color: var(--r-muted); }
+.reparto-chip { align-self: flex-start; padding: 4px 10px; border: 2px solid var(--r-border); border-radius: 10px; font-size: 15px; font-weight: 800; }
+.reparto-link { color: var(--r-muted); font-size: 17px; }
+.reparto-button + .reparto-button, .reparto-button { margin-bottom: 14px; }

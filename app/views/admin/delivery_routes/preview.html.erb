@@ -1,0 +1,62 @@
+<p class="reparto-preview-band" role="note"><strong>VISTA PREVIA</strong> · así lo va a ver el repartidor en el celular. Todavía no puede usarlo.</p>
+
+<% if @stop %>
+  <%= link_to "◀ VOLVER A LA LISTA", preview_admin_delivery_route_path(@route), class: "reparto-back" %>
+  <header class="reparto-header">
+    <p class="reparto-kicker">PARADA <%= @stop.position %> DE <%= @stops.size %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
+    <h1 class="reparto-name"><%= @stop.display_name %></h1>
+    <% if @stop.address_line %>
+      <p class="reparto-address"><%= @stop.address_line %></p>
+    <% else %>
+      <p class="reparto-text">No tiene dirección cargada. Si no sabés llegar, llamá a administración.</p>
+    <% end %>
+  </header>
+
+  <% if (url = @stop.google_maps_url) %>
+    <%= link_to url, class: "reparto-button", target: "_blank", rel: "noopener" do %>📍 CÓMO LLEGAR<% end %>
+  <% end %>
+
+  <% if @stop.instructions %>
+    <p class="reparto-note"><strong>Ojo:</strong> <%= @stop.instructions %></p>
+  <% end %>
+
+  <% if @stop.order? %>
+    <section class="reparto-card">
+      <p class="reparto-kicker">LLEVÁS</p>
+      <ul class="reparto-items">
+        <% @stop.order.order_items.each do |item| %>
+          <li><span class="reparto-qty"><%= item.quantity %></span> <%= item.product_name_snapshot %></li>
+        <% end %>
+      </ul>
+      <p class="reparto-total"><span>Total del pedido</span> <strong><%= format_money(@stop.order.total_cents) %></strong></p>
+      <% if @stop.order.amount_paid_cents.positive? %>
+        <p class="reparto-text">Ya pagó <%= format_money(@stop.order.amount_paid_cents) %>. Falta <%= format_money(@stop.order.balance_due_cents) %>.</p>
+      <% end %>
+    </section>
+  <% end %>
+
+  <p class="reparto-text reparto-center">Los botones "Entregué" y "Me pagaron" llegan en la próxima etapa.</p>
+<% else %>
+  <header class="reparto-header">
+    <p class="reparto-kicker">REPARTO DEL <%= l(@route.date, format: "%d/%m") %></p>
+    <h1 class="reparto-date"><%= reparto_date(@route.date) %></h1>
+    <p class="reparto-text"><%= @stops.size %> paradas</p>
+  </header>
+
+  <% if @stops.empty? %>
+    <section class="reparto-card"><p class="reparto-big">Este recorrido no tiene paradas.</p></section>
+  <% end %>
+
+  <% @stops.each do |stop| %>
+    <%= link_to preview_admin_delivery_route_path(@route, stop_id: stop.id), class: "reparto-stop" do %>
+      <span class="reparto-num" aria-hidden="true"><%= stop.position %></span>
+      <span class="reparto-stop-body">
+        <span class="reparto-stop-name"><%= stop.display_name %></span>
+        <span class="reparto-stop-address"><%= stop.address_line || "⚠ Sin dirección cargada" %></span>
+        <% if stop.manual? %><span class="reparto-chip"><%= stop.kind_label.upcase %></span><% end %>
+      </span>
+    <% end %>
+  <% end %>
+<% end %>
+
+<p class="reparto-center"><%= link_to "Volver al recorrido (administración)", admin_delivery_route_path(@route), class: "reparto-link" %></p>
