@@ -35,6 +35,23 @@ class Customer < ApplicationRecord
     end
   end
 
+  # Dirección para buscar en Google Maps (Repartos): calle y número, localidad, provincia y código
+  # postal, con los campos de Customers::AddressFields que existan. Sin piso/depto ni
+  # referencias (confunden la búsqueda). nil si no hay dirección cargada.
+  MAPS_COLUMNS = %w[address city province postal_code].freeze
+
+  def maps_query
+    return nil if address.blank?
+
+    parts = MAPS_COLUMNS.filter_map { |column| has_attribute?(column) ? self[column].to_s.strip.presence : nil }
+    (parts + ["Argentina"]).uniq.join(", ")
+  end
+
+  def google_maps_url
+    query = maps_query
+    query && "https://www.google.com/maps/search/?api=1&query=#{ERB::Util.url_encode(query)}"
+  end
+
   def self.normalize_search(query)
     I18n.transliterate(query.to_s.first(SEARCH_MAX_LENGTH).unicode_normalize(:nfc)).downcase.squish
   end

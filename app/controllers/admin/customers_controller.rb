@@ -20,6 +20,16 @@ class Admin::CustomersController < ApplicationController
     @total_paid_cents = @paid_by_customer.values.sum
   end
 
+  # Excel con todos los clientes mayoristas (activos e inactivos) y sus datos de entrega, para
+  # completar direcciones. Solo lectura: no incluye datos financieros ni de acceso.
+  def export
+    now = Time.current
+    send_data Customers::AddressExport.new(Customer.all, generated_at: now).call,
+      filename: Customers::AddressExport.filename(now),
+      type: Customers::AddressExport::CONTENT_TYPE,
+      disposition: "attachment"
+  end
+
   def show
     @orders = @customer.orders
       .not_canceled

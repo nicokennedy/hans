@@ -81,6 +81,9 @@ Rails.application.routes.draw do
     end
     resources :customers, only: [:index, :show, :new, :create, :edit, :update] do
       patch :toggle_active, on: :member
+      # Excel de direcciones de entrega (activos e inactivos) para completar y reimportar por
+      # consola (ver Customers::AddressExport y docs/CLIENTES_DIRECCIONES.md).
+      get :export, on: :collection
       # Cuenta corriente: estado de cuenta, pagos globales repartidos entre pedidos y
       # saldo a favor (ver CustomerAccounts::*).
       resource :account, only: [:show], controller: "customer_accounts"
