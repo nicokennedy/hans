@@ -2,6 +2,9 @@
 class User < ApplicationRecord
   belongs_to :customer, optional: true
   has_many :push_subscriptions, dependent: :destroy
+  # Administración → Usuarios: historial del usuario (altas, ediciones, roles, accesos).
+  has_many :user_events, -> { order(:created_at, :id) }, dependent: :restrict_with_exception
+  has_many :delivery_routes, foreign_key: :driver_id, inverse_of: :driver, dependent: :restrict_with_exception
 
   devise :database_authenticatable, :recoverable, :rememberable, :validatable
 
@@ -19,7 +22,16 @@ class User < ApplicationRecord
   # de los roles no cambia: nunca se los recuerda porque el login no ofrece "recordarme".
   DRIVER_REMEMBER_FOR = 60.days
 
+  # Roles que se administran desde Administración → Usuarios. Las cuentas de clientes se siguen
+  # administrando desde Clientes.
+  INTERNAL_ROLES = %w[admin production driver].freeze
+  ROLE_LABELS = { "admin" => "Administrador", "production" => "Producción", "driver" => "Repartidor", "customer" => "Cliente" }.freeze
+
   validates :role, presence: true
+  validates :name, length: { maximum: 80 }
+
+  scope :internal, -> { where(role: INTERNAL_ROLES) }
+  scope :active_drivers, -> { where(role: "driver", active: true).order(Arel.sql("lower(coalesce(users.name, users.email))")) }
 
   def admin?
     role == "admin"
@@ -73,5 +85,27 @@ class User < ApplicationRecord
 
   def can_view_production?
     admin_or_production?
+  end
+
+  def internal?
+    INTERNAL_ROLES.include?(role)
+  end
+
+  def role_label
+    ROLE_LABELS.fetch(role, role)
+  end
+
+  def display_name
+    name.presence || email
+  end
+
+  # Un usuario desactivado no puede iniciar sesión, y si tenía una sesión abierta (o el
+  # "recordarme" del celular) Devise lo saca en su próximo pedido (hook Activatable).
+  def active_for_authentication?
+    super && active?
+  end
+
+  def inactive_message
+    active? ? super : :deactivated
   end
 end

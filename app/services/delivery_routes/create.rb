@@ -1,5 +1,6 @@
 module DeliveryRoutes
-  # Arma el recorrido de una fecha con los pedidos mayoristas elegidos (sin cancelados y que
+  # Arma el recorrido de un repartidor (obligatorio y activo, R3) para una fecha con los pedidos
+  # mayoristas elegidos (sin cancelados y que
   # no estén en otra parada vigente). Ordena las paradas como el último recorrido en el que
   # aparecía cada cliente; los clientes nuevos van al final, por nombre. No toca los pedidos.
   class Create
@@ -16,12 +17,14 @@ module DeliveryRoutes
 
     def call
       return Result.new(errors: ["Elegí una fecha válida."]) unless @date.is_a?(Date)
+      return Result.new(errors: ["Elegí el repartidor responsable del recorrido."]) unless @driver
+      return Result.new(errors: ["#{@driver.display_name} no es un repartidor activo."]) unless @driver.driver? && @driver.active?
 
       route = nil
       errors = []
       DeliveryRoute.transaction do
         if (existing = DeliveryRoute.find_by(date: @date, driver: @driver))
-          errors << "Ya existe un recorrido para el #{I18n.l(@date, format: '%d/%m/%Y')}."
+          errors << "#{@driver.display_name} ya tiene un recorrido el #{I18n.l(@date, format: '%d/%m/%Y')}."
           route = existing
           raise ActiveRecord::Rollback
         end
@@ -38,7 +41,7 @@ module DeliveryRoutes
           route.stops.create!(kind: "order", order: order, customer: order.customer, position: index + 1)
         end
         Events.record(route, @user, "route_created",
-                      summary: "Armó el recorrido del #{I18n.l(@date, format: '%d/%m/%Y')} con #{orders.size} pedido(s).",
+                      summary: "Armó el recorrido del #{I18n.l(@date, format: '%d/%m/%Y')} de #{@driver.display_name} con #{orders.size} pedido(s).",
                       order_ids: orders.map(&:id))
       end
 

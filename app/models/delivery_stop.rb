@@ -9,13 +9,21 @@ class DeliveryStop < ApplicationRecord
     "errand" => "Gestión", "other" => "Otra parada"
   }.freeze
   REMOVAL_KINDS = {
-    "owners_deliver" => "Lo entregan las dueñas", "rescheduled" => "Pasa a otro día", "other" => "Otro motivo"
+    "owners_deliver" => "Lo entregan las dueñas", "rescheduled" => "Pasa a otro día", "other" => "Otro motivo",
+    "transferred" => "Pasó a otro repartidor"
   }.freeze
+  # Motivos que administración elige al quitar una parada ("transferred" lo pone el sistema).
+  MANUAL_REMOVAL_KINDS = REMOVAL_KINDS.except("transferred").freeze
+
+  DELIVERY_STATUSES = %w[pending delivered not_delivered done].freeze
+  DELIVERY_STATUS_LABELS = { "pending" => "Falta", "delivered" => "Entregado", "not_delivered" => "No entregado", "done" => "Hecho" }.freeze
+  NOT_DELIVERED_REASONS = ["Estaba cerrado", "No lo quisieron recibir", "No llegué", "Otro motivo"].freeze
 
   belongs_to :delivery_route, inverse_of: :stops
   belongs_to :order, optional: true
   belongs_to :customer, optional: true
   belongs_to :removed_by, class_name: "User", optional: true
+  belongs_to :delivery_recorded_by, class_name: "User", optional: true
 
   validates :kind, inclusion: { in: KINDS }
   validates :position, numericality: { only_integer: true, greater_than: 0 }
@@ -26,9 +34,13 @@ class DeliveryStop < ApplicationRecord
   validates :notes, length: { maximum: 1000 }
   validates :removal_kind, inclusion: { in: REMOVAL_KINDS.keys }, if: :removed?
   validates :removal_reason, presence: true, if: -> { removed? && removal_kind == "other" }
+  validates :delivery_status, inclusion: { in: DELIVERY_STATUSES }
+  validates :delivery_status, exclusion: { in: %w[delivered], message: "no aplica a una parada manual" }, unless: :order?
+  validates :not_delivered_reason, presence: true, if: -> { delivery_status == "not_delivered" }
 
   scope :active, -> { where(removed_at: nil) }
   scope :removed, -> { where.not(removed_at: nil) }
+  scope :pending_delivery, -> { where(delivery_status: "pending") }
 
   def order?
     kind == "order"
@@ -40,6 +52,15 @@ class DeliveryStop < ApplicationRecord
 
   def removed?
     removed_at.present?
+  end
+
+  # Entregado (pedido) o hecho (parada manual): ya no se mueve ni se quita.
+  def completed?
+    %w[delivered done].include?(delivery_status)
+  end
+
+  def delivery_status_label
+    DELIVERY_STATUS_LABELS.fetch(delivery_status, delivery_status)
   end
 
   def kind_label

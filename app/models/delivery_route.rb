@@ -16,7 +16,10 @@ class DeliveryRoute < ApplicationRecord
 
   validates :date, presence: true
   validates :status, inclusion: { in: STATUSES }
-  validate :driver_must_be_a_driver
+  # R3: todo recorrido nuevo tiene un repartidor responsable, activo. Los recorridos de R2 que
+  # quedaron sin repartidor se conservan y se les asigna uno desde su pantalla.
+  validates :driver, presence: { message: "es obligatorio: elegí un repartidor" }, on: :create
+  validate :driver_must_be_an_active_driver, if: :will_save_change_to_driver_id?
 
   scope :recent_first, -> { order(date: :desc, id: :desc) }
 
@@ -38,17 +41,34 @@ class DeliveryRoute < ApplicationRecord
   end
 
   # Pedidos mayoristas de la fecha (sin cancelados) que no están en ninguna parada vigente ni
-  # fueron quitados de este recorrido: los que nadie tiene asignados.
-  def unassigned_orders
-    taken = DeliveryStop.where.not(order_id: nil).where(removed_at: nil).select(:order_id)
-    removed_here = stops.removed.where.not(order_id: nil).select(:order_id)
-    Order.for_delivery_date(date).where.not(id: taken).where.not(id: removed_here)
+  # fueron quitados a propósito de algún recorrido de esa fecha: los que nadie tiene asignados.
+  def self.unassigned_orders_for(date)
+    taken = DeliveryStop.active.where.not(order_id: nil).select(:order_id)
+    set_aside = DeliveryStop.removed.where.not(order_id: nil).where.not(removal_kind: "transferred")
+                            .joins(:delivery_route).where(delivery_routes: { date: date }).select(:order_id)
+    Order.for_delivery_date(date).where.not(id: taken).where.not(id: set_aside)
          .includes(:customer).joins(:customer).order(Arel.sql("lower(customers.name)"), :id)
+  end
+
+  def unassigned_orders
+    self.class.unassigned_orders_for(date)
+  end
+
+  # Otros recorridos de la misma fecha, para pasarles pedidos.
+  def siblings
+    DeliveryRoute.where(date: date).where.not(id: id).includes(:driver).order(:id)
+  end
+
+  def driver_name
+    driver&.display_name || "Sin repartidor"
   end
 
   private
 
-  def driver_must_be_a_driver
-    errors.add(:driver, "tiene que ser un usuario repartidor") if driver && !driver.driver?
+  def driver_must_be_an_active_driver
+    return unless driver
+
+    errors.add(:driver, "tiene que ser un usuario repartidor") unless driver.driver?
+    errors.add(:driver, "tiene el acceso desactivado") unless driver.active?
   end
 end

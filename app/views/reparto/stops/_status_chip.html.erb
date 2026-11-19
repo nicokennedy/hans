@@ -1,0 +1,2 @@
+<% text = { "pending" => "FALTA", "delivered" => "✔ ENTREGADO", "done" => "✔ HECHO", "not_delivered" => "✖ NO SE PUDO" }[stop.delivery_status] %>
+<span class="reparto-chip reparto-chip-<%= stop.delivery_status %>"><%= text %><%= " · #{stop.not_delivered_reason.upcase}" if stop.delivery_status == "not_delivered" %></span>

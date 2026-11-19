@@ -6,6 +6,11 @@ module DeliveryRouteHelpers
     @product = Product.create!(name: "Medialuna #{SecureRandom.hex(3)}", category: category, internal_category: "Facturas",
                                price_cents: 100_000, cost_cents: 30_000, active: true, position: 1)
     @date = next_delivery_date
+    @driver = create_driver("Chiara")
+  end
+
+  def create_driver(name, active: true)
+    User.create!(name: name, email: "#{name.parameterize}-#{SecureRandom.hex(3)}@example.com", password: "password123", role: "driver", active: active)
   end
 
   def create_customer(name, address: nil, **attrs)

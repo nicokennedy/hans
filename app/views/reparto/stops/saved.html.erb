@@ -1,0 +1,23 @@
+<section class="reparto-done" role="status">
+  <div class="reparto-check" aria-hidden="true">✔</div>
+  <h1 class="reparto-big"><%= params[:ya].present? ? "Ya estaba guardado" : "Listo, quedó guardado" %></h1>
+  <p class="reparto-text"><strong><%= @stop.display_name %></strong></p>
+  <p class="reparto-text">
+    <% if @stop.delivery_status == "delivered" %>
+      ✔ Entregaste el pedido<%= " a las #{l(@stop.delivery_recorded_at, format: '%H:%M')}" if @stop.delivery_recorded_at %>.
+    <% elsif @stop.delivery_status == "done" %>
+      ✔ Hiciste la parada.
+    <% elsif @stop.delivery_status == "not_delivered" %>
+      ✖ No se pudo: <%= @stop.not_delivered_reason %>.
+    <% end %>
+  </p>
+</section>
+
+<% if @next %>
+  <%= link_to reparto_stop_path(@next), class: "reparto-button reparto-button-primary reparto-button-col" do %>
+    <span>▶ SIGUIENTE PARADA</span><span class="reparto-sub"><%= @next.display_name %></span>
+  <% end %>
+<% else %>
+  <p class="reparto-big reparto-center">¡Terminaste todas las paradas!</p>
+<% end %>
+<%= link_to "VOLVER AL INICIO", reparto_root_path, class: "reparto-button" %>

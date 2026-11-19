@@ -1,0 +1,25 @@
+<%# Sin Turbo: al crear, la respuesta es la página con la contraseña temporal (no redirige,
+    para que la contraseña no pase por la sesión) y Turbo no muestra esas respuestas. %>
+<%= form_with model: [:admin, user], local: true, data: { turbo: false } do |f| %>
+  <div class="mb-3">
+    <%= f.label :name, "Nombre", class: "form-label" %>
+    <%= f.text_field :name, class: "form-control", required: true, maxlength: 80, placeholder: "Ej.: Chiara" %>
+  </div>
+  <div class="mb-3">
+    <%= f.label :email, "Email (es el usuario para ingresar)", class: "form-label" %>
+    <%= f.email_field :email, class: "form-control", required: true, autocomplete: "off" %>
+  </div>
+  <div class="mb-3">
+    <%= f.label :role, "Rol", class: "form-label" %>
+    <%= f.select :role, User::INTERNAL_ROLES.map { |r| [User::ROLE_LABELS[r], r] }, {}, class: "form-select", disabled: user.persisted? && user == current_user %>
+    <div class="form-text">
+      Repartidor: solo ve su recorrido del día en el celular. Producción: ve pedidos, producción y stock, sin importes.
+      Administrador: acceso completo, incluido Usuarios.
+      <% if user.persisted? && user == current_user %><br>No podés cambiar tu propio rol.<% end %>
+    </div>
+  </div>
+  <% unless user.persisted? %>
+    <p class="small text-muted">HANS genera una contraseña temporal segura y te la muestra una sola vez para que se la entregues. La persona la cambia en su primer ingreso.</p>
+  <% end %>
+  <%= f.submit user.persisted? ? "Guardar" : "Crear usuario", class: "btn btn-dark" %>
+<% end %>

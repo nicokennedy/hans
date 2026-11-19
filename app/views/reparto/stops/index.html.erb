@@ -1,0 +1,18 @@
+<%= link_to "◀ VOLVER AL INICIO", reparto_root_path, class: "reparto-back" %>
+<header class="reparto-header">
+  <h1 class="reparto-date">Todas las paradas</h1>
+  <p class="reparto-text">Tocá una parada para verla.</p>
+</header>
+
+<% next_stop = @stops.find { |s| s.delivery_status == "pending" } %>
+<% @stops.each do |stop| %>
+  <%= link_to reparto_stop_path(stop), class: "reparto-stop#{' reparto-stop-next' if stop == next_stop}" do %>
+    <span class="reparto-num" aria-hidden="true"><%= stop.position %></span>
+    <span class="reparto-stop-body">
+      <span class="reparto-stop-name"><%= stop.display_name %></span>
+      <span class="reparto-stop-address"><%= stop.address_line || "Sin dirección cargada" %></span>
+      <% if stop == next_stop %><span class="reparto-chip reparto-chip-next">▶ PRÓXIMA</span><% end %>
+      <%= render "reparto/stops/status_chip", stop: stop %>
+    </span>
+  <% end %>
+<% end %>

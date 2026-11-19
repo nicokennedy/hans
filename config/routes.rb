@@ -13,6 +13,9 @@ Rails.application.routes.draw do
 
   root "pages#home"
 
+  # Cambio obligatorio de la contraseña temporal (ver PasswordChangesController).
+  resource :password_change, path: "cambiar-contrasena", only: [:edit, :update]
+
   # Tienda pública minorista (Etapa 4): catálogo, carrito y checkout por WhatsApp. Se visita sin
   # iniciar sesión; mientras esté cerrada (Tienda Minorista → Tienda online) solo la ven los
   # administradores, en vista previa. Ver Store::BaseController.
@@ -34,6 +37,16 @@ Rails.application.routes.draw do
     root "home#show"
     # R1: prototipo navegable con datos de ejemplo. No lee ni guarda nada en la base.
     get "prototipo", to: "prototype#show", as: :prototype
+    # R3: el recorrido del día del repartidor. Solo el repartidor dueño (ver Reparto::StopsController).
+    resources :stops, path: "paradas", only: [:index, :show] do
+      member do
+        post :deliver, path: "entregue"
+        get :not_delivered, path: "no-pude"
+        post :record_not_delivered, path: "no-pude"
+        post :done, path: "hecho"
+        get :saved, path: "listo"
+      end
+    end
   end
 
   resource :dashboard, only: [:show]
@@ -225,6 +238,16 @@ Rails.application.routes.draw do
       end
     end
 
+    # Administración → Usuarios: usuarios internos (administrador, producción, repartidor). Las
+    # cuentas de clientes siguen en Clientes. Solo admin (ver Users::Manage).
+    resources :users, path: "usuarios", only: [:index, :show, :new, :create, :edit, :update] do
+      member do
+        patch :activate, path: "activar"
+        patch :deactivate, path: "desactivar"
+        post :reset_password, path: "restablecer-contrasena"
+      end
+    end
+
     # Repartos — MODO DEMOSTRACIÓN (R1): una portada con los dos prototipos (administración y
     # repartidor), con datos ficticios. No lee ni escribe la base. Separado del módulo real (R2).
     get "repartos/demo", to: "delivery_routes_prototype#index", as: :delivery_routes_demo
@@ -242,6 +265,7 @@ Rails.application.routes.draw do
           patch :move, path: "mover"
           patch :remove, path: "quitar"
           patch :restore, path: "volver"
+          patch :transfer, path: "pasar"
         end
       end
     end

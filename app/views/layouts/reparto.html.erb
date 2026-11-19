@@ -28,5 +28,23 @@
 
       <%= yield %>
     </main>
+    <script>
+      // Evita registros duplicados por doble toque: al enviar, el botón queda desactivado y
+      // dice "Guardando…". El servidor igual es idempotente (ver DeliveryRoutes::Deliveries).
+      document.addEventListener("submit", function (event) {
+        var form = event.target;
+        if (form.dataset.sent) { event.preventDefault(); return; }
+        form.dataset.sent = "1";
+        form.querySelectorAll("button, input[type=submit]").forEach(function (button) {
+          var label = button.dataset.saving;
+          button.disabled = true;
+          if (label) { if (button.tagName === "INPUT") { button.value = label; } else { button.textContent = label; } }
+        });
+      });
+      // Si el navegador vuelve a mostrar la página desde su memoria, los botones vuelven a andar.
+      window.addEventListener("pageshow", function () {
+        document.querySelectorAll("form[data-sent]").forEach(function (form) { delete form.dataset.sent; });
+      });
+    </script>
   </body>
 </html>

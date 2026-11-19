@@ -4,7 +4,7 @@ class Admin::DeliveryRouteStopsController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_route
-  before_action :set_stop, only: [:update, :move, :remove, :restore]
+  before_action :set_stop, only: [:update, :move, :remove, :restore, :transfer]
 
   def add_orders
     respond_with editor.add_orders(params[:order_ids]), "Pedidos agregados al final del recorrido."
@@ -32,6 +32,11 @@ class Admin::DeliveryRouteStopsController < ApplicationController
 
   def restore
     respond_with editor.restore(@stop), "#{@stop.display_name} volvió al final del recorrido."
+  end
+
+  def transfer
+    target = DeliveryRoute.find_by(id: params[:target_route_id])
+    respond_with editor.transfer(@stop, target), "#{@stop.display_name} pasó al recorrido de #{target&.driver_name}."
   end
 
   private

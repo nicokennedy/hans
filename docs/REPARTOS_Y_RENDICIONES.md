@@ -569,3 +569,70 @@ producción ni deploy** hasta nueva autorización.
 **Aislamiento (tests):** armar, reordenar, quitar, volver a agregar y ver el recorrido no
 cambian pedidos (estado, pago, totales, fecha, `updated_at`), pagos, pagos de cuenta corriente,
 movimientos de stock, gastos ni obligaciones.
+
+---
+
+## 13. R3 — Usuarios y operación real de repartidores (rama `repartos-r3`, solo local)
+
+Autorizado por HANS el 19/11/2026, con las decisiones de usuarios aprobadas ese día.
+Implementado y probado en local; **sin deploy, push ni cambios en producción**.
+
+### Administración → Usuarios (`/admin/usuarios`, solo admin)
+- Usuarios **internos** (administrador, producción, repartidor) sobre el mismo `User`/Devise.
+  Las cuentas de clientes no aparecen: se siguen administrando desde Clientes.
+- Lista con nombre, email, rol, estado y **último acceso** (fecha y hora del último inicio de
+  sesión exitoso; sin IP). Filtros por rol y estado.
+- **Alta y restablecimiento de contraseña:** HANS genera una contraseña temporal segura
+  (`Kx7p-Qm4t-Zr9w`, ~70 bits) y la muestra **una sola vez** (la respuesta no redirige ni pasa
+  por la sesión, sin caché). Solo se guarda el hash. En el primer ingreso la persona elige una
+  nueva (mín. 8 caracteres, distinta de la temporal). Restablecer cierra sus sesiones y el
+  "recordarme" del celular.
+- **Activar / desactivar** sin borrar: un usuario inactivo no puede ingresar y Devise cierra
+  sus sesiones abiertas en el siguiente pedido.
+- **Resguardos:** nadie se quita su propio rol ni se desactiva; HANS nunca queda sin un
+  administrador activo; solo roles internos (nunca "cliente"); un repartidor con recorridos
+  de hoy en adelante no cambia de rol hasta reasignarlos; desactivarlo avisa si tiene
+  recorridos pendientes.
+- **Historial** (`user_events`, solo inserción): creación, edición, cambio de rol,
+  activación, desactivación, restablecimiento y cambio de contraseña temporal, con quién.
+
+### Recorridos con varios repartidores
+- Una fecha puede tener **un recorrido por repartidor**. Todo recorrido nuevo exige un
+  repartidor **activo**. Los dos recorridos de R2 sin repartidor se conservan y se les asigna
+  uno desde su pantalla.
+- Repartos → fecha: tarjetas de los recorridos del día (paradas, hechas, no entregadas),
+  **pedidos sin asignar** y "Nuevo recorrido para [repartidor]" tildando sus pedidos.
+- **Pasar a otro repartidor** (pedidos no entregados): la parada sale del recorrido de origen
+  como "Pasó a otro repartidor" y entra al final del destino; queda en el historial de los
+  dos con fecha, hora y administrador. Un pedido nunca está en dos paradas vigentes.
+- Las paradas entregadas/hechas no se quitan ni se pasan (sí se pueden reordenar).
+
+### Portal del repartidor (`/reparto`)
+- Ve **solo su recorrido de hoy**: avance, próxima parada, lista, detalle (dirección, Cómo
+  llegar, indicaciones, productos y cantidades, total).
+- **SÍ, LO ENTREGUÉ** → la parada queda entregada con repartidor, fecha y hora; el pedido pasa a
+  **Entregado** (`update_columns`: no recalcula importes ni dispara stock); queda en el
+  historial del pedido (`order_events`) y del recorrido. **No crea pagos ni toca cuentas
+  corrientes, gastos ni stock** (tests).
+- **NO PUDE ENTREGARLO** → motivo de un toque (Estaba cerrado / No lo quisieron recibir / No
+  llegué / Otro motivo). El pedido no cambia; administración decide (pasarlo a otro
+  repartidor, quitarlo). Si después se entrega, se puede marcar entregado.
+- Paradas manuales: "Sí, listo" / "No pude".
+- **Doble toque y cortes de conexión:** el botón se desactiva y dice "Guardando…"; además cada
+  acción es idempotente en el servidor (reintentar muestra "Ya estaba guardado" y no duplica).
+- El administrador mira cualquier recorrido con **Ver como repartidor** (solo lectura, sin
+  botones); desde `/reparto` no puede registrar entregas.
+
+### Datos
+Migración `20261119100000_add_internal_user_management_and_deliveries` (solo agrega):
+`users.name`, `users.active` (default true), `users.must_change_password` (default false),
+`users.last_sign_in_at`; tabla `user_events`; en `delivery_stops`: `delivery_status`
+(pending/delivered/not_delivered/done), `delivery_recorded_at`, `delivery_recorded_by_id`,
+`not_delivered_reason`.
+
+### Pendiente para producción (requiere autorización)
+1. Respaldo, deploy, `db:migrate` (solo esta migración) y reinicio.
+2. Crear las cuentas de los repartidores (p. ej. Chiara y Emilio) desde Usuarios y entregarles
+   la contraseña temporal; desde ahí, asignar repartidor a los 2 recorridos de R2.
+3. Cobros en efectivo, fotos, gastos y rendición siguen en R4–R7: hasta entonces los cobros se
+   registran como hoy.

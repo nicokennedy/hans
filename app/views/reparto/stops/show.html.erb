@@ -1,0 +1,51 @@
+<%= link_to "◀ VOLVER A LA LISTA", reparto_stops_path, class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker">PARADA <%= @stop.position %> DE <%= @route.active_stops.count %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
+  <h1 class="reparto-name"><%= @stop.display_name %></h1>
+  <% if @stop.address_line %>
+    <p class="reparto-address"><%= @stop.address_line %></p>
+  <% else %>
+    <p class="reparto-text">No tiene dirección cargada. Si no sabés llegar, llamá a administración.</p>
+  <% end %>
+</header>
+
+<% if (url = @stop.google_maps_url) %>
+  <%= link_to url, class: "reparto-button", target: "_blank", rel: "noopener" do %>📍 CÓMO LLEGAR<% end %>
+<% end %>
+
+<% if @stop.instructions %>
+  <p class="reparto-note"><strong>Ojo:</strong> <%= @stop.instructions %></p>
+<% end %>
+
+<% if @stop.order? %>
+  <section class="reparto-card">
+    <p class="reparto-kicker">LLEVÁS</p>
+    <ul class="reparto-items">
+      <% @stop.order.order_items.each do |item| %>
+        <li><span class="reparto-qty"><%= item.quantity %></span> <span><%= item.product_name_snapshot %></span></li>
+      <% end %>
+    </ul>
+    <p class="reparto-total"><span>Total del pedido</span> <strong><%= format_money(@stop.order.total_cents) %></strong></p>
+  </section>
+<% end %>
+
+<% if %w[pending not_delivered].include?(@stop.delivery_status) %>
+  <% if @stop.delivery_status == "not_delivered" %>
+    <section class="reparto-card"><%= render "reparto/stops/status_chip", stop: @stop %></section>
+  <% end %>
+  <h2 class="reparto-question"><%= @stop.order? ? (@stop.delivery_status == "not_delivered" ? "¿Al final lo pudiste entregar?" : "¿Pudiste entregar el pedido?") : "¿Lo pudiste hacer?" %></h2>
+  <% if @stop.order? %>
+    <%= button_to deliver_reparto_stop_path(@stop), method: :post, class: "reparto-button reparto-button-primary", data: { saving: "Guardando…" } do %>✔ SÍ, LO ENTREGUÉ<% end %>
+  <% else %>
+    <%= button_to done_reparto_stop_path(@stop), method: :post, class: "reparto-button reparto-button-primary", data: { saving: "Guardando…" } do %>✔ SÍ, LISTO<% end %>
+  <% end %>
+  <% if @stop.delivery_status == "pending" %>
+    <%= link_to not_delivered_reparto_stop_path(@stop), class: "reparto-button" do %>✖ <%= @stop.order? ? "NO PUDE ENTREGARLO" : "NO PUDE" %><% end %>
+  <% end %>
+<% else %>
+  <section class="reparto-done">
+    <div class="reparto-check" aria-hidden="true">✔</div>
+    <p class="reparto-big"><%= @stop.order? ? "Entregado" : "Hecho" %> a las <%= l(@stop.delivery_recorded_at, format: "%H:%M") %></p>
+    <p class="reparto-text">Si fue un error, avisale a administración.</p>
+  </section>
+<% end %>

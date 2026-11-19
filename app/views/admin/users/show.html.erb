@@ -1,0 +1,60 @@
+<div class="container py-4">
+  <p class="text-muted mb-1"><%= link_to "← Usuarios", admin_users_path %></p>
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="mb-1"><%= @user.display_name %> <span class="badge <%= @user.active? ? 'text-bg-success' : 'text-bg-secondary' %> fs-6"><%= @user.active? ? "Activo" : "Inactivo" %></span></h1>
+      <p class="text-muted mb-0"><%= @user.email %> · <%= @user.role_label %> · Último acceso: <%= @user.last_sign_in_at ? l(@user.last_sign_in_at, format: "%d/%m/%Y %H:%M") : "todavía no ingresó" %></p>
+      <% if @user.must_change_password? %><p class="small text-muted mb-0">Tiene que cambiar su contraseña temporal en el próximo ingreso.</p><% end %>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to "Editar", edit_admin_user_path(@user), class: "btn btn-outline-dark" %>
+      <% unless @user == current_user %>
+        <%= button_to "Restablecer contraseña", reset_password_admin_user_path(@user), method: :post, class: "btn btn-outline-dark",
+              form: { data: { turbo: false }, onsubmit: "return confirm(#{"Se genera una contraseña temporal nueva y se cierran las sesiones abiertas de #{@user.display_name}. ¿Continuar?".to_json})" } %>
+        <% if @user.active? %>
+          <%= button_to "Desactivar acceso", deactivate_admin_user_path(@user), method: :patch, class: "btn btn-outline-danger",
+                form: { data: { turbo_confirm: "#{@user.display_name} no va a poder ingresar y se cierran sus sesiones. Su historial se conserva. ¿Continuar?" } } %>
+        <% else %>
+          <%= button_to "Activar acceso", activate_admin_user_path(@user), method: :patch, class: "btn btn-dark" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @user.driver? %>
+    <div class="product-card mb-3">
+      <h2 class="h5">Recorridos asignados</h2>
+      <% if @routes.empty? %>
+        <p class="text-muted mb-0">No tiene recorridos en los últimos 30 días ni pendientes.</p>
+      <% else %>
+        <ul class="list-group">
+          <% @routes.each do |route| %>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <%= link_to "#{l(route.date, format: '%d/%m/%Y')} · #{route.active_stops.count} parada(s)", admin_delivery_route_path(route) %>
+              <span class="small text-muted"><%= route.date >= Date.current ? "Pendiente" : "Pasado" %></span>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="product-card">
+    <h2 class="h5">Historial</h2>
+    <% if @events.empty? %>
+      <p class="text-muted mb-0">Sin cambios registrados (usuario anterior a esta sección).</p>
+    <% else %>
+      <ul class="list-unstyled mb-0">
+        <% @events.each do |event| %>
+          <li class="py-1 border-bottom small">
+            <span class="text-muted"><%= l(event.created_at, format: "%d/%m/%Y %H:%M") %></span> ·
+            <strong><%= event.actor.display_name %></strong> · <%= event.label %>
+            <% if event.event_type == "role_changed" %>: <%= User::ROLE_LABELS[event.data["from"]] %> → <%= User::ROLE_LABELS[event.data["to"]] %><% end %>
+            <% if event.event_type == "created" %> (<%= User::ROLE_LABELS[event.data["role"]] %>)<% end %>
+            <% if event.event_type == "updated" %>: <%= event.data["changes"].map { |field, v| "#{field == 'name' ? 'nombre' : field} «#{v['from']}» → «#{v['to']}»" }.join(", ") %><% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</div>

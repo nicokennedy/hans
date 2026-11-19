@@ -43,7 +43,7 @@
             <% if current_user.customer.present? %>
               <%= current_user.customer.name.presence || current_user.email %>
             <% else %>
-              <%= current_user.email %>
+              <%= current_user.display_name %>
             <% end %>
           </span>
         </div>
@@ -64,6 +64,7 @@
             <%= link_to "Stock", admin_stock_path, class: nav_link_class("admin/stock", "admin/stock_items") %>
             <%= link_to "Administración", admin_administration_root_path, class: administration_nav_class %>
             <%= link_to "Fechas de entrega", admin_delivery_settings_path, class: nav_link_class("admin/delivery_settings") %>
+            <%= link_to "Usuarios", admin_users_path, class: nav_link_class("admin/users") %>
             <%= link_to "Notificaciones", admin_push_settings_path, class: nav_link_class("admin/push_settings") %>
           <% elsif current_user.production? %>
             <%= link_to "Pedidos", admin_orders_path, class: "btn btn-sm btn-dark" %>

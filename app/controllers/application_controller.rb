@@ -1,5 +1,8 @@
 class ApplicationController < ActionController::Base
   before_action :ensure_active_customer!
+  # Administración → Usuarios: quien entra con una contraseña temporal tiene que cambiarla antes
+  # de usar HANS (ver PasswordChangesController).
+  before_action :require_password_change!, unless: :devise_controller?
 
   def after_sign_in_path_for(resource)
     if resource.admin?
@@ -26,6 +29,12 @@ class ApplicationController < ActionController::Base
       sign_out(current_user)
       redirect_to new_user_session_path, alert: "Tu acceso se encuentra desactivado. Contactá a HANS."
     end
+  end
+
+  def require_password_change!
+    return unless user_signed_in? && current_user.must_change_password?
+
+    redirect_to edit_password_change_path
   end
 
   # Bloquea rutas exclusivas de admin. Centralizado acá porque estaba

@@ -1,0 +1,53 @@
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="mb-1">Usuarios</h1>
+      <p class="text-muted mb-0">Administradores, producción y repartidores. Las cuentas de clientes se administran desde Clientes.</p>
+    </div>
+    <%= link_to "Nuevo usuario", new_admin_user_path, class: "btn btn-dark" %>
+  </div>
+
+  <div class="product-card mb-3">
+    <%= form_with url: admin_users_path, method: :get, local: true, class: "row g-2 align-items-end" do %>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="users-role">Rol</label>
+        <%= select_tag :role, options_for_select([["Todos", "all"], ["Administrador", "admin"], ["Producción", "production"], ["Repartidor", "driver"]], @role), id: "users-role", class: "form-select" %>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label" for="users-status">Estado</label>
+        <%= select_tag :status, options_for_select([["Todos", "all"], ["Activos", "active"], ["Inactivos", "inactive"]], @status), id: "users-status", class: "form-select" %>
+      </div>
+      <div class="col-12 col-md-2"><%= submit_tag "Filtrar", name: nil, class: "btn btn-outline-dark w-100" %></div>
+    <% end %>
+  </div>
+
+  <div class="product-card">
+    <% if @users.empty? %>
+      <p class="text-muted mb-0">No hay usuarios con estos filtros.</p>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+          <tbody>
+            <% @users.each do |user| %>
+              <tr class="<%= 'text-muted' unless user.active? %>">
+                <td class="fw-semibold"><%= user.name.presence || "—" %><%= " (vos)" if user == current_user %></td>
+                <td><%= user.email %></td>
+                <td>
+                  <%= user.role_label %>
+                  <% if user.driver? && @pending_routes[user.id].to_i.positive? %><div class="small text-muted"><%= @pending_routes[user.id] %> recorrido(s) pendiente(s)</div><% end %>
+                </td>
+                <td>
+                  <span class="badge <%= user.active? ? 'text-bg-success' : 'text-bg-secondary' %>"><%= user.active? ? "Activo" : "Inactivo" %></span>
+                  <% if user.must_change_password? %><div class="small text-muted">Debe cambiar la contraseña</div><% end %>
+                </td>
+                <td class="small"><%= user.last_sign_in_at ? l(user.last_sign_in_at, format: "%d/%m/%Y %H:%M") : "—" %></td>
+                <td><%= link_to "Ver", admin_user_path(user), class: "btn btn-sm btn-outline-dark" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

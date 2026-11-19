@@ -1,0 +1,64 @@
+# R3: el repartidor recorre SU recorrido del día y registra entregas. Solo el repartidor
+# asignado: las paradas se buscan dentro de su recorrido de hoy, así que nunca ve ni toca las
+# de otro repartidor ni de otro día. El admin mira desde Repartos → "Ver como repartidor"
+# (solo lectura), no desde acá. Toda acción es idempotente (DeliveryRoutes::Deliveries).
+class Reparto::StopsController < Reparto::BaseController
+  before_action :require_driver!
+  before_action :set_route
+  before_action :set_stop, except: [:index]
+
+  rescue_from ActiveRecord::RecordNotFound do
+    redirect_to reparto_root_path, alert: "Esa parada ya no está en tu recorrido de hoy."
+  end
+
+  def index
+    @stops = @route.active_stops.includes(order: :customer).to_a
+  end
+
+  def show
+  end
+
+  def deliver
+    respond_with DeliveryRoutes::Deliveries.new(@stop, current_user).deliver
+  end
+
+  def not_delivered
+  end
+
+  def record_not_delivered
+    respond_with DeliveryRoutes::Deliveries.new(@stop, current_user).not_delivered(params[:reason])
+  end
+
+  def done
+    respond_with DeliveryRoutes::Deliveries.new(@stop, current_user).done
+  end
+
+  def saved
+    @next = @route.active_stops.pending_delivery.where.not(id: @stop.id).first
+  end
+
+  private
+
+  def require_driver!
+    return if current_user.driver?
+
+    redirect_to admin_delivery_routes_path, notice: "Para ver el recorrido de un repartidor usá \"Ver como repartidor\" en Repartos."
+  end
+
+  def set_route
+    @route = current_user.delivery_routes.find_by(date: Date.current)
+    redirect_to reparto_root_path unless @route
+  end
+
+  def set_stop
+    @stop = @route.active_stops.includes(order: [:customer, :order_items]).find(params[:id])
+  end
+
+  def respond_with(result)
+    if result.ok?
+      redirect_to saved_reparto_stop_path(@stop, ya: (result.already ? 1 : nil))
+    else
+      redirect_to reparto_stop_path(@stop), alert: result.errors.join(" ")
+    end
+  end
+end

@@ -8,7 +8,12 @@ class DeliveryEvent < ApplicationRecord
     "stop_removed" => "Quitó una parada",
     "stop_restored" => "Volvió a agregar una parada",
     "stop_updated" => "Editó una parada",
-    "driver_assigned" => "Asignó el repartidor"
+    "driver_assigned" => "Asignó el repartidor",
+    "stop_transferred_out" => "Pasó un pedido a otro repartidor",
+    "stop_transferred_in" => "Recibió un pedido de otro repartidor",
+    "stop_delivered" => "Registró una entrega",
+    "stop_not_delivered" => "Registró una entrega no realizada",
+    "stop_done" => "Registró una parada hecha"
   }.freeze
 
   belongs_to :delivery_route, inverse_of: :events

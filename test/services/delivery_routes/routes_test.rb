@@ -17,7 +17,7 @@ class DeliveryRoutes::RoutesTest < ActiveSupport::TestCase
   end
 
   def create_route(ids = [@o1.id, @o2.id, @o3.id])
-    DeliveryRoutes::Create.call(date: @date, order_ids: ids, user: @admin)
+    DeliveryRoutes::Create.call(date: @date, order_ids: ids, user: @admin, driver: @driver)
   end
 
   def editor(route)
@@ -51,18 +51,22 @@ class DeliveryRoutes::RoutesTest < ActiveSupport::TestCase
     assert_not result.ok?
     assert_match "ya está en este recorrido", result.errors.join
 
-    other = DeliveryRoute.create!(date: @date, driver: User.create!(email: "d#{SecureRandom.hex(2)}@example.com", password: "password123", role: "driver"), created_by: @admin)
+    other = DeliveryRoute.create!(date: @date, driver: create_driver("Emilio"), created_by: @admin)
     assert_not editor(other).add_orders([@o1.id]).ok?
     assert_raises(ActiveRecord::RecordNotUnique) do
       other.stops.create!(kind: "order", order: @o1, customer: @aurora, position: 1)
     end
   end
 
-  test "only one route per date without driver" do
+  test "a driver has one route per date and every new route needs an active driver" do
     create_route([@o1.id])
     result = create_route([@o2.id])
     assert_not result.ok?
-    assert_match "Ya existe un recorrido", result.errors.join
+    assert_match "ya tiene un recorrido", result.errors.join
+
+    assert_not DeliveryRoutes::Create.call(date: @date, order_ids: [@o2.id], user: @admin).ok?
+    assert_not DeliveryRoutes::Create.call(date: @date, order_ids: [@o2.id], user: @admin, driver: create_driver("Inactivo", active: false)).ok?
+    assert_not DeliveryRoutes::Create.call(date: @date, order_ids: [@o2.id], user: @admin, driver: @admin).ok?
   end
 
   test "reorders stops and keeps positions contiguous" do
@@ -145,7 +149,7 @@ class DeliveryRoutes::RoutesTest < ActiveSupport::TestCase
   end
 
   test "suggests the order of the customer's last route" do
-    previous = DeliveryRoutes::Create.call(date: @date - 7, order_ids: [], user: @admin).route
+    previous = DeliveryRoutes::Create.call(date: @date - 7, order_ids: [], user: @admin, driver: @driver).route
     previous.stops.create!(kind: "order", order: create_order(@sin_dir, date: @date - 7), customer: @sin_dir, position: 1)
     previous.stops.create!(kind: "order", order: create_order(@esquina, date: @date - 7), customer: @esquina, position: 2)
 
@@ -184,11 +188,21 @@ class DeliveryRoutes::RoutesTest < ActiveSupport::TestCase
     assert_match "ya no está en preparación", result.errors.join
   end
 
-  test "only driver users can be assigned" do
+  test "only active driver users can be assigned, and a route cannot lose its driver" do
     route = create_route.route
-    driver = User.create!(email: "driver-#{SecureRandom.hex(2)}@example.com", password: "password123", role: "driver")
+    driver = create_driver("Emilio")
     assert_not editor(route).assign_driver(@admin).ok?
+    assert_not editor(route).assign_driver(create_driver("Baja", active: false)).ok?
+    assert_not editor(route).assign_driver(nil).ok?
     assert editor(route).assign_driver(driver).ok?
     assert_equal driver, route.reload.driver
+    assert_equal "driver_assigned", route.events.last.event_type
+  end
+
+  test "routes created in R2 without a driver keep working and can get one" do
+    legacy = DeliveryRoute.new(date: @date - 3, created_by: @admin)
+    legacy.save!(validate: false)
+    assert editor(legacy).add_manual(kind: "errand", title: "Banco").ok?
+    assert editor(legacy).assign_driver(@driver).ok?
   end
 end

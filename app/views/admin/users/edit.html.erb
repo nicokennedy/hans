@@ -1,0 +1,5 @@
+<div class="container py-4" style="max-width: 640px">
+  <p class="text-muted mb-1"><%= link_to "← #{@user.display_name}", admin_user_path(@user) %></p>
+  <h1 class="mb-3">Editar usuario</h1>
+  <div class="product-card"><%= render "form", user: @user %></div>
+</div>

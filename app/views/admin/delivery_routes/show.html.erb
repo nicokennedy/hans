@@ -3,12 +3,18 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <div>
       <p class="text-muted mb-1"><%= link_to "← Repartos", admin_delivery_routes_path(date: @route.date.iso8601) %></p>
-      <h1 class="mb-1">Recorrido del <%= l(@route.date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h1>
+      <h1 class="mb-1">Recorrido de <%= @route.driver_name %> · <%= l(@route.date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h1>
       <p class="text-muted mb-0">
         <%= @stops.size %> parada(s) · <%= order_stops.size %> pedido(s) ·
         Total <%= format_money(order_stops.sum { |s| s.order.total_cents }) %> ·
-        Saldo pendiente <%= format_money(order_stops.sum { |s| s.order.balance_due_cents }) %>
+        Saldo pendiente <%= format_money(order_stops.sum { |s| s.order.balance_due_cents }) %> ·
+        <%= @stops.count(&:completed?) %> hecha(s), <%= @stops.count { |s| s.delivery_status == "not_delivered" } %> no entregada(s)
       </p>
+      <% if @siblings.any? %>
+        <p class="small mb-0">Otros recorridos de este día:
+          <% @siblings.each_with_index do |sibling, i| %><%= ", " if i.positive? %><%= link_to sibling.driver_name, admin_delivery_route_path(sibling) %><% end %>
+        </p>
+      <% end %>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <%= link_to "Ver como repartidor", preview_admin_delivery_route_path(@route), class: "btn btn-outline-dark" %>
@@ -19,15 +25,20 @@
   <div class="product-card mb-3">
     <%= form_with url: driver_admin_delivery_route_path(@route), method: :patch, local: true, class: "row g-2 align-items-end" do %>
       <div class="col-12 col-md-5">
-        <label class="form-label" for="route-driver">Repartidor</label>
-        <%= select_tag :driver_id, options_for_select([["Sin asignar", ""]] + @drivers.map { |d| [d.email, d.id] }, @route.driver_id),
-              id: "route-driver", class: "form-select", disabled: !@route.editable? %>
+        <label class="form-label" for="route-driver">Repartidor responsable</label>
+        <%= select_tag :driver_id, options_for_select(@drivers.map { |d| [d.display_name, d.id] }, @route.driver_id),
+              include_blank: (@route.driver ? false : "Elegí un repartidor"), id: "route-driver", class: "form-select", required: true, disabled: !@route.editable? %>
       </div>
       <div class="col-12 col-md-3">
         <%= submit_tag "Guardar repartidor", name: nil, class: "btn btn-outline-dark w-100", disabled: !@route.editable? %>
       </div>
+      <% if @route.driver.nil? %>
+        <div class="col-12"><span class="badge text-bg-warning">⚠ Este recorrido no tiene repartidor: asignale uno para que lo vea en su celular.</span></div>
+      <% elsif !@route.driver.active? %>
+        <div class="col-12"><span class="badge text-bg-warning">⚠ <%= @route.driver.display_name %> tiene el acceso desactivado: pasale el recorrido a otro repartidor.</span></div>
+      <% end %>
       <% if @drivers.empty? %>
-        <div class="col-12 form-text">Todavía no hay usuarios repartidor. El recorrido se puede armar igual.</div>
+        <div class="col-12 form-text">No hay repartidores activos. Crealos en <%= link_to "Usuarios", new_admin_user_path(role: "driver") %>.</div>
       <% end %>
     <% end %>
   </div>
@@ -40,7 +51,7 @@
       <div class="table-responsive">
         <table class="table align-middle">
           <thead>
-            <tr><th>#</th><th>Orden</th><th>Cliente / parada</th><th>Dirección</th><th>Pedido</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th><th></th></tr>
+            <tr><th>#</th><th>Orden</th><th>Cliente / parada</th><th>Entrega</th><th>Dirección</th><th>Pedido</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th><th></th></tr>
           </thead>
           <tbody>
             <% @stops.each_with_index do |stop, index| %>
@@ -60,18 +71,32 @@
                   <% if stop.order? && stop.order.customer_comment.present? %><div class="small text-muted">Pedido: <%= stop.order.customer_comment %></div><% end %>
                   <% stop.order_warnings.each do |warning| %><div class="small text-danger fw-semibold">⚠ <%= warning %></div><% end %>
                 </td>
+                <td>
+                  <% badge = { "pending" => "text-bg-light border", "delivered" => "text-bg-success", "done" => "text-bg-success", "not_delivered" => "text-bg-danger" }[stop.delivery_status] %>
+                  <span class="badge <%= badge %>"><%= stop.delivery_status_label %></span>
+                  <% if stop.not_delivered_reason.present? && stop.delivery_status == "not_delivered" %><div class="small text-danger"><%= stop.not_delivered_reason %></div><% end %>
+                  <% if stop.delivery_recorded_at %><div class="small text-muted"><%= l(stop.delivery_recorded_at, format: "%H:%M") %> · <%= stop.delivery_recorded_by&.display_name %></div><% end %>
+                </td>
                 <td><%= delivery_address_cell(stop.address_line, maps_url: stop.google_maps_url, instructions: stop.instructions) %></td>
                 <td class="small"><%= stop.order? ? link_to(stop.order.number, admin_order_path(stop.order)) : "—" %></td>
                 <td class="text-end"><%= stop.order? ? format_money(stop.order.total_cents) : "—" %></td>
                 <td class="text-end"><%= stop.order? ? format_money(stop.order.amount_paid_cents) : "—" %></td>
                 <td class="text-end <%= 'fw-bold' if stop.order&.balance_due_cents.to_i.positive? %>"><%= stop.order? ? format_money(stop.order.balance_due_cents) : "—" %></td>
                 <td>
-                  <% if @route.editable? %>
+                  <% if @route.editable? && stop.completed? %>
+                    <span class="small text-muted">Entrega registrada: no se mueve ni se quita.</span>
+                  <% elsif @route.editable? %>
+                    <% if stop.order? && @siblings.any? %>
+                      <%= form_with url: transfer_admin_delivery_route_stop_path(@route, stop), method: :patch, local: true, class: "d-flex gap-1 mb-1" do %>
+                        <%= select_tag :target_route_id, options_for_select(@siblings.map { |r| [r.driver_name, r.id] }), class: "form-select form-select-sm", "aria-label": "Pasar #{stop.display_name} a" %>
+                        <%= submit_tag "Pasar", name: nil, class: "btn btn-sm btn-outline-dark" %>
+                      <% end %>
+                    <% end %>
                     <details>
                       <summary class="btn btn-sm btn-outline-danger">Quitar</summary>
                       <%= form_with url: remove_admin_delivery_route_stop_path(@route, stop), method: :patch, local: true, class: "mt-2 p-2 border rounded bg-light", style: "min-width: 240px" do %>
                         <p class="small mb-2"><% if stop.order? %>¿Quién lo entrega? El pedido no se cancela ni se modifica.<% else %>¿Por qué se quita?<% end %></p>
-                        <% DeliveryStop::REMOVAL_KINDS.each_with_index do |(value, label), i| %>
+                        <% DeliveryStop::MANUAL_REMOVAL_KINDS.each_with_index do |(value, label), i| %>
                           <% next if stop.manual? && value == "owners_deliver" %>
                           <div class="form-check">
                             <%= radio_button_tag :removal_kind, value, (stop.order? ? i.zero? : value == "other"), id: "remove-#{stop.id}-#{value}", class: "form-check-input" %>
@@ -161,9 +186,9 @@
           <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
               <strong><%= stop.display_name %></strong><% if stop.order? %> · <%= stop.order.number %><% end %>
-              <div class="small text-muted"><%= stop.removal_label %><%= ": #{stop.removal_reason}" if stop.removal_reason.present? %> · <%= stop.removed_by&.email %>, <%= l(stop.removed_at, format: "%d/%m %H:%M") %></div>
+              <div class="small text-muted"><%= stop.removal_label %><%= ": #{stop.removal_reason}" if stop.removal_reason.present? %> · <%= stop.removed_by&.display_name %>, <%= l(stop.removed_at, format: "%d/%m %H:%M") %></div>
             </div>
-            <% if @route.editable? %>
+            <% if @route.editable? && stop.removal_kind != "transferred" %>
               <%= button_to "Volver a agregar", restore_admin_delivery_route_stop_path(@route, stop), method: :patch, class: "btn btn-sm btn-outline-dark" %>
             <% end %>
           </li>
@@ -178,7 +203,7 @@
       <% @events.each do |event| %>
         <li class="py-1 border-bottom small">
           <span class="text-muted"><%= l(event.created_at, format: "%d/%m %H:%M") %></span> ·
-          <strong><%= event.user.email %></strong> · <%= event.summary %><%= " (#{event.reason})" if event.reason.present? && !event.summary.include?(event.reason) %>
+          <strong><%= event.user.display_name %></strong> · <%= event.summary %><%= " (#{event.reason})" if event.reason.present? && !event.summary.include?(event.reason) %>
         </li>
       <% end %>
     </ul>

@@ -1,6 +1,14 @@
-# Pantalla inicial del repartidor. En R0 todavía no hay recorridos (llegan en R2/R3): solo
-# muestra que hoy no hay reparto y el acceso al prototipo de prueba (R1).
+# Pantalla inicial del portal. Repartidor: su recorrido de HOY (próxima parada, avance y
+# acceso a la lista). Admin: aviso de que la vista del repartidor está en Repartos (vista
+# previa, solo lectura).
 class Reparto::HomeController < Reparto::BaseController
   def show
+    return unless current_user.driver?
+
+    @route = current_user.delivery_routes.find_by(date: Date.current)
+    return unless @route
+
+    @stops = @route.active_stops.includes(order: :customer).to_a
+    @next = @stops.find { |stop| stop.delivery_status == "pending" }
   end
 end

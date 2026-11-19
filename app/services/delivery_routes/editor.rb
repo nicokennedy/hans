@@ -81,6 +81,8 @@ module DeliveryRoutes
     def remove(stop, removal_kind:, reason: nil)
       change do
         stop = active_stop(stop)
+        next ["#{stop.display_name} ya está registrada como #{stop.delivery_status_label.downcase}: no se puede quitar."] if stop.completed?
+        next ["Para pasar el pedido a otro repartidor usá \"Pasar a otro repartidor\"."] if removal_kind.to_s == "transferred"
         stop.assign_attributes(removed_at: Time.current, removed_by: @user, removal_kind: removal_kind.to_s, removal_reason: reason.to_s.strip.presence)
         next stop.errors.full_messages unless stop.valid?
 
@@ -88,6 +90,33 @@ module DeliveryRoutes
         renumber(@route.stops.active.to_a)
         Events.record(@route, @user, "stop_removed", stop: stop, reason: stop.removal_reason, removal_kind: stop.removal_kind,
                       summary: "Quitó #{stop.display_name} del recorrido: #{stop.removal_label.downcase}.")
+        []
+      end
+    end
+
+    # Pasa un pedido no entregado a otro recorrido de la misma fecha: la parada de origen queda
+    # quitada ("Pasó a otro repartidor") y se crea una nueva al final del destino. El pedido no
+    # se toca. Queda en el historial de los dos recorridos.
+    def transfer(stop, target)
+      change do
+        stop = active_stop(stop)
+        next ["Solo se pasan paradas de pedidos. Las paradas manuales se quitan y se agregan en el otro recorrido."] unless stop.order?
+        next ["#{stop.display_name} ya está entregado: no se puede pasar a otro repartidor."] if stop.completed?
+        next ["Elegí otro recorrido del #{fmt(@route.date)}."] if target.nil? || target.id == @route.id || target.date != @route.date
+
+        target.lock!
+        next ["El recorrido de #{target.driver_name} ya no está en preparación."] unless target.editable?
+
+        from_name = @route.driver_name
+        stop.update!(removed_at: Time.current, removed_by: @user, removal_kind: "transferred",
+                     removal_reason: "recorrido de #{target.driver_name}")
+        renumber(@route.stops.active.to_a)
+        new_stop = target.stops.create!(kind: "order", order: stop.order, customer: stop.customer,
+                                        position: target.stops.active.maximum(:position).to_i + 1)
+        Events.record(@route, @user, "stop_transferred_out", stop: stop, to_route_id: target.id,
+                      summary: "Pasó #{stop.display_name} (#{stop.order.number}) al recorrido de #{target.driver_name}.")
+        Events.record(target, @user, "stop_transferred_in", stop: new_stop, from_route_id: @route.id,
+                      summary: "Recibió #{stop.display_name} (#{stop.order.number}) del recorrido de #{from_name}.")
         []
       end
     end
@@ -110,16 +139,18 @@ module DeliveryRoutes
 
     def assign_driver(driver)
       change do
-        next ["Ese usuario no es repartidor."] if driver && !driver.driver?
+        next ["Elegí un repartidor: todo recorrido tiene un responsable."] if driver.nil?
+        next ["Ese usuario no es repartidor."] unless driver.driver?
+        next ["#{driver.display_name} tiene el acceso desactivado."] unless driver.active?
         next [] if @route.driver_id == driver&.id
         if DeliveryRoute.where(date: @route.date, driver_id: driver&.id).where.not(id: @route.id).exists?
-          next ["Ya hay otro recorrido del #{fmt(@route.date)} para #{driver ? driver.email : 'sin repartidor'}."]
+          next ["#{driver.display_name} ya tiene un recorrido el #{fmt(@route.date)}."]
         end
 
-        previous = @route.driver&.email
+        previous = @route.driver&.display_name
         @route.update!(driver: driver)
-        Events.record(@route, @user, "driver_assigned", before: previous, after: driver&.email,
-                      summary: driver ? "Asignó el recorrido a #{driver.email}." : "Dejó el recorrido sin repartidor.")
+        Events.record(@route, @user, "driver_assigned", before: previous, after: driver.display_name,
+                      summary: previous ? "Pasó el recorrido de #{previous} a #{driver.display_name}." : "Asignó el recorrido a #{driver.display_name}.")
         []
       end
     end

@@ -1,0 +1,10 @@
+<%= link_to "◀ VOLVER", reparto_stop_path(@stop), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">¿Qué pasó?</h1>
+</header>
+<% DeliveryStop::NOT_DELIVERED_REASONS.each do |reason| %>
+  <%= button_to record_not_delivered_reparto_stop_path(@stop), method: :post, params: { reason: reason },
+        class: "reparto-button", data: { saving: "Guardando…" } do %><%= reason.upcase %><% end %>
+<% end %>
+<p class="reparto-text reparto-center">El pedido no se cancela: administración decide qué hacer.</p>

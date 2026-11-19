@@ -34,4 +34,6 @@ es:
         invalid: "Email o contraseña incorrectos."
         not_found_in_database: "Email o contraseña incorrectos."
         already_authenticated: "Ya iniciaste sesión."
+        deactivated: "Tu acceso está desactivado. Consultá con administración de HANS."
+        inactive: "Tu acceso está desactivado. Consultá con administración de HANS."
       

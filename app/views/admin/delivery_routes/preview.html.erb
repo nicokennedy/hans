@@ -1,4 +1,4 @@
-<p class="reparto-preview-band" role="note"><strong>VISTA PREVIA</strong> · así lo va a ver el repartidor en el celular. Todavía no puede usarlo.</p>
+<p class="reparto-preview-band" role="note"><strong>VISTA PREVIA DE ADMINISTRACIÓN</strong> · así ve <%= @route.driver_name %> su recorrido. Solo para mirar: desde acá no se registra nada.</p>
 
 <% if @stop %>
   <%= link_to "◀ VOLVER A LA LISTA", preview_admin_delivery_route_path(@route), class: "reparto-back" %>
@@ -35,7 +35,12 @@
     </section>
   <% end %>
 
-  <p class="reparto-text reparto-center">Los botones "Entregué" y "Me pagaron" llegan en la próxima etapa.</p>
+  <section class="reparto-card">
+    <p class="reparto-kicker">ESTADO</p>
+    <p class="reparto-big"><%= @stop.delivery_status_label %><%= ": #{@stop.not_delivered_reason}" if @stop.delivery_status == "not_delivered" %></p>
+    <% if @stop.delivery_recorded_at %><p class="reparto-text">Registrado a las <%= l(@stop.delivery_recorded_at, format: "%H:%M") %> por <%= @stop.delivery_recorded_by&.display_name %>.</p><% end %>
+  </section>
+  <p class="reparto-text reparto-center">El repartidor registra la entrega desde su celular. En esta vista previa los botones no se muestran.</p>
 <% else %>
   <header class="reparto-header">
     <p class="reparto-kicker">REPARTO DEL <%= l(@route.date, format: "%d/%m") %></p>
@@ -54,6 +59,7 @@
         <span class="reparto-stop-name"><%= stop.display_name %></span>
         <span class="reparto-stop-address"><%= stop.address_line || "⚠ Sin dirección cargada" %></span>
         <% if stop.manual? %><span class="reparto-chip"><%= stop.kind_label.upcase %></span><% end %>
+        <span class="reparto-chip reparto-chip-<%= stop.delivery_status %>"><%= { "pending" => "FALTA", "delivered" => "✔ ENTREGADO", "done" => "✔ HECHO", "not_delivered" => "✖ NO ENTREGADO" }[stop.delivery_status] %></span>
       </span>
     <% end %>
   <% end %>

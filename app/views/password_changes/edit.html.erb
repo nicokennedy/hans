@@ -1,0 +1,38 @@
+<% if current_user.driver? %>
+  <header class="reparto-header">
+    <p class="reparto-kicker">HANS</p>
+    <h1 class="reparto-date">Elegí tu contraseña</h1>
+  </header>
+  <section class="reparto-card">
+    <p class="reparto-text">Ingresaste con una contraseña temporal. Elegí una nueva que solo vos conozcas (al menos <%= PasswordChangesController::MIN_LENGTH %> letras o números).</p>
+  </section>
+  <%= form_with url: password_change_path, method: :patch, local: true, class: "reparto-form" do %>
+    <label class="reparto-label" for="password">Contraseña nueva</label>
+    <%= password_field_tag :password, nil, id: "password", class: "reparto-input", autocomplete: "new-password", required: true, minlength: PasswordChangesController::MIN_LENGTH %>
+    <label class="reparto-label" for="password_confirmation">Repetila</label>
+    <%= password_field_tag :password_confirmation, nil, id: "password_confirmation", class: "reparto-input", autocomplete: "new-password", required: true %>
+    <%= submit_tag "GUARDAR MI CONTRASEÑA", class: "reparto-button reparto-button-primary", data: { saving: "Guardando…" } %>
+  <% end %>
+<% else %>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-5">
+        <div class="product-card p-4">
+          <h1 class="h3 fw-bold">Elegí tu contraseña</h1>
+          <p class="text-muted">Ingresaste con una contraseña temporal. Elegí una nueva que solo vos conozcas (al menos <%= PasswordChangesController::MIN_LENGTH %> caracteres).</p>
+          <%= form_with url: password_change_path, method: :patch, local: true do %>
+            <div class="mb-3">
+              <label class="form-label" for="password">Contraseña nueva</label>
+              <%= password_field_tag :password, nil, id: "password", class: "form-control form-control-lg", autocomplete: "new-password", required: true, minlength: PasswordChangesController::MIN_LENGTH %>
+            </div>
+            <div class="mb-4">
+              <label class="form-label" for="password_confirmation">Repetila</label>
+              <%= password_field_tag :password_confirmation, nil, id: "password_confirmation", class: "form-control form-control-lg", autocomplete: "new-password", required: true %>
+            </div>
+            <%= submit_tag "Guardar mi contraseña", class: "btn btn-hans btn-lg w-100" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

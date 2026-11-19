@@ -1,21 +1,48 @@
 <header class="reparto-header">
   <p class="reparto-kicker">REPARTO DE HOY</p>
   <h1 class="reparto-date"><%= reparto_date(Date.current) %></h1>
+  <% if current_user.driver? %><p class="reparto-text">Hola, <%= current_user.display_name %>.</p><% end %>
 </header>
 
-<section class="reparto-card">
-  <p class="reparto-big">Hoy no tenés reparto.</p>
-  <p class="reparto-text">Cuando administración arme el recorrido, va a aparecer acá.</p>
-</section>
+<% if @route %>
+  <% done = @stops.count { |s| s.delivery_status != "pending" } %>
+  <div class="reparto-progress">
+    <p class="reparto-text">Hiciste <strong><%= done %> de <%= @stops.size %></strong> paradas</p>
+    <div class="reparto-bar" aria-hidden="true"><span style="width: <%= @stops.empty? ? 0 : (done * 100 / @stops.size) %>%"></span></div>
+  </div>
 
-<%= link_to reparto_prototype_path, class: "reparto-button reparto-button-primary" do %>
-  PROBAR CÓMO VA A FUNCIONAR
-<% end %>
-<p class="reparto-text reparto-center">Es una prueba: no se guarda nada.</p>
+  <% if @next %>
+    <section class="reparto-card reparto-card-next">
+      <p class="reparto-kicker">PRÓXIMA PARADA</p>
+      <p class="reparto-name"><%= @next.display_name %></p>
+      <p class="reparto-address"><%= @next.address_line || "Sin dirección cargada" %></p>
+    </section>
+    <%= link_to reparto_stop_path(@next), class: "reparto-button reparto-button-primary" do %>▶ <%= @next.order? ? "VER EL PEDIDO" : "VER QUÉ HAY QUE HACER" %><% end %>
+    <% if (url = @next.google_maps_url) %>
+      <%= link_to url, class: "reparto-button", target: "_blank", rel: "noopener" do %>📍 CÓMO LLEGAR<% end %>
+    <% end %>
+  <% elsif @stops.any? %>
+    <section class="reparto-done">
+      <div class="reparto-check" aria-hidden="true">✔</div>
+      <p class="reparto-big">¡Terminaste todas las paradas!</p>
+    </section>
+  <% else %>
+    <section class="reparto-card"><p class="reparto-big">Tu recorrido de hoy todavía no tiene paradas.</p></section>
+  <% end %>
 
-<% if current_user.admin? %>
-  <p class="reparto-text reparto-center">Estás viendo el portal del repartidor como administrador.
-    <%= link_to "Volver al panel", admin_root_path %></p>
+  <%= link_to reparto_stops_path, class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
+<% elsif current_user.admin? %>
+  <section class="reparto-card">
+    <p class="reparto-big">Estás en el portal del repartidor como administrador.</p>
+    <p class="reparto-text">Para ver el recorrido de un repartidor sin registrar nada, usá "Ver como repartidor" en Repartos.</p>
+  </section>
+  <%= link_to "IR A REPARTOS", admin_delivery_routes_path, class: "reparto-button reparto-button-primary" %>
+  <%= link_to "PROBAR LA DEMOSTRACIÓN", reparto_prototype_path, class: "reparto-button" %>
+<% else %>
+  <section class="reparto-card">
+    <p class="reparto-big">Hoy no tenés reparto.</p>
+    <p class="reparto-text">Cuando administración te asigne un recorrido, va a aparecer acá.</p>
+  </section>
 <% end %>
 
 <footer class="reparto-footer">

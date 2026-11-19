@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_19_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -165,13 +165,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
     t.text "removal_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "delivery_status", default: "pending", null: false
+    t.datetime "delivery_recorded_at"
+    t.bigint "delivery_recorded_by_id"
+    t.string "not_delivered_reason"
     t.index ["customer_id"], name: "index_delivery_stops_on_customer_id"
+    t.index ["delivery_recorded_by_id"], name: "index_delivery_stops_on_delivery_recorded_by_id"
     t.index ["delivery_route_id", "position"], name: "index_delivery_stops_on_delivery_route_id_and_position"
     t.index ["delivery_route_id"], name: "index_delivery_stops_on_delivery_route_id"
     t.index ["order_id"], name: "index_delivery_stops_on_active_order", unique: true, where: "((order_id IS NOT NULL) AND (removed_at IS NULL))"
     t.index ["order_id"], name: "index_delivery_stops_on_order_id"
     t.index ["removed_by_id"], name: "index_delivery_stops_on_removed_by_id"
     t.check_constraint "(kind::text = 'order'::text) = (order_id IS NOT NULL)", name: "delivery_stops_order_matches_kind"
+    t.check_constraint "delivery_status::text <> 'not_delivered'::text OR not_delivered_reason IS NOT NULL", name: "delivery_stops_not_delivered_has_reason"
+    t.check_constraint "delivery_status::text = ANY (ARRAY['pending'::character varying, 'delivered'::character varying, 'not_delivered'::character varying, 'done'::character varying]::text[])", name: "delivery_stops_delivery_status_valid"
     t.check_constraint "kind::text = 'order'::text OR title IS NOT NULL", name: "delivery_stops_manual_has_title"
     t.check_constraint "kind::text = ANY (ARRAY['order'::character varying, 'supplies_pickup'::character varying, 'purchase'::character varying, 'errand'::character varying, 'other'::character varying]::text[])", name: "delivery_stops_kind_valid"
     t.check_constraint "removed_at IS NULL OR removal_kind IS NOT NULL", name: "delivery_stops_removed_has_kind"
@@ -777,6 +784,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
     t.index ["tax_id"], name: "index_suppliers_on_tax_id_unique", unique: true, where: "((tax_id IS NOT NULL) AND ((tax_id)::text <> ''::text))"
   end
 
+  create_table "user_events", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "actor_id", null: false
+    t.string "event_type", null: false
+    t.jsonb "data", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["actor_id"], name: "index_user_events_on_actor_id"
+    t.index ["user_id"], name: "index_user_events_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -787,6 +804,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
     t.bigint "customer_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "name"
+    t.boolean "active", default: true, null: false
+    t.boolean "must_change_password", default: false, null: false
+    t.datetime "last_sign_in_at"
     t.index ["customer_id"], name: "index_users_on_customer_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
@@ -806,6 +827,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
   add_foreign_key "delivery_stops", "customers"
   add_foreign_key "delivery_stops", "delivery_routes"
   add_foreign_key "delivery_stops", "orders"
+  add_foreign_key "delivery_stops", "users", column: "delivery_recorded_by_id"
   add_foreign_key "delivery_stops", "users", column: "removed_by_id"
   add_foreign_key "expense_recurrences", "expense_categories"
   add_foreign_key "expense_recurrences", "suppliers"
@@ -867,4 +889,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_18_150000) do
   add_foreign_key "stock_movements", "retail_orders"
   add_foreign_key "stock_movements", "stock_items"
   add_foreign_key "stock_movements", "users"
+  add_foreign_key "user_events", "users"
+  add_foreign_key "user_events", "users", column: "actor_id"
 end

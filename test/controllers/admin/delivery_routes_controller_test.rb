@@ -15,8 +15,8 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
   end
 
   def create_route_via_ui(ids = [@o1.id, @o2.id])
-    post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: ids }
-    DeliveryRoute.find_by!(date: @date)
+    post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: ids, driver_id: @driver.id }
+    DeliveryRoute.find_by!(date: @date, driver: @driver)
   end
 
   test "the index lists the day's orders with address, amounts and missing-address warnings" do
@@ -37,7 +37,7 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_delivery_route_path(route)
     follow_redirect!
     assert_response :success
-    assert_match "Recorrido del", response.body
+    assert_match "Recorrido de Chiara", response.body
 
     stop = route.active_stops.last
     patch move_admin_delivery_route_stop_path(route, stop), params: { direction: "up" }
@@ -145,5 +145,34 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
     assert_match "MODO DEMOSTRACIÓN", response.body
     get admin_delivery_routes_path
     assert_no_match "MODO DEMOSTRACIÓN", response.body
+  end
+
+  test "two drivers share a date: create both routes and pass an order from one to the other" do
+    emilio = create_driver("Emilio")
+    sign_in @admin
+    post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o1.id], driver_id: @driver.id }
+    post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o2.id], driver_id: emilio.id }
+    chiara_route = DeliveryRoute.find_by!(date: @date, driver: @driver)
+    emilio_route = DeliveryRoute.find_by!(date: @date, driver: emilio)
+
+    get admin_delivery_routes_path(date: @date.iso8601)
+    assert_match "Chiara", response.body
+    assert_match "Emilio", response.body
+    assert_match "Pedidos sin asignar · 0", response.body
+
+    stop = chiara_route.active_stops.first
+    patch transfer_admin_delivery_route_stop_path(chiara_route, stop), params: { target_route_id: emilio_route.id }
+    assert_equal [@o2.id, @o1.id], emilio_route.active_stops.map(&:order_id)
+    assert_equal 0, chiara_route.active_stops.count
+    follow_redirect!
+    assert_match "Pasó a otro repartidor", response.body
+  end
+
+  test "creating a route without a driver or with an inactive one is refused" do
+    sign_in @admin
+    assert_no_difference -> { DeliveryRoute.count } do
+      post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o1.id] }
+      post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o1.id], driver_id: create_driver("Baja", active: false).id }
+    end
   end
 end

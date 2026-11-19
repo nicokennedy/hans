@@ -87,3 +87,28 @@ body.reparto {
 .reparto-chip { align-self: flex-start; padding: 4px 10px; border: 2px solid var(--r-border); border-radius: 10px; font-size: 15px; font-weight: 800; }
 .reparto-link { color: var(--r-muted); font-size: 17px; }
 .reparto-button + .reparto-button, .reparto-button { margin-bottom: 14px; }
+
+/* Formularios del portal (contraseña) */
+.reparto-form { display: flex; flex-direction: column; gap: 10px; }
+.reparto-label { font-weight: 800; font-size: 20px; }
+.reparto-input { min-height: 60px; padding: 10px 14px; border: 3px solid var(--r-border); border-radius: 14px; font-size: 22px; background: var(--r-surface); color: var(--r-ink); }
+.reparto-input:focus-visible { outline: 4px solid #1c5fd6; outline-offset: 2px; }
+.reparto-form .reparto-button { margin-top: 10px; }
+
+/* R3: recorrido real del repartidor */
+.reparto-progress { margin-bottom: 16px; }
+.reparto-bar { height: 14px; border-radius: 99px; background: var(--r-surface); border: 2px solid var(--r-border); overflow: hidden; }
+.reparto-bar span { display: block; height: 100%; background: var(--r-primary); }
+.reparto-card-next { border-color: var(--r-primary); box-shadow: inset 0 0 0 2px var(--r-primary); }
+.reparto-stop-next { border-color: var(--r-primary); box-shadow: inset 0 0 0 3px var(--r-primary); }
+.reparto-question { margin: 18px 0 12px; font-size: 26px; font-weight: 800; }
+.reparto-done { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-bottom: 18px; padding: 24px 16px; background: #e3efe7; border: 3px solid var(--r-primary); border-radius: 22px; }
+.reparto-check { width: 84px; height: 84px; border-radius: 50%; background: var(--r-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 50px; font-weight: 800; }
+.reparto-done .reparto-big { margin: 0; color: var(--r-primary); }
+.reparto-button-col { flex-direction: column; gap: 4px; }
+.reparto-sub { font-size: 18px; font-weight: 400; }
+.reparto-chip-pending { color: var(--r-ink); }
+.reparto-chip-next, .reparto-chip-delivered, .reparto-chip-done { color: var(--r-primary); border-color: var(--r-primary); background: #e3efe7; }
+.reparto-chip-not_delivered { color: var(--r-error); border-color: var(--r-error); background: #fbe6e4; }
+form.button_to { margin: 0; }
+form.button_to .reparto-button { margin-bottom: 14px; }

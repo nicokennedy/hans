@@ -21,7 +21,7 @@
 <body>
   <div class="actions"><button onclick="window.print()">Imprimir</button></div>
   <h1>Hoja de ruta · <%= l(@route.date, format: "%d/%m/%Y") %></h1>
-  <p>Repartidor: <%= @route.driver&.email || "sin asignar" %> · <%= @stops.size %> paradas · Es una guía en papel: no reemplaza el registro digital de entregas y cobros.</p>
+  <p>Repartidor: <%= @route.driver_name %> · <%= @stops.size %> paradas · Es una guía en papel: no reemplaza el registro digital de entregas y cobros.</p>
   <table>
     <thead><tr><th>#</th><th>Cliente / parada</th><th>Dirección</th><th>Pedido</th><th class="num">Total</th><th class="num">Saldo</th><th>Entregado</th><th>Cobrado $</th></tr></thead>
     <tbody>
