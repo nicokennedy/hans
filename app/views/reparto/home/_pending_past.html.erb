@@ -1,0 +1,15 @@
+<%# R4: rendiciones de días anteriores que el repartidor todavía no envió. %>
+<% if current_user.driver? && pending_past_routes.any? %>
+  <section class="reparto-card" id="rendiciones-pendientes">
+    <p class="reparto-kicker">RENDICIONES PENDIENTES DE DÍAS ANTERIORES</p>
+    <p class="reparto-text">Completá los cobros y gastos que falten y enviá la rendición.</p>
+  </section>
+  <% pending_past_routes.each do |route| %>
+    <% summary = DeliveryRoutes::Settlement.new(route) %>
+    <%= link_to reparto_route_settlement_path(route), class: "reparto-button reparto-button-col" do %>
+      <span><%= route.label.upcase %> · <%= l(route.date, format: "%d/%m") %></span>
+      <span class="reparto-sub">Cobros <%= format_money(summary.collected_cents) %> · Gastos <%= format_money(summary.expenses_cents) %></span>
+      <span class="reparto-sub">Para entregar <strong><%= format_money(summary.to_deliver_cents) %></strong> · Sin enviar</span>
+    <% end %>
+  <% end %>
+<% end %>

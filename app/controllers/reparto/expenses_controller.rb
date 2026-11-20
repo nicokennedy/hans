@@ -67,7 +67,7 @@ class Reparto::ExpensesController < Reparto::BaseController
   private
 
   def set_route
-    @route = find_todays_route(params[:route_id])
+    @route = find_driver_route(params[:route_id])
   end
 
   def set_expense

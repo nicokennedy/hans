@@ -8,7 +8,7 @@ class Reparto::BaseController < ApplicationController
   before_action :require_driver_or_admin!
 
   rescue_from ActiveRecord::RecordNotFound do
-    redirect_to reparto_root_path, alert: "Eso ya no está en tus repartos de hoy."
+    redirect_to reparto_root_path, alert: "Eso ya no está en tus repartos."
   end
 
   private
@@ -25,19 +25,37 @@ class Reparto::BaseController < ApplicationController
     @todays_routes ||= current_user.delivery_routes.where(date: Date.current).includes(:driver).order(:id).to_a
   end
 
-  # "Inicio" de un recorrido: con un solo reparto es la portada; con varios, la pantalla de ese reparto.
+  # R4: recorridos de DÍAS ANTERIORES del repartidor cuya rendición todavía no envió. Puede
+  # completar cobros, gastos y fotos y enviar la rendición; NO registrar entregas atrasadas
+  # (las paradas pendientes las revisa administración). Las operaciones quedan con su fecha y
+  # hora reales; el recorrido conserva su fecha original.
+  def pending_past_routes
+    @pending_past_routes ||= current_user.delivery_routes.where("date < ?", Date.current).where(status: %w[draft in_progress])
+                                         .includes(:driver).order(:date, :id).to_a
+  end
+
+  # Todo lo que el repartidor puede abrir: sus recorridos de hoy y los anteriores sin rendir.
+  def driver_routes
+    todays_routes + pending_past_routes
+  end
+
+  def past_route?(route)
+    route.date < Date.current
+  end
+
+  # "Inicio" de un recorrido: con un solo reparto hoy es la portada; si no, la pantalla de ese reparto.
   def route_home_path(route)
-    todays_routes.many? ? reparto_route_path(route) : reparto_root_path
+    past_route?(route) || todays_routes.many? ? reparto_route_path(route) : reparto_root_path
   end
-  helper_method :route_home_path, :todays_routes
+  helper_method :route_home_path, :todays_routes, :pending_past_routes, :past_route?
 
-  # Una parada de los recorridos de HOY del repartidor (nunca de otro repartidor ni de otro día).
-  def find_todays_stop(id)
-    DeliveryStop.active.where(delivery_route_id: todays_routes.map(&:id)).includes(order: [:customer, :order_items]).find(id)
+  # Una parada de los recorridos del repartidor (hoy o anteriores sin rendir); nunca de otro repartidor.
+  def find_driver_stop(id)
+    DeliveryStop.active.where(delivery_route_id: driver_routes.map(&:id)).includes(order: [:customer, :order_items]).find(id)
   end
 
-  def find_todays_route(id)
-    todays_routes.find { |route| route.id == id.to_i } || raise(ActiveRecord::RecordNotFound)
+  def find_driver_route(id)
+    driver_routes.find { |route| route.id == id.to_i } || raise(ActiveRecord::RecordNotFound)
   end
 
   # Importe escrito en pesos ("13500", "13.500", "$ 13.500") → centavos, o nil.

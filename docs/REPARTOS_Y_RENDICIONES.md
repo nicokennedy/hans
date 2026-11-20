@@ -678,3 +678,11 @@ Decisiones financieras aprobadas (20/11/2026):
 
 ### Tests
 `test/services/delivery_routes/{collections,settlements,photos}_test.rb`, `test/controllers/reparto/money_flow_test.rb`, `test/controllers/admin/delivery_settlements_test.rb`.
+
+### Rendiciones pendientes de días anteriores (aprobado 20/11/2026)
+- El portal muestra al repartidor la sección **"Rendiciones pendientes de días anteriores"**: todos sus recorridos de fechas anteriores con la rendición sin enviar (fecha original, número de reparto, cobros, gastos, efectivo a entregar, "Sin enviar"). `Reparto::BaseController#pending_past_routes`; el alcance del portal es `driver_routes` = hoy + anteriores sin enviar (nunca recorridos de otro repartidor).
+- Mientras no la envíe puede: registrar y corregir cobros, registrar y corregir gastos, completar fotos de remitos y enviar la rendición. Cada operación usa su **fecha y hora reales** (cobro: `paid_on` = día del registro; gasto: `spent_at` = ahora, y al cierre el gasto en Administración usa esa fecha); el recorrido conserva su fecha original. Nada se fecha retroactivamente.
+- **Entregas atrasadas bloqueadas**: `DeliveryRoutes::Deliveries` rechaza entregar / no pude / hecho en un recorrido de una fecha anterior. En el celular, la parada pendiente aparece "REVISIÓN DE ADMINISTRACIÓN", sin botones de entrega (sí puede registrar un cobro). Registrar entregas atrasadas se tratará por separado.
+- Al enviar, el recorrido sale del portal y la portada confirma "Listo: enviaste la rendición del Reparto N del dd/mm. Entregá $X a administración." Enviada: el repartidor no cambia nada; administración corrige con motivo hasta el cierre; confirmada: totales congelados, en el historial.
+- Administración: aviso en Repartos y en Rendiciones cuando hay rendiciones anteriores sin enviar; Rendiciones filtra por estado (incluye "Sin enviar (días anteriores)", con totales en vivo), repartidor y rango de fechas.
+- Tests: `test/controllers/reparto/past_settlements_test.rb`.

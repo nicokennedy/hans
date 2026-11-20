@@ -6,14 +6,29 @@
   <% if @overdue_routes.any? %>
     <div class="alert alert-warning">⚠ Sin rendición enviada de días anteriores:
       <%= safe_join(@overdue_routes.map { |r| link_to("#{l(r.date, format: '%d/%m')} · #{r.title}", admin_delivery_route_path(r, anchor: "rendicion")) }, ", ") %>
+      · <%= link_to "Ver todas", settlements_admin_delivery_routes_path(filtro: "sin_enviar") %>
     </div>
   <% end %>
 
-  <div class="d-flex flex-wrap gap-2 mb-3">
-    <% Admin::DeliveryRoutesController::FILTERS.each do |key, label| %>
-      <%= link_to label, settlements_admin_delivery_routes_path(filtro: key), class: "btn btn-sm #{@filter == key ? 'btn-dark' : 'btn-outline-dark'}" %>
-    <% end %>
-  </div>
+  <%= form_with url: settlements_admin_delivery_routes_path, method: :get, local: true, class: "row g-2 align-items-end mb-3" do %>
+    <div class="col-6 col-md-3">
+      <label class="form-label small" for="filtro">Estado</label>
+      <%= select_tag :filtro, options_for_select(Admin::DeliveryRoutesController::FILTERS.invert, @filter), id: "filtro", class: "form-select form-select-sm" %>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small" for="repartidor">Repartidor</label>
+      <%= select_tag :repartidor, options_for_select(@drivers.map { |d| [d.display_name, d.id] }, @driver_id), include_blank: "Todos", id: "repartidor", class: "form-select form-select-sm" %>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small" for="desde">Desde</label>
+      <%= date_field_tag :desde, @from&.iso8601, id: "desde", class: "form-control form-control-sm" %>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small" for="hasta">Hasta</label>
+      <%= date_field_tag :hasta, @to&.iso8601, id: "hasta", class: "form-control form-control-sm" %>
+    </div>
+    <div class="col-12 col-md-2"><%= submit_tag "Filtrar", name: nil, class: "btn btn-sm btn-dark w-100" %></div>
+  <% end %>
 
   <% if @routes.empty? %>
     <p class="text-muted">No hay rendiciones en esta vista.</p>
@@ -27,10 +42,11 @@
               <td><%= l(route.date, format: "%d/%m/%Y") %></td>
               <td><%= link_to route.title, admin_delivery_route_path(route, anchor: "rendicion") %> <span class="small text-muted">N.º <%= route.id %></span></td>
               <td><%= delivery_route_status_badge(route) %></td>
-              <td class="small"><%= route.submitted_at ? l(route.submitted_at, format: "%d/%m %H:%M") : "—" %></td>
-              <td class="text-end"><%= format_money(route.collected_cents.to_i) %></td>
-              <td class="text-end"><%= format_money(route.expenses_cents.to_i) %></td>
-              <td class="text-end fw-bold"><%= format_money([route.expected_cash_cents.to_i, 0].max) %></td>
+              <% live = @live[route.id] %>
+              <td class="small"><%= route.submitted_at ? l(route.submitted_at, format: "%d/%m %H:%M") : "Sin enviar" %></td>
+              <td class="text-end"><%= format_money(live ? live.collected_cents : route.collected_cents.to_i) %></td>
+              <td class="text-end"><%= format_money(live ? live.expenses_cents : route.expenses_cents.to_i) %></td>
+              <td class="text-end fw-bold"><%= format_money(live ? live.to_deliver_cents : [route.expected_cash_cents.to_i, 0].max) %></td>
               <td class="text-end"><%= route.confirmed? ? format_money(route.counted_cash_cents) : "—" %></td>
               <td class="text-end <%= 'text-danger fw-bold' if route.difference_cents.to_i.nonzero? %>"><%= route.confirmed? ? (route.difference_cents.to_i.zero? ? "$0" : "#{route.difference_cents.negative? ? 'Faltan' : 'Sobran'} #{format_money(route.difference_cents.abs)}") : "—" %></td>
               <td class="small">

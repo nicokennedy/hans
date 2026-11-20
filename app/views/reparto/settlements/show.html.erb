@@ -13,12 +13,18 @@
 <%= render "reparto/settlements/detail", summary: @summary %>
 
 <% if @route.open_for_driver? %>
-  <% if @summary.pending_stops.any? %>
+  <% if past_route?(@route) && @summary.pending_stops.any? %>
+    <p class="reparto-note"><%= @summary.pending_stops.size == 1 ? "1 parada quedó" : "#{@summary.pending_stops.size} paradas quedaron" %> sin marcar: las revisa administración. Podés enviar la rendición igual.</p>
+  <% elsif @summary.pending_stops.any? %>
     <p class="reparto-warning"><%= @summary.pending_stops.size == 1 ? "Te falta 1 parada" : "Te faltan #{@summary.pending_stops.size} paradas" %> por marcar.</p>
   <% end %>
   <% if @summary.pending_photo_stops.any? %>
     <p class="reparto-warning">📷 <%= @summary.pending_photo_stops.size == 1 ? "Falta 1 foto de remito" : "Faltan #{@summary.pending_photo_stops.size} fotos de remitos" %>: <%= @summary.pending_photo_stops.map(&:display_name).join(", ") %>.</p>
   <% end %>
+  <% @summary.pending_photo_stops.each do |stop| %>
+    <%= link_to "📷 FOTO DEL REMITO · #{stop.display_name.upcase}", reparto_stop_photo_path(stop), class: "reparto-button" %>
+  <% end %>
   <%= link_to "📤 ENVIAR LA RENDICIÓN", reparto_route_settlement_confirm_path(@route), class: "reparto-button reparto-button-primary" %>
+  <%= link_to "☰ VER LAS PARADAS Y COBROS", reparto_route_stops_path(@route), class: "reparto-button" %>
   <%= link_to "💵 VER O ANOTAR GASTOS", reparto_route_expenses_path(@route), class: "reparto-button" %>
 <% end %>

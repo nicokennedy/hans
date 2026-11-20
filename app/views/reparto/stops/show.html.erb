@@ -1,6 +1,6 @@
 <%= link_to "◀ VOLVER A LA LISTA", reparto_route_stops_path(@route), class: "reparto-back" %>
 <header class="reparto-header">
-  <p class="reparto-kicker"><%= "#{@route.label.upcase} · " if todays_routes.many? %>PARADA <%= @stop.position %> DE <%= @route.active_stops.count %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
+  <p class="reparto-kicker"><%= "#{@route.label.upcase} · " if todays_routes.many? || past_route?(@route) %><%= "DEL #{l(@route.date, format: '%d/%m')} · " if past_route?(@route) %>PARADA <%= @stop.position %> DE <%= @route.active_stops.count %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
   <h1 class="reparto-name"><%= @stop.display_name %></h1>
   <% if @stop.address_line %>
     <p class="reparto-address"><%= @stop.address_line %></p>
@@ -66,6 +66,11 @@
 <% end %>
 
 <% if !route_open %>
+<% elsif past_route?(@route) && %w[pending not_delivered].include?(@stop.delivery_status) %>
+  <p class="reparto-note">Es del reparto del <%= l(@route.date, format: "%d/%m") %>: <%= @stop.delivery_status == "pending" ? "quedó sin marcar y la revisa administración" : "administración decide qué hacer" %>. No se puede marcar como entregado desde acá.</p>
+  <% if @stop.order? %>
+    <%= link_to "💵 IGUAL ME PAGARON ALGO", reparto_stop_collection_path(@stop), class: "reparto-button" %>
+  <% end %>
 <% elsif %w[pending not_delivered].include?(@stop.delivery_status) %>
   <% if @stop.delivery_status == "not_delivered" %>
     <section class="reparto-card"><%= render "reparto/stops/status_chip", stop: @stop %></section>

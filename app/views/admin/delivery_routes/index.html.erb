@@ -15,6 +15,7 @@
   <% if @overdue_routes.any? %>
     <div class="alert alert-warning">⚠ Rendiciones sin enviar de días anteriores:
       <%= safe_join(@overdue_routes.map { |r| link_to("#{l(r.date, format: '%d/%m')} · #{r.title}", admin_delivery_route_path(r, anchor: "rendicion")) }, ", ") %>
+      · <%= link_to "Ver en Rendiciones", settlements_admin_delivery_routes_path(filtro: "sin_enviar") %>
     </div>
   <% end %>
 

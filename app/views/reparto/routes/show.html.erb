@@ -1,7 +1,10 @@
-<%= link_to "◀ MIS REPARTOS DE HOY", reparto_root_path, class: "reparto-back" %>
+<%= link_to "◀ VOLVER AL INICIO", reparto_root_path, class: "reparto-back" %>
 <header class="reparto-header">
-  <p class="reparto-kicker"><%= @route.label.upcase %> · HOY</p>
+  <p class="reparto-kicker"><%= @route.label.upcase %> · <%= past_route?(@route) ? "RENDICIÓN PENDIENTE" : "HOY" %></p>
   <h1 class="reparto-date"><%= reparto_date(@route.date) %></h1>
 </header>
+<% if past_route?(@route) %>
+  <p class="reparto-note">Es un reparto de un día anterior. Podés completar cobros, gastos y fotos de remitos, y enviar la rendición. Las paradas que quedaron sin entregar las revisa administración.</p>
+<% end %>
 
 <%= render "reparto/routes/route", route: @route, stops: @stops, next_stop: @next %>

@@ -42,25 +42,25 @@ class Reparto::StopsController < Reparto::BaseController
   end
 
   def saved
-    @next = @route.active_stops.pending_delivery.where.not(id: @stop.id).first
+    @next = past_route?(@route) ? nil : @route.active_stops.pending_delivery.where.not(id: @stop.id).first
   end
 
   private
 
   def require_routes
-    redirect_to reparto_root_path if todays_routes.empty?
+    redirect_to reparto_root_path if driver_routes.empty?
   end
 
   # /reparto/repartos/:route_id/paradas. Sin route_id (enlace viejo) solo si hoy hay un único reparto.
   def set_route
-    @route = params[:route_id] ? todays_routes.find { |r| r.id == params[:route_id].to_i } : (todays_routes.first if todays_routes.one?)
+    @route = params[:route_id] ? driver_routes.find { |r| r.id == params[:route_id].to_i } : (todays_routes.first if todays_routes.one?)
     redirect_to reparto_root_path unless @route
   end
 
   def set_stop
-    @stop = DeliveryStop.active.where(delivery_route_id: todays_routes.map(&:id))
+    @stop = DeliveryStop.active.where(delivery_route_id: driver_routes.map(&:id))
                         .includes(order: [:customer, :order_items]).find(params[:id])
-    @route = todays_routes.find { |r| r.id == @stop.delivery_route_id }
+    @route = driver_routes.find { |r| r.id == @stop.delivery_route_id }
   end
 
   def respond_with(result)

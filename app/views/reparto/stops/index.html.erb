@@ -1,11 +1,14 @@
 <%= link_to "◀ VOLVER AL INICIO", route_home_path(@route), class: "reparto-back" %>
 <header class="reparto-header">
-  <% if todays_routes.many? %><p class="reparto-kicker"><%= @route.label.upcase %></p><% end %>
+  <% if todays_routes.many? || past_route?(@route) %><p class="reparto-kicker"><%= @route.label.upcase %><%= " · DEL #{l(@route.date, format: '%d/%m')}" if past_route?(@route) %></p><% end %>
   <h1 class="reparto-date">Todas las paradas</h1>
   <p class="reparto-text">Tocá una parada para verla.</p>
 </header>
 
-<% next_stop = @stops.find { |s| s.delivery_status == "pending" } %>
+<% next_stop = past_route?(@route) ? nil : @stops.find { |s| s.delivery_status == "pending" } %>
+<% if past_route?(@route) %>
+  <p class="reparto-note">Reparto del <%= l(@route.date, format: "%d/%m") %>. Las paradas que quedaron sin entregar las revisa administración.</p>
+<% end %>
 <% @stops.each do |stop| %>
   <%= link_to reparto_stop_path(stop), class: "reparto-stop#{' reparto-stop-next' if stop == next_stop}" do %>
     <span class="reparto-num" aria-hidden="true"><%= stop.position %></span>

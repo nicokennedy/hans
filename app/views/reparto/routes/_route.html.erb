@@ -6,7 +6,12 @@
   <div class="reparto-bar" aria-hidden="true"><span style="width: <%= stops.empty? ? 0 : (done * 100 / stops.size) %>%"></span></div>
 </div>
 
-<% if next_stop %>
+<% late = past_route?(route) ? stops.count { |s| s.delivery_status == "pending" } : 0 %>
+<% if past_route?(route) %>
+  <% if late.positive? %>
+    <p class="reparto-warning"><%= late == 1 ? "1 parada quedó" : "#{late} paradas quedaron" %> sin marcar: las revisa administración.</p>
+  <% end %>
+<% elsif next_stop %>
   <section class="reparto-card reparto-card-next">
     <p class="reparto-kicker">PRÓXIMA PARADA</p>
     <p class="reparto-name"><%= next_stop.display_name %></p>
@@ -28,6 +33,6 @@
 <%= link_to reparto_route_stops_path(route), class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
 <%= link_to reparto_route_expenses_path(route), class: "reparto-button" do %>💵 GASTOS DEL REPARTO<% end %>
 <%= link_to reparto_route_settlement_path(route), class: "reparto-button#{' reparto-button-primary' if next_stop.nil? && stops.any? && route.open_for_driver?}" do %>🧾 <%= route.open_for_driver? ? "MI RENDICIÓN" : "RENDICIÓN ENVIADA" %><% end %>
-<% if todays_routes.many? %>
-  <%= link_to reparto_root_path, class: "reparto-button" do %>◀ MIS REPARTOS DE HOY<% end %>
+<% if todays_routes.many? || past_route?(route) %>
+  <%= link_to reparto_root_path, class: "reparto-button" do %>◀ VOLVER AL INICIO<% end %>
 <% end %>

@@ -108,12 +108,12 @@ class Reparto::CollectionsController < Reparto::BaseController
   private
 
   def set_stop
-    @stop = find_todays_stop(params[:stop_id])
+    @stop = find_driver_stop(params[:stop_id])
     redirect_to reparto_stop_path(@stop), alert: "Esta parada no es un pedido." unless @stop.order?
   end
 
   def set_collection
-    @collection = DeliveryCollection.where(delivery_route_id: todays_routes.map(&:id)).includes(:customer, delivery_stop: :order).find(params[:id])
+    @collection = DeliveryCollection.where(delivery_route_id: driver_routes.map(&:id)).includes(:customer, delivery_stop: :order).find(params[:id])
     @stop = @collection.delivery_stop
     redirect_to reparto_stop_path(@stop), alert: "Ese cobro ya fue corregido." if @collection.voided?
   end

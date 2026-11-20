@@ -59,17 +59,28 @@ class Admin::DeliveryRoutesController < ApplicationController
   end
 
   # R4: historial de rendiciones (por confirmar, confirmadas, con diferencia de caja).
-  FILTERS = { "pendientes" => "Por confirmar", "confirmadas" => "Confirmadas", "diferencias" => "Con diferencia o pendiente", "todas" => "Todas" }.freeze
+  FILTERS = { "pendientes" => "Por confirmar", "sin_enviar" => "Sin enviar (días anteriores)", "confirmadas" => "Confirmadas",
+              "diferencias" => "Con diferencia o pendiente", "todas" => "Todas" }.freeze
   def settlements
     @filter = FILTERS.key?(params[:filtro]) ? params[:filtro] : "pendientes"
+    @from = parse_date(params[:desde])
+    @to = parse_date(params[:hasta])
+    @driver_id = params[:repartidor].presence&.to_i
+    @drivers = User.where(role: "driver").order(Arel.sql("lower(coalesce(users.name, users.email))")).to_a
     scope = DeliveryRoute.includes(:driver, :confirmed_by).order(date: :desc, id: :desc)
     scope = case @filter
             when "pendientes" then scope.where(status: "submitted")
+            when "sin_enviar" then scope.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil)
             when "confirmadas" then scope.where(status: "confirmed")
             when "diferencias" then scope.where(status: "confirmed").where("difference_cents <> 0 OR unresolved_cents > 0")
-            else scope.where(status: %w[submitted confirmed])
+            else scope.where(status: %w[submitted confirmed]).or(scope.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil))
             end
+    scope = scope.where("date >= ?", @from) if @from
+    scope = scope.where("date <= ?", @to) if @to
+    scope = scope.where(driver_id: @driver_id) if @driver_id
     @routes = scope.limit(200).to_a
+    # Para las rendiciones sin enviar todavía no hay totales congelados: se calculan en vivo.
+    @live = @routes.reject { |r| r.submitted? || r.confirmed? }.to_h { |r| [r.id, DeliveryRoutes::Settlement.new(r)] }
     @voided_after_close = DeliveryCollection.joins(:customer_payment).where(delivery_route_id: @routes.map(&:id), voided_at: nil)
                                             .where.not(customer_payments: { voided_at: nil }).group(:delivery_route_id).count
     @overdue_routes = DeliveryRoute.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil).includes(:driver).order(:date, :id).to_a

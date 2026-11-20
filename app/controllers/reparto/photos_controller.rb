@@ -26,6 +26,6 @@ class Reparto::PhotosController < Reparto::BaseController
   private
 
   def set_stop
-    @stop = find_todays_stop(params[:stop_id])
+    @stop = find_driver_stop(params[:stop_id])
   end
 end

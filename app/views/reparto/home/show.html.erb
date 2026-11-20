@@ -30,6 +30,8 @@
   </section>
 <% end %>
 
+<%= render "reparto/home/pending_past" %>
+
 <footer class="reparto-footer">
   <%= button_to "Cerrar sesión", destroy_user_session_path, method: :delete,
         class: "reparto-link-button",

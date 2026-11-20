@@ -77,6 +77,9 @@ module DeliveryRoutes
             error("Esta parada ya no está en tu recorrido. Volvé a la lista.")
           elsif !stop.delivery_route.open_for_driver?
             error("Ya enviaste la rendición de este reparto: no se puede cambiar. Si hay un error, avisale a administración.")
+          elsif stop.delivery_route.date < Date.current
+            # Entregas atrasadas: no se registran desde el celular (se tratan aparte, con administración).
+            error("Es de un reparto de un día anterior: no se puede marcar desde acá. Avisale a administración.")
           else
             yield(stop) || Result.new(stop: stop, errors: [], already: false)
           end
