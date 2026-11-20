@@ -37,7 +37,7 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_delivery_route_path(route)
     follow_redirect!
     assert_response :success
-    assert_match "Recorrido de Chiara", response.body
+    assert_match "Chiara · Reparto 1", response.body
 
     stop = route.active_stops.last
     patch move_admin_delivery_route_stop_path(route, stop), params: { direction: "up" }
@@ -165,7 +165,7 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [@o2.id, @o1.id], emilio_route.active_stops.map(&:order_id)
     assert_equal 0, chiara_route.active_stops.count
     follow_redirect!
-    assert_match "Pasó a otro repartidor", response.body
+    assert_match "Pasó a otro reparto", response.body
   end
 
   test "creating a route without a driver or with an inactive one is refused" do
@@ -174,5 +174,42 @@ class Admin::DeliveryRoutesControllerTest < ActionDispatch::IntegrationTest
       post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o1.id] }
       post admin_delivery_routes_path, params: { date: @date.iso8601, order_ids: [@o1.id], driver_id: create_driver("Baja", active: false).id }
     end
+  end
+
+  test "a second route for the same driver and day from the screen, without duplicates" do
+    sign_in @admin
+    first = create_route_via_ui([@o1.id])
+
+    get admin_delivery_routes_path(date: @date.iso8601)
+    assert_select "a[href='#nuevo-reparto']", text: "+ Crear nuevo reparto"
+    assert_select "#new-route-driver option[value='#{@driver.id}']", text: /Chiara \(ya tiene 1 reparto este día\)/
+    assert_select "input[type=checkbox][value='#{@o1.id}']", 0
+    assert_select "input[type=checkbox][value='#{@o2.id}']", 1
+    token = css_select("input[name=creation_token]").first["value"]
+    assert token.present?
+
+    params = { date: @date.iso8601, order_ids: [@o2.id], driver_id: @driver.id, creation_token: token }
+    assert_difference -> { DeliveryRoute.count }, 1 do
+      post admin_delivery_routes_path, params: params
+      post admin_delivery_routes_path, params: params
+    end
+    second = DeliveryRoute.where(date: @date, driver: @driver).where.not(id: first.id).sole
+    assert_redirected_to admin_delivery_route_path(second)
+    assert_match "ya estaba creado", flash[:notice]
+    assert_equal [@o2.id], second.active_stops.map(&:order_id)
+    assert_equal [@o1.id], first.active_stops.map(&:order_id)
+
+    get admin_delivery_routes_path(date: @date.iso8601)
+    assert_match "Chiara · Reparto 1", response.body
+    assert_match "Chiara · Reparto 2", response.body
+    assert_match "Pedidos sin asignar · 0", response.body
+
+    get admin_delivery_route_path(second)
+    assert_match "Chiara · Reparto 2", response.body
+    assert_select "select[name=target_route_id] option", text: "Chiara · Reparto 1"
+
+    get preview_admin_delivery_route_path(second)
+    assert_match "su Reparto 2", response.body
+    assert_no_match "SÍ, LO ENTREGUÉ", response.body
   end
 end

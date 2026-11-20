@@ -1,5 +1,5 @@
 module DeliveryRoutes
-  Result = Struct.new(:route, :errors, keyword_init: true) do
+  Result = Struct.new(:route, :errors, :already, keyword_init: true) do
     def ok?
       errors.blank?
     end

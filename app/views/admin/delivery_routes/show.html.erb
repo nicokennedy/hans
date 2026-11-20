@@ -3,7 +3,8 @@
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
     <div>
       <p class="text-muted mb-1"><%= link_to "← Repartos", admin_delivery_routes_path(date: @route.date.iso8601) %></p>
-      <h1 class="mb-1">Recorrido de <%= @route.driver_name %> · <%= l(@route.date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h1>
+      <h1 class="mb-1"><%= @route.title %> · <%= l(@route.date, format: "%d/%m/%Y") %> <%= delivery_route_status_badge(@route) %></h1>
+      <p class="small text-muted mb-1">Recorrido N.º <%= @route.id %></p>
       <p class="text-muted mb-0">
         <%= @stops.size %> parada(s) · <%= order_stops.size %> pedido(s) ·
         Total <%= format_money(order_stops.sum { |s| s.order.total_cents }) %> ·
@@ -12,7 +13,7 @@
       </p>
       <% if @siblings.any? %>
         <p class="small mb-0">Otros recorridos de este día:
-          <% @siblings.each_with_index do |sibling, i| %><%= ", " if i.positive? %><%= link_to sibling.driver_name, admin_delivery_route_path(sibling) %><% end %>
+          <% @siblings.each_with_index do |sibling, i| %><%= ", " if i.positive? %><%= link_to sibling.title, admin_delivery_route_path(sibling) %><% end %>
         </p>
       <% end %>
     </div>
@@ -88,7 +89,7 @@
                   <% elsif @route.editable? %>
                     <% if stop.order? && @siblings.any? %>
                       <%= form_with url: transfer_admin_delivery_route_stop_path(@route, stop), method: :patch, local: true, class: "d-flex gap-1 mb-1" do %>
-                        <%= select_tag :target_route_id, options_for_select(@siblings.map { |r| [r.driver_name, r.id] }), class: "form-select form-select-sm", "aria-label": "Pasar #{stop.display_name} a" %>
+                        <%= select_tag :target_route_id, options_for_select(@siblings.map { |r| [r.title, r.id] }), class: "form-select form-select-sm", "aria-label": "Pasar #{stop.display_name} a" %>
                         <%= submit_tag "Pasar", name: nil, class: "btn btn-sm btn-outline-dark" %>
                       <% end %>
                     <% end %>

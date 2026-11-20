@@ -36,7 +36,7 @@ class Admin::DeliveryRouteStopsController < ApplicationController
 
   def transfer
     target = DeliveryRoute.find_by(id: params[:target_route_id])
-    respond_with editor.transfer(@stop, target), "#{@stop.display_name} pasó al recorrido de #{target&.driver_name}."
+    respond_with editor.transfer(@stop, target), "#{@stop.display_name} pasó a #{target&.title}."
   end
 
   private

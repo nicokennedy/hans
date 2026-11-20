@@ -20,7 +20,7 @@ class DeliveryRoutes::TransfersTest < ActiveSupport::TestCase
   test "an order cannot be in two routes at the same time" do
     result = DeliveryRoutes::Editor.new(@emilio_route, @admin).add_orders([@orders.first.id])
     assert_not result.ok?
-    assert_match "recorrido del", result.errors.join
+    assert_match "ya está en Chiara · Reparto 1", result.errors.join
   end
 
   test "transferring moves the order to the other driver and records it on both routes" do

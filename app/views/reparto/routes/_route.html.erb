@@ -1,0 +1,31 @@
+<%# Portada de un reparto: avance, próxima parada y lista. La usan la portada (un solo reparto hoy)
+    y la pantalla de cada reparto (varios repartos hoy). Locals: route, stops, next_stop. %>
+<% done = stops.count { |s| s.delivery_status != "pending" } %>
+<div class="reparto-progress">
+  <p class="reparto-text">Hiciste <strong><%= done %> de <%= stops.size %></strong> paradas</p>
+  <div class="reparto-bar" aria-hidden="true"><span style="width: <%= stops.empty? ? 0 : (done * 100 / stops.size) %>%"></span></div>
+</div>
+
+<% if next_stop %>
+  <section class="reparto-card reparto-card-next">
+    <p class="reparto-kicker">PRÓXIMA PARADA</p>
+    <p class="reparto-name"><%= next_stop.display_name %></p>
+    <p class="reparto-address"><%= next_stop.address_line || "Sin dirección cargada" %></p>
+  </section>
+  <%= link_to reparto_stop_path(next_stop), class: "reparto-button reparto-button-primary" do %>▶ <%= next_stop.order? ? "VER EL PEDIDO" : "VER QUÉ HAY QUE HACER" %><% end %>
+  <% if (url = next_stop.google_maps_url) %>
+    <%= link_to url, class: "reparto-button", target: "_blank", rel: "noopener" do %>📍 CÓMO LLEGAR<% end %>
+  <% end %>
+<% elsif stops.any? %>
+  <section class="reparto-done">
+    <div class="reparto-check" aria-hidden="true">✔</div>
+    <p class="reparto-big">¡Terminaste todas las paradas<%= " de este reparto" if todays_routes.many? %>!</p>
+  </section>
+<% else %>
+  <section class="reparto-card"><p class="reparto-big">Este reparto todavía no tiene paradas.</p></section>
+<% end %>
+
+<%= link_to reparto_route_stops_path(route), class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
+<% if todays_routes.many? %>
+  <%= link_to reparto_root_path, class: "reparto-button" do %>◀ MIS REPARTOS DE HOY<% end %>
+<% end %>

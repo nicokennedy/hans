@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_19_100000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -135,8 +135,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_19_100000) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "creation_token"
     t.index ["created_by_id"], name: "index_delivery_routes_on_created_by_id"
-    t.index ["date", "driver_id"], name: "index_delivery_routes_on_date_and_driver", unique: true, where: "(driver_id IS NOT NULL)"
+    t.index ["creation_token"], name: "index_delivery_routes_on_creation_token", unique: true, where: "(creation_token IS NOT NULL)"
+    t.index ["date", "driver_id"], name: "index_delivery_routes_on_date_and_driver"
     t.index ["date"], name: "index_delivery_routes_on_date_without_driver", unique: true, where: "(driver_id IS NULL)"
     t.index ["driver_id"], name: "index_delivery_routes_on_driver_id"
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'in_progress'::character varying, 'submitted'::character varying, 'confirmed'::character varying]::text[])", name: "delivery_routes_status_valid"

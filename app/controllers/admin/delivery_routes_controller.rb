@@ -1,17 +1,20 @@
 # Repartos (R2/R3): administración arma y edita los recorridos diarios con pedidos mayoristas
-# reales, uno por repartidor y fecha. Solo admin. No modifica pedidos, pagos, stock ni cuentas corrientes (ver
+# reales. Una fecha puede tener varios recorridos, también varios del mismo repartidor
+# (Reparto 1, 2...). Solo admin. No modifica pedidos, pagos, stock ni cuentas corrientes (ver
 # DeliveryRoutes::Create / Editor). La demostración R1 sigue aparte, en /admin/repartos/demo.
 class Admin::DeliveryRoutesController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_route, only: [:show, :driver, :sheet, :preview]
 
-  # Una fecha puede tener varios recorridos, uno por repartidor (R3).
+  # Una fecha puede tener varios recorridos, de distintos repartidores o del mismo.
   def index
     @date = parse_date(params[:date]) || Date.current
     @routes = DeliveryRoute.where(date: @date).includes(:driver).order(:id).to_a
     @unassigned = DeliveryRoute.unassigned_orders_for(@date).to_a
-    @available_drivers = User.active_drivers.where.not(id: @routes.map(&:driver_id).compact).to_a
+    @available_drivers = User.active_drivers.to_a
+    # Un token por formulario: si "Crear reparto" llega dos veces, se crea un solo recorrido.
+    @creation_token = SecureRandom.uuid
     @stop_counts = DeliveryStop.active.where(delivery_route_id: @routes.map(&:id)).group(:delivery_route_id, :delivery_status).count
     @recent_routes = DeliveryRoute.recent_first.includes(:driver).limit(12)
     @stops_count = DeliveryStop.active.group(:delivery_route_id).count
@@ -20,9 +23,12 @@ class Admin::DeliveryRoutesController < ApplicationController
   def create
     date = parse_date(params[:date])
     driver = User.find_by(id: params[:driver_id])
-    result = DeliveryRoutes::Create.call(date: date, order_ids: params[:order_ids], user: current_user, driver: driver)
-    if result.ok?
-      redirect_to admin_delivery_route_path(result.route), notice: "Listo: recorrido de #{driver.display_name} del #{l(date, format: '%d/%m/%Y')} guardado con #{result.route.active_stops.count} parada(s)."
+    result = DeliveryRoutes::Create.call(date: date, order_ids: params[:order_ids], user: current_user, driver: driver,
+                                         creation_token: params[:creation_token])
+    if result.ok? && result.already
+      redirect_to admin_delivery_route_path(result.route), notice: "Ese reparto ya estaba creado: no se duplicó."
+    elsif result.ok?
+      redirect_to admin_delivery_route_path(result.route), notice: "Listo: #{result.route.title} del #{l(date, format: '%d/%m/%Y')} guardado con #{result.route.active_stops.count} parada(s)."
     else
       redirect_to admin_delivery_routes_path(date: date&.iso8601), alert: result.errors.join(" ")
     end

@@ -17,7 +17,7 @@ module DeliveryRoutes
         errors = []
         errors << "Algunos pedidos no son del #{fmt(@route.date)} o están cancelados." if orders.size < ids.size
         DeliveryStop.active.where(order_id: ids).includes(:delivery_route, order: :customer).each do |stop|
-          where = stop.delivery_route_id == @route.id ? "este recorrido" : "el recorrido del #{fmt(stop.delivery_route.date)}"
+          where = stop.delivery_route_id == @route.id ? "este recorrido" : "#{stop.delivery_route.title} del #{fmt(stop.delivery_route.date)}"
           errors << "#{stop.display_name} (#{stop.order.number}) ya está en #{where}."
         end
         next errors if errors.any?
@@ -101,22 +101,22 @@ module DeliveryRoutes
       change do
         stop = active_stop(stop)
         next ["Solo se pasan paradas de pedidos. Las paradas manuales se quitan y se agregan en el otro recorrido."] unless stop.order?
-        next ["#{stop.display_name} ya está entregado: no se puede pasar a otro repartidor."] if stop.completed?
+        next ["#{stop.display_name} ya está entregado: no se puede pasar a otro reparto."] if stop.completed?
         next ["Elegí otro recorrido del #{fmt(@route.date)}."] if target.nil? || target.id == @route.id || target.date != @route.date
 
         target.lock!
-        next ["El recorrido de #{target.driver_name} ya no está en preparación."] unless target.editable?
+        next ["#{target.title} ya no está en preparación."] unless target.editable?
 
-        from_name = @route.driver_name
+        from_name = @route.title
         stop.update!(removed_at: Time.current, removed_by: @user, removal_kind: "transferred",
-                     removal_reason: "recorrido de #{target.driver_name}")
+                     removal_reason: target.title)
         renumber(@route.stops.active.to_a)
         new_stop = target.stops.create!(kind: "order", order: stop.order, customer: stop.customer,
                                         position: target.stops.active.maximum(:position).to_i + 1)
         Events.record(@route, @user, "stop_transferred_out", stop: stop, to_route_id: target.id,
-                      summary: "Pasó #{stop.display_name} (#{stop.order.number}) al recorrido de #{target.driver_name}.")
+                      summary: "Pasó #{stop.display_name} (#{stop.order.number}) a #{target.title}.")
         Events.record(target, @user, "stop_transferred_in", stop: new_stop, from_route_id: @route.id,
-                      summary: "Recibió #{stop.display_name} (#{stop.order.number}) del recorrido de #{from_name}.")
+                      summary: "Recibió #{stop.display_name} (#{stop.order.number}) de #{from_name}.")
         []
       end
     end
@@ -128,7 +128,7 @@ module DeliveryRoutes
           next ["El pedido #{stop.order.number} está cancelado: no se puede volver a agregar."] if stop.order.canceled?
           next ["La fecha del pedido #{stop.order.number} ya no es el #{fmt(@route.date)}."] if stop.order.delivery_date != @route.date
           other = DeliveryStop.active.find_by(order_id: stop.order_id)
-          next ["#{stop.display_name} ya está en el recorrido del #{fmt(other.delivery_route.date)}."] if other
+          next ["#{stop.display_name} ya está en #{other.delivery_route.title} del #{fmt(other.delivery_route.date)}."] if other
         end
 
         stop.update!(removed_at: nil, removed_by: nil, removal_kind: nil, removal_reason: nil, position: next_position)
@@ -143,9 +143,6 @@ module DeliveryRoutes
         next ["Ese usuario no es repartidor."] unless driver.driver?
         next ["#{driver.display_name} tiene el acceso desactivado."] unless driver.active?
         next [] if @route.driver_id == driver&.id
-        if DeliveryRoute.where(date: @route.date, driver_id: driver&.id).where.not(id: @route.id).exists?
-          next ["#{driver.display_name} ya tiene un recorrido el #{fmt(@route.date)}."]
-        end
 
         previous = @route.driver&.display_name
         @route.update!(driver: driver)

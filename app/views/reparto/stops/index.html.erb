@@ -1,5 +1,6 @@
-<%= link_to "◀ VOLVER AL INICIO", reparto_root_path, class: "reparto-back" %>
+<%= link_to "◀ VOLVER AL INICIO", route_home_path(@route), class: "reparto-back" %>
 <header class="reparto-header">
+  <% if todays_routes.many? %><p class="reparto-kicker"><%= @route.label.upcase %></p><% end %>
   <h1 class="reparto-date">Todas las paradas</h1>
   <p class="reparto-text">Tocá una parada para verla.</p>
 </header>

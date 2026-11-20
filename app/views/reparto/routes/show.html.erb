@@ -1,0 +1,7 @@
+<%= link_to "◀ MIS REPARTOS DE HOY", reparto_root_path, class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · HOY</p>
+  <h1 class="reparto-date"><%= reparto_date(@route.date) %></h1>
+</header>
+
+<%= render "reparto/routes/route", route: @route, stops: @stops, next_stop: @next %>

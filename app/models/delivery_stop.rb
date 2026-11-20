@@ -10,7 +10,7 @@ class DeliveryStop < ApplicationRecord
   }.freeze
   REMOVAL_KINDS = {
     "owners_deliver" => "Lo entregan las dueñas", "rescheduled" => "Pasa a otro día", "other" => "Otro motivo",
-    "transferred" => "Pasó a otro repartidor"
+    "transferred" => "Pasó a otro reparto"
   }.freeze
   # Motivos que administración elige al quitar una parada ("transferred" lo pone el sistema).
   MANUAL_REMOVAL_KINDS = REMOVAL_KINDS.except("transferred").freeze

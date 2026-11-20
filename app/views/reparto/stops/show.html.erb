@@ -1,6 +1,6 @@
-<%= link_to "◀ VOLVER A LA LISTA", reparto_stops_path, class: "reparto-back" %>
+<%= link_to "◀ VOLVER A LA LISTA", reparto_route_stops_path(@route), class: "reparto-back" %>
 <header class="reparto-header">
-  <p class="reparto-kicker">PARADA <%= @stop.position %> DE <%= @route.active_stops.count %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
+  <p class="reparto-kicker"><%= "#{@route.label.upcase} · " if todays_routes.many? %>PARADA <%= @stop.position %> DE <%= @route.active_stops.count %><%= " · #{@stop.kind_label.upcase}" if @stop.manual? %></p>
   <h1 class="reparto-name"><%= @stop.display_name %></h1>
   <% if @stop.address_line %>
     <p class="reparto-address"><%= @stop.address_line %></p>

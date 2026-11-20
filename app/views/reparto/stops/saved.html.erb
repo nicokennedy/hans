@@ -18,6 +18,7 @@
     <span>▶ SIGUIENTE PARADA</span><span class="reparto-sub"><%= @next.display_name %></span>
   <% end %>
 <% else %>
-  <p class="reparto-big reparto-center">¡Terminaste todas las paradas!</p>
+  <p class="reparto-big reparto-center">¡Terminaste todas las paradas<%= " de este reparto" if todays_routes.many? %>!</p>
 <% end %>
-<%= link_to "VOLVER AL INICIO", reparto_root_path, class: "reparto-button" %>
+<%= link_to "VOLVER AL INICIO", route_home_path(@route), class: "reparto-button" %>
+<% if todays_routes.many? %><%= link_to "MIS REPARTOS DE HOY", reparto_root_path, class: "reparto-button" %><% end %>

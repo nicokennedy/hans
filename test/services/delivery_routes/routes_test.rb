@@ -58,11 +58,11 @@ class DeliveryRoutes::RoutesTest < ActiveSupport::TestCase
     end
   end
 
-  test "a driver has one route per date and every new route needs an active driver" do
-    create_route([@o1.id])
-    result = create_route([@o2.id])
-    assert_not result.ok?
-    assert_match "ya tiene un recorrido", result.errors.join
+  test "a driver can have several routes per date and every new route needs an active driver" do
+    first = create_route([@o1.id])
+    second = create_route([@o2.id])
+    assert first.ok? && second.ok?, second.errors.inspect
+    assert_not_equal first.route, second.route
 
     assert_not DeliveryRoutes::Create.call(date: @date, order_ids: [@o2.id], user: @admin).ok?
     assert_not DeliveryRoutes::Create.call(date: @date, order_ids: [@o2.id], user: @admin, driver: create_driver("Inactivo", active: false)).ok?

@@ -37,6 +37,10 @@ Rails.application.routes.draw do
     root "home#show"
     # R1: prototipo navegable con datos de ejemplo. No lee ni guarda nada en la base.
     get "prototipo", to: "prototype#show", as: :prototype
+    # Si el repartidor tiene varios recorridos hoy, elige cuál abrir (Reparto 1, 2...).
+    resources :routes, path: "repartos", only: [:show], constraints: { id: /\d+/ } do
+      get "paradas", to: "stops#index", as: :stops
+    end
     # R3: el recorrido del día del repartidor. Solo el repartidor dueño (ver Reparto::StopsController).
     resources :stops, path: "paradas", only: [:index, :show] do
       member do

@@ -636,3 +636,15 @@ Migración `20261119100000_add_internal_user_management_and_deliveries` (solo ag
    la contraseña temporal; desde ahí, asignar repartidor a los 2 recorridos de R2.
 3. Cobros en efectivo, fotos, gastos y rendición siguen en R4–R7: hasta entonces los cobros se
    registran como hoy.
+
+## 14. Varios repartos por día y repartidor (20/11/2026)
+
+Caso real: Chiara sale con 6 pedidos, vuelve a HANS y sale de nuevo con otros 4. Un repartidor puede tener **varios recorridos el mismo día**, cada uno independiente (su id, paradas, estado, historial y, en R4–R7, su propia rendición de efectivo).
+
+- **Base de datos** (migración `20261120120000`): se quitó el índice único (fecha, repartidor) y quedó uno común; se agregó `delivery_routes.creation_token` (único cuando no es nulo). No modifica filas existentes. El índice único "una sola fecha sin repartidor" (recorridos viejos de R2) se mantiene.
+- **Numeración**: "Reparto 1, 2…" por repartidor dentro de la fecha, por orden de creación (`DeliveryRoute#number`, calculado, no guardado). Administración los nombra "Chiara · Reparto 2" (`#title`) y muestra el N.º de recorrido (id), que nunca cambia. Si se reasigna un recorrido a otro repartidor, su número se recalcula dentro del día del nuevo repartidor.
+- **Administración → Repartos**: botón "+ Crear nuevo reparto" siempre visible (con repartidores activos); se puede elegir cualquier repartidor activo aunque ya tenga recorrido ese día (el selector lo avisa); se tildan los pedidos sin asignar. Pasar paradas funciona también entre dos repartos del mismo repartidor.
+- **Doble clic / solicitudes simultáneas**: cada formulario lleva un `creation_token`; si llega dos veces, se devuelve el recorrido ya creado ("Ese reparto ya estaba creado: no se duplicó"). Si dos solicitudes chocan a la vez, el índice único del token deja uno solo. Un pedido sigue sin poder estar en dos paradas vigentes (índice parcial único de R2).
+- **Portal del repartidor**: con un solo reparto hoy, la portada es la de siempre. Con varios, la portada lista "REPARTO 1 / REPARTO 2" con paradas y avance (Sin empezar / En curso: X de N / Terminado) y botones grandes; cada uno abre `/reparto/repartos/:id` y su lista `/reparto/repartos/:id/paradas`, solo con sus paradas. Las paradas se buscan dentro de los recorridos de HOY del repartidor. "SÍ, LO ENTREGUÉ" y "NO PUDE ENTREGARLO" no cambiaron.
+- **Vista previa del admin**: "Ver como repartidor" de cada recorrido indica "su Reparto N"; sigue sin botones de entrega.
+- Tests: `test/services/delivery_routes/several_routes_test.rb`, `test/controllers/reparto/several_routes_test.rb` y casos nuevos en `admin/delivery_routes_controller_test.rb`.

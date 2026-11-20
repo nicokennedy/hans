@@ -1,4 +1,4 @@
-# Recorrido de reparto de un día (Repartos R2). Lo arma administración con pedidos mayoristas
+# Recorrido de reparto de un día (Repartos R2). Un repartidor puede tener varios por día. Lo arma administración con pedidos mayoristas
 # reales (DeliveryStop) y paradas manuales. Armar o editar un recorrido NUNCA modifica pedidos,
 # pagos, stock ni cuentas corrientes: solo estas tablas. Todo cambio queda en DeliveryEvent.
 # Ver docs/REPARTOS_Y_RENDICIONES.md y DeliveryRoutes::*.
@@ -54,13 +54,48 @@ class DeliveryRoute < ApplicationRecord
     self.class.unassigned_orders_for(date)
   end
 
-  # Otros recorridos de la misma fecha, para pasarles pedidos.
+  # Otros recorridos de la misma fecha (de cualquier repartidor, también del mismo), para pasarles pedidos.
   def siblings
     DeliveryRoute.where(date: date).where.not(id: id).includes(:driver).order(:id)
   end
 
   def driver_name
     driver&.display_name || "Sin repartidor"
+  end
+
+  # Un repartidor puede tener varios recorridos el mismo día (sale, vuelve a HANS y sale otra
+  # vez). Se numeran por orden de creación dentro del día de ese repartidor: Reparto 1, 2...
+  # El id no cambia nunca y es lo que identifica al recorrido (y, más adelante, su rendición).
+  def number
+    return 1 unless persisted?
+
+    @number ||= DeliveryRoute.where(date: date, driver_id: driver_id).where("id <= ?", id).count
+  end
+
+  def label
+    "Reparto #{number}"
+  end
+
+  # "Chiara · Reparto 2": cómo se nombra el recorrido en administración.
+  def title
+    "#{driver_name} · #{label}"
+  end
+
+  # Avance para el repartidor (no es el estado administrativo): sin empezar / en curso / terminado.
+  def progress_for(stops)
+    done = stops.count { |stop| stop.delivery_status != "pending" }
+    if stops.empty? || done.zero?
+      "Sin empezar"
+    elsif done == stops.size
+      "Terminado"
+    else
+      "En curso: #{done} de #{stops.size}"
+    end
+  end
+
+  def reload(*)
+    @number = nil
+    super
   end
 
   private

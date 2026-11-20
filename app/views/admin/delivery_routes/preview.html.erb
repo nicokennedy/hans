@@ -1,4 +1,4 @@
-<p class="reparto-preview-band" role="note"><strong>VISTA PREVIA DE ADMINISTRACIÓN</strong> · así ve <%= @route.driver_name %> su recorrido. Solo para mirar: desde acá no se registra nada.</p>
+<p class="reparto-preview-band" role="note"><strong>VISTA PREVIA DE ADMINISTRACIÓN</strong> · así ve <%= @route.driver_name %> su <%= @route.label %>. Solo para mirar: desde acá no se registra nada.</p>
 
 <% if @stop %>
   <%= link_to "◀ VOLVER A LA LISTA", preview_admin_delivery_route_path(@route), class: "reparto-back" %>
@@ -43,7 +43,7 @@
   <p class="reparto-text reparto-center">El repartidor registra la entrega desde su celular. En esta vista previa los botones no se muestran.</p>
 <% else %>
   <header class="reparto-header">
-    <p class="reparto-kicker">REPARTO DEL <%= l(@route.date, format: "%d/%m") %></p>
+    <p class="reparto-kicker"><%= @route.label.upcase %> · DEL <%= l(@route.date, format: "%d/%m") %></p>
     <h1 class="reparto-date"><%= reparto_date(@route.date) %></h1>
     <p class="reparto-text"><%= @stops.size %> paradas</p>
   </header>

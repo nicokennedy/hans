@@ -1,10 +1,12 @@
-# R3: el repartidor recorre SU recorrido del día y registra entregas. Solo el repartidor
-# asignado: las paradas se buscan dentro de su recorrido de hoy, así que nunca ve ni toca las
+# R3: el repartidor recorre SUS recorridos del día y registra entregas. Solo el repartidor
+# asignado: las paradas se buscan dentro de sus recorridos de hoy (puede tener varios: cada
+# parada pertenece a uno solo y la pantalla muestra solo las de ese reparto), así que nunca ve ni toca las
 # de otro repartidor ni de otro día. El admin mira desde Repartos → "Ver como repartidor"
 # (solo lectura), no desde acá. Toda acción es idempotente (DeliveryRoutes::Deliveries).
 class Reparto::StopsController < Reparto::BaseController
   before_action :require_driver!
-  before_action :set_route
+  before_action :require_routes
+  before_action :set_route, only: [:index]
   before_action :set_stop, except: [:index]
 
   rescue_from ActiveRecord::RecordNotFound do
@@ -39,19 +41,20 @@ class Reparto::StopsController < Reparto::BaseController
 
   private
 
-  def require_driver!
-    return if current_user.driver?
-
-    redirect_to admin_delivery_routes_path, notice: "Para ver el recorrido de un repartidor usá \"Ver como repartidor\" en Repartos."
+  def require_routes
+    redirect_to reparto_root_path if todays_routes.empty?
   end
 
+  # /reparto/repartos/:route_id/paradas. Sin route_id (enlace viejo) solo si hoy hay un único reparto.
   def set_route
-    @route = current_user.delivery_routes.find_by(date: Date.current)
+    @route = params[:route_id] ? todays_routes.find { |r| r.id == params[:route_id].to_i } : (todays_routes.first if todays_routes.one?)
     redirect_to reparto_root_path unless @route
   end
 
   def set_stop
-    @stop = @route.active_stops.includes(order: [:customer, :order_items]).find(params[:id])
+    @stop = DeliveryStop.active.where(delivery_route_id: todays_routes.map(&:id))
+                        .includes(order: [:customer, :order_items]).find(params[:id])
+    @route = todays_routes.find { |r| r.id == @stop.delivery_route_id }
   end
 
   def respond_with(result)

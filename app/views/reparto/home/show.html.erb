@@ -5,32 +5,17 @@
 </header>
 
 <% if @route %>
-  <% done = @stops.count { |s| s.delivery_status != "pending" } %>
-  <div class="reparto-progress">
-    <p class="reparto-text">Hiciste <strong><%= done %> de <%= @stops.size %></strong> paradas</p>
-    <div class="reparto-bar" aria-hidden="true"><span style="width: <%= @stops.empty? ? 0 : (done * 100 / @stops.size) %>%"></span></div>
-  </div>
-
-  <% if @next %>
-    <section class="reparto-card reparto-card-next">
-      <p class="reparto-kicker">PRÓXIMA PARADA</p>
-      <p class="reparto-name"><%= @next.display_name %></p>
-      <p class="reparto-address"><%= @next.address_line || "Sin dirección cargada" %></p>
-    </section>
-    <%= link_to reparto_stop_path(@next), class: "reparto-button reparto-button-primary" do %>▶ <%= @next.order? ? "VER EL PEDIDO" : "VER QUÉ HAY QUE HACER" %><% end %>
-    <% if (url = @next.google_maps_url) %>
-      <%= link_to url, class: "reparto-button", target: "_blank", rel: "noopener" do %>📍 CÓMO LLEGAR<% end %>
+  <%= render "reparto/routes/route", route: @route, stops: @stops, next_stop: @next %>
+<% elsif @routes.present? %>
+  <p class="reparto-text">Hoy tenés <strong><%= @routes.size %> repartos</strong>. Tocá el que vas a hacer.</p>
+  <% first_open = @routes.find { |r| @stops_by_route.fetch(r.id, []).any? { |s| s.delivery_status == "pending" } } %>
+  <% @routes.each do |route| %>
+    <% stops = @stops_by_route.fetch(route.id, []) %>
+    <%= link_to reparto_route_path(route), class: "reparto-button reparto-button-col#{' reparto-button-primary' if route == first_open}" do %>
+      <span><%= route.label.upcase %></span>
+      <span class="reparto-sub"><%= stops.size %> parada<%= "s" unless stops.size == 1 %> · <%= route.progress_for(stops) %></span>
     <% end %>
-  <% elsif @stops.any? %>
-    <section class="reparto-done">
-      <div class="reparto-check" aria-hidden="true">✔</div>
-      <p class="reparto-big">¡Terminaste todas las paradas!</p>
-    </section>
-  <% else %>
-    <section class="reparto-card"><p class="reparto-big">Tu recorrido de hoy todavía no tiene paradas.</p></section>
   <% end %>
-
-  <%= link_to reparto_stops_path, class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
 <% elsif current_user.admin? %>
   <section class="reparto-card">
     <p class="reparto-big">Estás en el portal del repartidor como administrador.</p>
