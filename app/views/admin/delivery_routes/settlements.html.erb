@@ -1,0 +1,47 @@
+<div class="container py-4">
+  <p class="text-muted mb-1"><%= link_to "← Repartos", admin_delivery_routes_path %></p>
+  <h1 class="mb-1">Rendiciones</h1>
+  <p class="text-muted">Cada recorrido tiene su propia rendición. Las diferencias de caja se registran como diferencias, nunca como gastos.</p>
+
+  <% if @overdue_routes.any? %>
+    <div class="alert alert-warning">⚠ Sin rendición enviada de días anteriores:
+      <%= safe_join(@overdue_routes.map { |r| link_to("#{l(r.date, format: '%d/%m')} · #{r.title}", admin_delivery_route_path(r, anchor: "rendicion")) }, ", ") %>
+    </div>
+  <% end %>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <% Admin::DeliveryRoutesController::FILTERS.each do |key, label| %>
+      <%= link_to label, settlements_admin_delivery_routes_path(filtro: key), class: "btn btn-sm #{@filter == key ? 'btn-dark' : 'btn-outline-dark'}" %>
+    <% end %>
+  </div>
+
+  <% if @routes.empty? %>
+    <p class="text-muted">No hay rendiciones en esta vista.</p>
+  <% else %>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Fecha</th><th>Recorrido</th><th>Estado</th><th>Enviada</th><th class="text-end">Cobros</th><th class="text-end">Gastos</th><th class="text-end">A entregar</th><th class="text-end">Recibido</th><th class="text-end">Diferencia</th><th>Avisos</th></tr></thead>
+        <tbody>
+          <% @routes.each do |route| %>
+            <tr>
+              <td><%= l(route.date, format: "%d/%m/%Y") %></td>
+              <td><%= link_to route.title, admin_delivery_route_path(route, anchor: "rendicion") %> <span class="small text-muted">N.º <%= route.id %></span></td>
+              <td><%= delivery_route_status_badge(route) %></td>
+              <td class="small"><%= route.submitted_at ? l(route.submitted_at, format: "%d/%m %H:%M") : "—" %></td>
+              <td class="text-end"><%= format_money(route.collected_cents.to_i) %></td>
+              <td class="text-end"><%= format_money(route.expenses_cents.to_i) %></td>
+              <td class="text-end fw-bold"><%= format_money([route.expected_cash_cents.to_i, 0].max) %></td>
+              <td class="text-end"><%= route.confirmed? ? format_money(route.counted_cash_cents) : "—" %></td>
+              <td class="text-end <%= 'text-danger fw-bold' if route.difference_cents.to_i.nonzero? %>"><%= route.confirmed? ? (route.difference_cents.to_i.zero? ? "$0" : "#{route.difference_cents.negative? ? 'Faltan' : 'Sobran'} #{format_money(route.difference_cents.abs)}") : "—" %></td>
+              <td class="small">
+                <% if route.unresolved_cents.to_i.positive? %><span class="badge text-bg-warning">Pendiente de resolver <%= format_money(route.unresolved_cents) %></span><% end %>
+                <% if (n = @voided_after_close[route.id].to_i).positive? %><span class="badge text-bg-danger"><%= n %> cobro(s) anulado(s) después</span><% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted">Los importes de una rendición enviada son los del envío; administración puede corregir antes de confirmar y el cierre recalcula.</p>
+  <% end %>
+</div>

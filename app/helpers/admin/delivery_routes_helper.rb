@@ -16,6 +16,7 @@ module Admin::DeliveryRoutesHelper
   end
 
   def delivery_route_status_badge(route)
-    content_tag(:span, route.status_label, class: "badge #{route.editable? ? 'text-bg-secondary' : 'text-bg-success'}")
+    css = { "draft" => "text-bg-secondary", "in_progress" => "text-bg-primary", "submitted" => "text-bg-warning", "confirmed" => "text-bg-success" }
+    content_tag(:span, route.status_label, class: "badge #{css.fetch(route.status, 'text-bg-secondary')}")
   end
 end

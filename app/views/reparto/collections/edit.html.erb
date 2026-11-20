@@ -1,0 +1,18 @@
+<%= link_to "◀ VOLVER A LA PARADA", reparto_stop_path(@stop), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker">CORREGIR UN COBRO · <%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">Anotaste <%= format_money(@collection.amount_cents) %></h1>
+  <p class="reparto-text">Registrado a las <%= l(@collection.created_at, format: "%H:%M") %><%= " · a identificar" if @collection.unidentified? %>.</p>
+</header>
+
+<%= form_with url: reparto_collection_correction_confirm_path(@collection), method: :get, local: true, class: "reparto-form" do %>
+  <label class="reparto-label" for="importe">¿Cuánto te pagaron en realidad?</label>
+  <%= text_field_tag :importe, nil, id: "importe", class: "reparto-input reparto-amount", inputmode: "numeric", autocomplete: "off", placeholder: "$ 0", required: true %>
+  <p class="reparto-text">Si al final no te pagaron, escribí 0.</p>
+  <p class="reparto-label">¿Por qué lo corregís?</p>
+  <% Reparto::CollectionsController::CORRECTION_REASONS.each_with_index do |reason, i| %>
+    <label class="reparto-choice"><%= radio_button_tag :motivo, reason, false, id: "motivo-#{i}", required: true %> <%= reason %></label>
+  <% end %>
+  <%= text_field_tag :motivo_texto, nil, class: "reparto-input", placeholder: "Si elegiste \"Otro motivo\", escribilo acá", "aria-label": "Otro motivo" %>
+  <button type="submit" class="reparto-button reparto-button-primary">SEGUIR ▶</button>
+<% end %>

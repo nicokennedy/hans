@@ -1,0 +1,11 @@
+<%# Locals: orders, values ({order_id => cents}) %>
+<p class="small text-muted mb-1">Aplicar a pedidos (lo que no se aplique queda como saldo a favor del cliente):</p>
+<% if orders.empty? %>
+  <p class="small">El cliente no tiene pedidos con saldo: todo queda a favor.</p>
+<% end %>
+<% orders.each do |order| %>
+  <div class="row g-2 align-items-center mb-1">
+    <div class="col-7 small"><%= order.number %> · <%= l(order.delivery_date, format: "%d/%m/%Y") %> · saldo <%= format_money(order.balance_due_cents) %></div>
+    <div class="col-5"><%= text_field_tag "asignar[#{order.id}]", (values[order.id] ? CustomerAccounts::Money.format_pesos(values[order.id]) : nil), class: "form-control form-control-sm", inputmode: "numeric", placeholder: "$ 0", "aria-label": "Aplicar al pedido #{order.number}" %></div>
+  </div>
+<% end %>

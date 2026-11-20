@@ -1,0 +1,13 @@
+<%= link_to "◀ VOLVER A GASTOS", reparto_route_expenses_path(@route), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker">CORREGIR UN GASTO</p>
+  <h1 class="reparto-date"><%= @expense.concept %>: <%= format_money(@expense.amount_cents) %></h1>
+</header>
+<%= form_with url: reparto_route_expense_correction_confirm_path(@route, @expense), method: :get, local: true, class: "reparto-form" do %>
+  <label class="reparto-label" for="importe">¿Cuánto pagaste en realidad?</label>
+  <%= text_field_tag :importe, nil, id: "importe", class: "reparto-input reparto-amount", inputmode: "numeric", autocomplete: "off", placeholder: "$ 0", required: true %>
+  <p class="reparto-text">Si no tenías que anotarlo, escribí 0.</p>
+  <label class="reparto-label" for="motivo">¿Por qué lo corregís?</label>
+  <%= text_field_tag :motivo, nil, id: "motivo", class: "reparto-input", required: true, placeholder: "Ej.: me equivoqué de importe" %>
+  <button type="submit" class="reparto-button reparto-button-primary">SEGUIR ▶</button>
+<% end %>

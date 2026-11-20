@@ -24,4 +24,24 @@ module DeliveryRouteHelpers
     order.update_column(:status, status) if status
     order
   end
+
+  # --- R4 ---------------------------------------------------------------------------------
+
+  def collections_for(route, user = @driver)
+    DeliveryRoutes::Collections.new(route, user)
+  end
+
+  def collect(route, stop, cents, user: @driver, token: SecureRandom.uuid, allocations: nil, **opts)
+    allocations ||= { stop.order_id => [cents, stop.order.reload.balance_due_cents].min }
+    collections_for(route, user).record(stop: stop, amount_cents: cents, allocations: allocations, request_token: token, **opts)
+  end
+
+  def receipt_photo(name = "pixel.jpg")
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/retail_catalog", name), Marcel::MimeType.for(name: name))
+  end
+
+  def money_snapshot
+    [Order.order(:id).pluck(:id, :status, :total_cents, :amount_paid_cents, :payment_status), StockMovement.count, Payment.individual.count, Expense.count]
+  end
+
 end

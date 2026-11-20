@@ -1,0 +1,6 @@
+<div class="border rounded p-2 my-2 bg-light">
+  <p class="small mb-1">Efectivo disponible del recorrido: <strong><%= format_money(available) %></strong>. Si el gasto lo supera, solo se registra como excepción:</p>
+  <div class="form-check"><%= check_box_tag :excepcion, "1", false, class: "form-check-input", id: "excepcion" %><label class="form-check-label" for="excepcion">Confirmo que supera el efectivo disponible y lo registro igual</label></div>
+  <%= text_field_tag :motivo_excepcion, nil, class: "form-control form-control-sm mt-1", placeholder: "Motivo de la excepción", "aria-label": "Motivo de la excepción" %>
+  <p class="small text-muted mb-0 mt-1">Si los gastos quedan por encima de los cobros, la rendición lo muestra como importe pendiente de resolver. No se crean reintegros ni movimientos para compensarlo.</p>
+</div>

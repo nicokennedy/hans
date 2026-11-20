@@ -1,0 +1,48 @@
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">Sacale una foto al remito firmado</h1>
+  <p class="reparto-text">Quedó debiendo <strong><%= format_money(@stop.order.balance_due_cents) %></strong>. La foto prueba que recibió el pedido.</p>
+</header>
+
+<%= form_with url: reparto_stop_photo_path(@stop), method: :post, local: true, multipart: true, class: "reparto-form", id: "photo-form" do %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <label class="reparto-label" for="foto">📷 Tocá acá para sacar la foto</label>
+  <%= file_field_tag :foto, id: "foto", accept: "image/*", capture: "environment", class: "reparto-file", required: true %>
+  <button type="submit" class="reparto-button reparto-button-primary" data-saving="Subiendo la foto…">✔ GUARDAR LA FOTO</button>
+<% end %>
+
+<%= button_to reparto_stop_photo_no_signature_path(@stop), method: :post, class: "reparto-button", data: { saving: "Guardando…" } do %>EL CLIENTE NO QUISO FIRMAR<% end %>
+<%= link_to saved_reparto_stop_path(@stop), class: "reparto-button reparto-button-col" do %>
+  <span>AHORA NO PUEDO</span><span class="reparto-sub">queda pendiente: la sacás después desde la parada</span>
+<% end %>
+
+<script>
+  // Achica la foto en el celular antes de subirla (más rápida con poca señal). Si el navegador
+  // no puede, se sube la original.
+  (function () {
+    var input = document.getElementById("foto");
+    if (!input || !window.DataTransfer || !HTMLCanvasElement.prototype.toBlob) return;
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      if (!file || file.size < 1500000 || !/^image\//.test(file.type)) return;
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function (blob) {
+          if (!blob) return;
+          try {
+            var transfer = new DataTransfer();
+            transfer.items.add(new File([blob], "remito.jpg", { type: "image/jpeg" }));
+            input.files = transfer.files;
+          } catch (e) { /* se sube la original */ }
+          URL.revokeObjectURL(img.src);
+        }, "image/jpeg", 0.8);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  })();
+</script>

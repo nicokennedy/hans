@@ -59,13 +59,12 @@ class Reparto::StopsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to reparto_root_path
   end
 
-  test "confirming a delivery marks the order delivered and shows the saved screen, once" do
+  test "confirming a delivery marks the order delivered and asks about the payment, once" do
     sign_in @driver
     post deliver_reparto_stop_path(@stop)
-    assert_redirected_to saved_reparto_stop_path(@stop)
+    assert_redirected_to reparto_stop_collection_path(@stop)
     follow_redirect!
-    assert_match "Listo, quedó guardado", response.body
-    assert_match "SIGUIENTE PARADA", response.body
+    assert_match "¿Te pagaron?", response.body
     assert_equal "delivered", @o1.reload.status
 
     post deliver_reparto_stop_path(@stop)

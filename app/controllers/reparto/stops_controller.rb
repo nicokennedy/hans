@@ -20,8 +20,14 @@ class Reparto::StopsController < Reparto::BaseController
   def show
   end
 
+  # R4: después de entregar, "¿Te pagaron?" (la entrega y el cobro son operaciones aparte).
   def deliver
-    respond_with DeliveryRoutes::Deliveries.new(@stop, current_user).deliver
+    result = DeliveryRoutes::Deliveries.new(@stop, current_user).deliver
+    if result.ok? && !result.already
+      redirect_to reparto_stop_collection_path(@stop)
+    else
+      respond_with result
+    end
   end
 
   def not_delivered

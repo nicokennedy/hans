@@ -112,3 +112,17 @@ body.reparto {
 .reparto-chip-not_delivered { color: var(--r-error); border-color: var(--r-error); background: #fbe6e4; }
 form.button_to { margin: 0; }
 form.button_to .reparto-button { margin-bottom: 14px; }
+
+/* R4: cobros, fotos, gastos y rendición */
+.reparto-amount { margin: 6px 0; font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.reparto-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 2px solid var(--r-border); font-size: 20px; }
+.reparto-row:last-child { border-bottom: 0; }
+.reparto-row strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.reparto-row-total { font-size: 24px; font-weight: 800; }
+.reparto-choice { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px; margin-bottom: 10px; border: 3px solid var(--r-border); border-radius: 14px; background: var(--r-surface); font-size: 20px; font-weight: 700; }
+.reparto-choice input[type=checkbox], .reparto-choice input[type=radio] { width: 30px; height: 30px; flex: none; }
+.reparto-choice .reparto-input { flex: 1; min-width: 0; }
+.reparto-warning { padding: 12px 14px; margin: 12px 0; border-radius: 12px; background: #fbe6e4; border: 2px solid var(--r-error); color: var(--r-error); font-size: 19px; font-weight: 700; }
+.reparto-file { display: block; width: 100%; padding: 16px; border: 3px dashed var(--r-border); border-radius: 14px; font-size: 18px; background: var(--r-surface); }
+.reparto-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; border: 2px solid currentColor; font-size: 15px; font-weight: 800; }
+.reparto-strike { text-decoration: line-through; color: var(--r-muted); }

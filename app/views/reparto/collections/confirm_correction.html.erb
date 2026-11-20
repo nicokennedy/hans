@@ -1,0 +1,18 @@
+<%= link_to "◀ CAMBIAR", reparto_collection_correction_path(@collection), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker">CORREGIR UN COBRO · <%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">¿Corregimos el cobro?</h1>
+</header>
+<section class="reparto-card">
+  <div class="reparto-row"><span>Habías anotado</span><strong class="reparto-strike"><%= format_money(@collection.amount_cents) %></strong></div>
+  <div class="reparto-row reparto-row-total"><span>Lo correcto es</span><strong><%= format_money(@amount_cents) %></strong></div>
+  <div class="reparto-row"><span>Motivo</span><strong><%= @reason %></strong></div>
+</section>
+<%= form_with url: reparto_collection_correction_path(@collection), method: :post, local: true do %>
+  <%= hidden_field_tag :importe, CustomerAccounts::Money.format_pesos(@amount_cents) %>
+  <%= hidden_field_tag :motivo, "Otro motivo" %>
+  <%= hidden_field_tag :motivo_texto, @reason %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <button type="submit" class="reparto-button reparto-button-primary" data-saving="Guardando…">✔ SÍ, CORREGIR</button>
+<% end %>
+<%= link_to "✖ NO, DEJARLO COMO ESTABA", reparto_stop_path(@stop), class: "reparto-button" %>

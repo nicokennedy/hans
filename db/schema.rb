@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_21_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -113,6 +113,36 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
     t.text "delivery_instructions"
   end
 
+  create_table "delivery_collections", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.bigint "delivery_stop_id", null: false
+    t.bigint "customer_id", null: false
+    t.bigint "customer_payment_id", null: false
+    t.integer "amount_cents", null: false
+    t.integer "credit_cents", default: 0, null: false
+    t.string "mode", null: false
+    t.jsonb "allocations", default: {}, null: false
+    t.string "request_token", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "replaces_id"
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_delivery_collections_on_created_by_id"
+    t.index ["customer_id"], name: "index_delivery_collections_on_customer_id"
+    t.index ["customer_payment_id"], name: "index_delivery_collections_on_customer_payment_id", unique: true
+    t.index ["delivery_route_id"], name: "index_delivery_collections_on_delivery_route_id"
+    t.index ["delivery_stop_id"], name: "index_delivery_collections_on_delivery_stop_id"
+    t.index ["replaces_id"], name: "index_delivery_collections_on_replaces_id"
+    t.index ["request_token"], name: "index_delivery_collections_on_request_token", unique: true
+    t.index ["voided_by_id"], name: "index_delivery_collections_on_voided_by_id"
+    t.check_constraint "amount_cents > 0 AND credit_cents >= 0 AND credit_cents <= amount_cents", name: "delivery_collections_amounts_valid"
+    t.check_constraint "mode::text = ANY (ARRAY['allocated'::character varying, 'unidentified'::character varying]::text[])", name: "delivery_collections_mode_valid"
+    t.check_constraint "voided_at IS NULL OR void_reason IS NOT NULL", name: "delivery_collections_void_has_reason"
+  end
+
   create_table "delivery_events", force: :cascade do |t|
     t.bigint "delivery_route_id", null: false
     t.bigint "delivery_stop_id"
@@ -126,6 +156,48 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
     t.index ["user_id"], name: "index_delivery_events_on_user_id"
   end
 
+  create_table "delivery_expenses", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.string "concept", null: false
+    t.integer "amount_cents", null: false
+    t.datetime "spent_at", null: false
+    t.text "notes"
+    t.boolean "admin_exception", default: false, null: false
+    t.text "exception_reason"
+    t.string "request_token", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "replaces_id"
+    t.datetime "voided_at"
+    t.bigint "voided_by_id"
+    t.text "void_reason"
+    t.bigint "expense_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_delivery_expenses_on_created_by_id"
+    t.index ["delivery_route_id"], name: "index_delivery_expenses_on_delivery_route_id"
+    t.index ["expense_id"], name: "index_delivery_expenses_on_expense_id", unique: true
+    t.index ["replaces_id"], name: "index_delivery_expenses_on_replaces_id"
+    t.index ["request_token"], name: "index_delivery_expenses_on_request_token", unique: true
+    t.index ["voided_by_id"], name: "index_delivery_expenses_on_voided_by_id"
+    t.check_constraint "NOT admin_exception OR exception_reason IS NOT NULL", name: "delivery_expenses_exception_has_reason"
+    t.check_constraint "amount_cents > 0", name: "delivery_expenses_amount_positive"
+    t.check_constraint "voided_at IS NULL OR void_reason IS NOT NULL", name: "delivery_expenses_void_has_reason"
+  end
+
+  create_table "delivery_photos", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.bigint "delivery_stop_id", null: false
+    t.string "kind", default: "signed_receipt", null: false
+    t.string "request_token", null: false
+    t.bigint "taken_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["delivery_route_id"], name: "index_delivery_photos_on_delivery_route_id"
+    t.index ["delivery_stop_id"], name: "index_delivery_photos_on_delivery_stop_id"
+    t.index ["request_token"], name: "index_delivery_photos_on_request_token", unique: true
+    t.index ["taken_by_id"], name: "index_delivery_photos_on_taken_by_id"
+  end
+
   create_table "delivery_routes", force: :cascade do |t|
     t.date "date", null: false
     t.bigint "driver_id"
@@ -136,11 +208,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "creation_token"
+    t.datetime "submitted_at"
+    t.bigint "submitted_by_id"
+    t.datetime "confirmed_at"
+    t.bigint "confirmed_by_id"
+    t.integer "collected_cents"
+    t.integer "expenses_cents"
+    t.integer "expected_cash_cents"
+    t.integer "counted_cash_cents"
+    t.integer "difference_cents"
+    t.integer "unresolved_cents"
+    t.text "confirmation_note"
+    t.index ["confirmed_by_id"], name: "index_delivery_routes_on_confirmed_by_id"
     t.index ["created_by_id"], name: "index_delivery_routes_on_created_by_id"
     t.index ["creation_token"], name: "index_delivery_routes_on_creation_token", unique: true, where: "(creation_token IS NOT NULL)"
     t.index ["date", "driver_id"], name: "index_delivery_routes_on_date_and_driver"
     t.index ["date"], name: "index_delivery_routes_on_date_without_driver", unique: true, where: "(driver_id IS NULL)"
     t.index ["driver_id"], name: "index_delivery_routes_on_driver_id"
+    t.index ["submitted_by_id"], name: "index_delivery_routes_on_submitted_by_id"
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'in_progress'::character varying, 'submitted'::character varying, 'confirmed'::character varying]::text[])", name: "delivery_routes_status_valid"
   end
 
@@ -171,12 +256,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
     t.datetime "delivery_recorded_at"
     t.bigint "delivery_recorded_by_id"
     t.string "not_delivered_reason"
+    t.string "payment_report"
+    t.datetime "payment_reported_at"
+    t.string "receipt_exception"
+    t.datetime "receipt_exception_at"
+    t.bigint "receipt_exception_by_id"
     t.index ["customer_id"], name: "index_delivery_stops_on_customer_id"
     t.index ["delivery_recorded_by_id"], name: "index_delivery_stops_on_delivery_recorded_by_id"
     t.index ["delivery_route_id", "position"], name: "index_delivery_stops_on_delivery_route_id_and_position"
     t.index ["delivery_route_id"], name: "index_delivery_stops_on_delivery_route_id"
     t.index ["order_id"], name: "index_delivery_stops_on_active_order", unique: true, where: "((order_id IS NOT NULL) AND (removed_at IS NULL))"
     t.index ["order_id"], name: "index_delivery_stops_on_order_id"
+    t.index ["receipt_exception_by_id"], name: "index_delivery_stops_on_receipt_exception_by_id"
     t.index ["removed_by_id"], name: "index_delivery_stops_on_removed_by_id"
     t.check_constraint "(kind::text = 'order'::text) = (order_id IS NOT NULL)", name: "delivery_stops_order_matches_kind"
     t.check_constraint "delivery_status::text <> 'not_delivered'::text OR not_delivered_reason IS NOT NULL", name: "delivery_stops_not_delivered_has_reason"
@@ -821,15 +912,33 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_20_120000) do
   add_foreign_key "customer_payments", "customers"
   add_foreign_key "customer_payments", "users"
   add_foreign_key "customer_payments", "users", column: "voided_by_id"
+  add_foreign_key "delivery_collections", "customer_payments"
+  add_foreign_key "delivery_collections", "customers"
+  add_foreign_key "delivery_collections", "delivery_collections", column: "replaces_id"
+  add_foreign_key "delivery_collections", "delivery_routes"
+  add_foreign_key "delivery_collections", "delivery_stops"
+  add_foreign_key "delivery_collections", "users", column: "created_by_id"
+  add_foreign_key "delivery_collections", "users", column: "voided_by_id"
   add_foreign_key "delivery_events", "delivery_routes"
   add_foreign_key "delivery_events", "delivery_stops"
   add_foreign_key "delivery_events", "users"
+  add_foreign_key "delivery_expenses", "delivery_expenses", column: "replaces_id"
+  add_foreign_key "delivery_expenses", "delivery_routes"
+  add_foreign_key "delivery_expenses", "expenses"
+  add_foreign_key "delivery_expenses", "users", column: "created_by_id"
+  add_foreign_key "delivery_expenses", "users", column: "voided_by_id"
+  add_foreign_key "delivery_photos", "delivery_routes"
+  add_foreign_key "delivery_photos", "delivery_stops"
+  add_foreign_key "delivery_photos", "users", column: "taken_by_id"
+  add_foreign_key "delivery_routes", "users", column: "confirmed_by_id"
   add_foreign_key "delivery_routes", "users", column: "created_by_id"
   add_foreign_key "delivery_routes", "users", column: "driver_id"
+  add_foreign_key "delivery_routes", "users", column: "submitted_by_id"
   add_foreign_key "delivery_stops", "customers"
   add_foreign_key "delivery_stops", "delivery_routes"
   add_foreign_key "delivery_stops", "orders"
   add_foreign_key "delivery_stops", "users", column: "delivery_recorded_by_id"
+  add_foreign_key "delivery_stops", "users", column: "receipt_exception_by_id"
   add_foreign_key "delivery_stops", "users", column: "removed_by_id"
   add_foreign_key "expense_recurrences", "expense_categories"
   add_foreign_key "expense_recurrences", "suppliers"

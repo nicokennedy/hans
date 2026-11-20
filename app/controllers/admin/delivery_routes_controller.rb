@@ -5,7 +5,7 @@
 class Admin::DeliveryRoutesController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
-  before_action :set_route, only: [:show, :driver, :sheet, :preview]
+  before_action :set_route, only: [:show, :driver, :sheet, :preview, :confirm_settlement]
 
   # Una fecha puede tener varios recorridos, de distintos repartidores o del mismo.
   def index
@@ -17,6 +17,8 @@ class Admin::DeliveryRoutesController < ApplicationController
     @creation_token = SecureRandom.uuid
     @stop_counts = DeliveryStop.active.where(delivery_route_id: @routes.map(&:id)).group(:delivery_route_id, :delivery_status).count
     @recent_routes = DeliveryRoute.recent_first.includes(:driver).limit(12)
+    # D8: recorridos de días anteriores que todavía no enviaron la rendición.
+    @overdue_routes = DeliveryRoute.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil).includes(:driver).order(:date, :id).to_a
     @stops_count = DeliveryStop.active.group(:delivery_route_id).count
   end
 
@@ -38,6 +40,39 @@ class Admin::DeliveryRoutesController < ApplicationController
     load_route_details
     @drivers = User.active_drivers.to_a
     @siblings = @route.siblings.to_a
+    @settlement = DeliveryRoutes::Settlement.new(@route)
+    @expense_categories = ExpenseCategory.active.ordered.to_a
+    @default_category = DeliveryRoutes::Settlements.default_category
+  end
+
+  # R4: confirmar el cierre de la rendición (solo admin, sin reabrir).
+  def confirm_settlement
+    categories = params[:categorias].is_a?(ActionController::Parameters) ? params[:categorias].to_unsafe_h.transform_keys(&:to_i).transform_values(&:to_i) : {}
+    result = DeliveryRoutes::Settlements.new(@route, current_user).confirm(
+      counted_cents: CustomerAccounts::Money.parse_pesos(params[:contado]), note: params[:nota], categories: categories
+    )
+    if result.ok?
+      redirect_to admin_delivery_route_path(@route, anchor: "rendicion"), notice: result.already ? "El cierre ya estaba confirmado." : "Cierre confirmado."
+    else
+      redirect_to admin_delivery_route_path(@route, anchor: "rendicion"), alert: result.errors.join(" ")
+    end
+  end
+
+  # R4: historial de rendiciones (por confirmar, confirmadas, con diferencia de caja).
+  FILTERS = { "pendientes" => "Por confirmar", "confirmadas" => "Confirmadas", "diferencias" => "Con diferencia o pendiente", "todas" => "Todas" }.freeze
+  def settlements
+    @filter = FILTERS.key?(params[:filtro]) ? params[:filtro] : "pendientes"
+    scope = DeliveryRoute.includes(:driver, :confirmed_by).order(date: :desc, id: :desc)
+    scope = case @filter
+            when "pendientes" then scope.where(status: "submitted")
+            when "confirmadas" then scope.where(status: "confirmed")
+            when "diferencias" then scope.where(status: "confirmed").where("difference_cents <> 0 OR unresolved_cents > 0")
+            else scope.where(status: %w[submitted confirmed])
+            end
+    @routes = scope.limit(200).to_a
+    @voided_after_close = DeliveryCollection.joins(:customer_payment).where(delivery_route_id: @routes.map(&:id), voided_at: nil)
+                                            .where.not(customer_payments: { voided_at: nil }).group(:delivery_route_id).count
+    @overdue_routes = DeliveryRoute.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil).includes(:driver).order(:date, :id).to_a
   end
 
   def driver

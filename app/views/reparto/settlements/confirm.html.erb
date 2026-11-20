@@ -1,0 +1,13 @@
+<%= link_to "◀ VOLVER", reparto_route_settlement_path(@route), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · ENVIAR LA RENDICIÓN</p>
+  <h1 class="reparto-date">¿Terminaste este reparto?</h1>
+  <p class="reparto-text">Vas a entregar a administración:</p>
+  <p class="reparto-amount"><%= format_money(@summary.to_deliver_cents) %></p>
+  <p class="reparto-text">Cobraste <%= format_money(@summary.collected_cents) %> y gastaste <%= format_money(@summary.expenses_cents) %>. Después de enviarla ya no vas a poder cambiar cobros ni gastos.</p>
+</header>
+<% if @summary.pending_stops.any? || @summary.pending_photo_stops.any? %>
+  <p class="reparto-warning">Ojo: <%= [("#{@summary.pending_stops.size} parada(s) sin marcar" if @summary.pending_stops.any?), ("#{@summary.pending_photo_stops.size} foto(s) de remito pendiente(s)" if @summary.pending_photo_stops.any?)].compact.join(" y ") %>.</p>
+<% end %>
+<%= button_to reparto_route_settlement_confirm_path(@route), method: :post, class: "reparto-button reparto-button-primary", data: { saving: "Enviando…" } do %>✔ SÍ, ENVIAR LA RENDICIÓN<% end %>
+<%= link_to "✖ TODAVÍA NO", reparto_route_settlement_path(@route), class: "reparto-button" %>

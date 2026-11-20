@@ -1,0 +1,33 @@
+<%# Detalle de la rendición de un recorrido. Locals: summary. %>
+<section class="reparto-card">
+  <p class="reparto-kicker">COBROS EN EFECTIVO</p>
+  <% if summary.counted_collections.empty? %>
+    <p class="reparto-text">No registraste cobros.</p>
+  <% end %>
+  <% summary.counted_collections.each do |collection| %>
+    <div class="reparto-row">
+      <span><%= collection.customer.name %><% if collection.unidentified? %> <span class="reparto-tag">A identificar</span><% end %></span>
+      <strong><%= format_money(collection.amount_cents) %></strong>
+    </div>
+  <% end %>
+  <div class="reparto-row reparto-row-total"><span>Cobraste</span><strong><%= format_money(summary.collected_cents) %></strong></div>
+</section>
+
+<section class="reparto-card">
+  <p class="reparto-kicker">GASTOS</p>
+  <% if summary.counted_expenses.empty? %>
+    <p class="reparto-text">No anotaste gastos.</p>
+  <% end %>
+  <% summary.counted_expenses.each do |expense| %>
+    <div class="reparto-row"><span><%= expense.concept %></span><strong>− <%= format_money(expense.amount_cents) %></strong></div>
+  <% end %>
+  <div class="reparto-row reparto-row-total"><span>Gastaste</span><strong>− <%= format_money(summary.expenses_cents) %></strong></div>
+</section>
+
+<section class="reparto-card reparto-card-next">
+  <p class="reparto-kicker">EFECTIVO PARA ENTREGAR</p>
+  <p class="reparto-amount"><%= format_money(summary.to_deliver_cents) %></p>
+  <% if summary.unresolved_cents.positive? %>
+    <p class="reparto-text">Los gastos superan lo cobrado en <%= format_money(summary.unresolved_cents) %>: lo resuelve administración.</p>
+  <% end %>
+</section>

@@ -5,11 +5,18 @@
       <p class="text-muted mb-0">Armá los recorridos del día y repartí los pedidos mayoristas. Un repartidor puede hacer varios repartos el mismo día.</p>
     </div>
     <div class="d-flex gap-2">
+      <%= link_to "Rendiciones", settlements_admin_delivery_routes_path, class: "btn btn-outline-dark btn-sm" %>
       <%= link_to "Usuarios", admin_users_path(role: "driver"), class: "btn btn-outline-dark btn-sm" %>
       <%= link_to "Modo demostración", admin_delivery_routes_demo_path, class: "btn btn-outline-secondary btn-sm",
             title: "Prototipo con datos ficticios (R1), separado de los recorridos reales" %>
     </div>
   </div>
+
+  <% if @overdue_routes.any? %>
+    <div class="alert alert-warning">⚠ Rendiciones sin enviar de días anteriores:
+      <%= safe_join(@overdue_routes.map { |r| link_to("#{l(r.date, format: '%d/%m')} · #{r.title}", admin_delivery_route_path(r, anchor: "rendicion")) }, ", ") %>
+    </div>
+  <% end %>
 
   <div class="product-card mb-3">
     <%= form_with url: admin_delivery_routes_path, method: :get, local: true, class: "row g-2 align-items-end" do %>

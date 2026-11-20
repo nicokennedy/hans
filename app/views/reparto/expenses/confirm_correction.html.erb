@@ -1,0 +1,17 @@
+<%= link_to "◀ CAMBIAR", reparto_route_expense_correction_path(@route, @expense), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker">CORREGIR UN GASTO · <%= @expense.concept.upcase %></p>
+  <h1 class="reparto-date">¿Corregimos el gasto?</h1>
+</header>
+<section class="reparto-card">
+  <div class="reparto-row"><span>Habías anotado</span><strong class="reparto-strike"><%= format_money(@expense.amount_cents) %></strong></div>
+  <div class="reparto-row reparto-row-total"><span>Lo correcto es</span><strong><%= format_money(@amount_cents) %></strong></div>
+  <div class="reparto-row"><span>Motivo</span><strong><%= @reason %></strong></div>
+</section>
+<%= form_with url: reparto_route_expense_correction_path(@route, @expense), method: :post, local: true do %>
+  <%= hidden_field_tag :importe, CustomerAccounts::Money.format_pesos(@amount_cents) %>
+  <%= hidden_field_tag :motivo, @reason %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <button type="submit" class="reparto-button reparto-button-primary" data-saving="Guardando…">✔ SÍ, CORREGIR</button>
+<% end %>
+<%= link_to "✖ NO, DEJARLO COMO ESTABA", reparto_route_expenses_path(@route), class: "reparto-button" %>

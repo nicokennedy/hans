@@ -1,0 +1,22 @@
+<%= link_to "◀ VOLVER A LA PARADA", reparto_stop_path(@stop), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">¿Te pagaron?</h1>
+  <p class="reparto-text">Solo efectivo. Las transferencias las registra administración.</p>
+</header>
+
+<%= render "reparto/collections/customer_balance" %>
+
+<% if @own_balance.positive? %>
+  <%= link_to reparto_stop_collection_confirm_path(@stop, tipo: "todo"), class: "reparto-button reparto-button-primary reparto-button-col" do %>
+    <span>✔ ME PAGARON TODO</span><span class="reparto-sub"><%= format_money(@own_balance) %> en efectivo</span>
+  <% end %>
+  <%= link_to "½ ME PAGARON UNA PARTE", reparto_stop_collection_amount_path(@stop, tipo: "parte"), class: "reparto-button" %>
+<% else %>
+  <p class="reparto-text"><strong>Este pedido ya está pago.</strong></p>
+<% end %>
+<%= button_to reparto_stop_collection_unpaid_path(@stop), method: :post, class: "reparto-button", data: { saving: "Guardando…" } do %>✖ NO ME PAGARON<% end %>
+<%= link_to reparto_stop_collection_amount_path(@stop, tipo: "otro"), class: "reparto-button reparto-button-col" do %>
+  <span>$ ME PAGARON OTRO IMPORTE</span><span class="reparto-sub"><%= @previous_orders.any? ? "también deudas anteriores" : "distinto del saldo" %></span>
+<% end %>
+<%= link_to "? NO SÉ A QUÉ PEDIDO CORRESPONDE", reparto_stop_collection_amount_path(@stop, tipo: "identificar"), class: "reparto-button" %>

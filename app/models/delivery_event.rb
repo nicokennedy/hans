@@ -13,7 +13,18 @@ class DeliveryEvent < ApplicationRecord
     "stop_transferred_in" => "Recibió un pedido de otro repartidor",
     "stop_delivered" => "Registró una entrega",
     "stop_not_delivered" => "Registró una entrega no realizada",
-    "stop_done" => "Registró una parada hecha"
+    "stop_done" => "Registró una parada hecha",
+    "collection_recorded" => "Registró un cobro",
+    "collection_corrected" => "Corrigió un cobro",
+    "collection_voided" => "Anuló un cobro",
+    "payment_reported" => "Informó que no le pagaron",
+    "photo_added" => "Subió la foto del remito",
+    "receipt_exception" => "Registró que el cliente no firmó",
+    "expense_recorded" => "Registró un gasto",
+    "expense_corrected" => "Corrigió un gasto",
+    "expense_voided" => "Anuló un gasto",
+    "settlement_submitted" => "Envió la rendición",
+    "settlement_confirmed" => "Confirmó el cierre"
   }.freeze
 
   belongs_to :delivery_route, inverse_of: :events

@@ -13,6 +13,13 @@ class DeliveryRoute < ApplicationRecord
   belongs_to :created_by, class_name: "User"
   has_many :stops, -> { order(:position, :id) }, class_name: "DeliveryStop", inverse_of: :delivery_route, dependent: :restrict_with_exception
   has_many :events, -> { order(:created_at, :id) }, class_name: "DeliveryEvent", inverse_of: :delivery_route, dependent: :restrict_with_exception
+  # R4: cobros, gastos y fotos del recorrido; su rendición es independiente de cualquier otro
+  # recorrido (también de otro reparto del mismo repartidor ese día).
+  has_many :collections, -> { order(:created_at, :id) }, class_name: "DeliveryCollection", inverse_of: :delivery_route, dependent: :restrict_with_exception
+  has_many :expenses, -> { order(:spent_at, :id) }, class_name: "DeliveryExpense", inverse_of: :delivery_route, dependent: :restrict_with_exception
+  has_many :photos, -> { order(:created_at, :id) }, class_name: "DeliveryPhoto", inverse_of: :delivery_route, dependent: :restrict_with_exception
+  belongs_to :submitted_by, class_name: "User", optional: true
+  belongs_to :confirmed_by, class_name: "User", optional: true
 
   validates :date, presence: true
   validates :status, inclusion: { in: STATUSES }
@@ -38,6 +45,29 @@ class DeliveryRoute < ApplicationRecord
   # En R2 solo existe "Preparando": administración puede editarlo libremente (con historial).
   def editable?
     status == "draft"
+  end
+
+  # R4: el repartidor registra entregas, cobros y gastos hasta que envía la rendición.
+  def open_for_driver?
+    %w[draft in_progress].include?(status)
+  end
+
+  def submitted?
+    status == "submitted"
+  end
+
+  def confirmed?
+    status == "confirmed"
+  end
+
+  # Administración puede corregir cobros y gastos hasta confirmar el cierre.
+  def open_for_admin?
+    !confirmed?
+  end
+
+  # D8: un recorrido de un día anterior que todavía no envió la rendición.
+  def settlement_overdue?(today = Date.current)
+    date < today && open_for_driver? && driver_id.present?
   end
 
   # Pedidos mayoristas de la fecha (sin cancelados) que no están en ninguna parada vigente ni
@@ -83,6 +113,9 @@ class DeliveryRoute < ApplicationRecord
 
   # Avance para el repartidor (no es el estado administrativo): sin empezar / en curso / terminado.
   def progress_for(stops)
+    return "Rendición enviada" if submitted?
+    return "Cerrado" if confirmed?
+
     done = stops.count { |stop| stop.delivery_status != "pending" }
     if stops.empty? || done.zero?
       "Sin empezar"

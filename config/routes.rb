@@ -40,7 +40,33 @@ Rails.application.routes.draw do
     # Si el repartidor tiene varios recorridos hoy, elige cuál abrir (Reparto 1, 2...).
     resources :routes, path: "repartos", only: [:show], constraints: { id: /\d+/ } do
       get "paradas", to: "stops#index", as: :stops
+      # R4: gastos pagados con el efectivo del reparto y rendición de ESTE recorrido.
+      get "gastos", to: "expenses#index", as: :expenses
+      get "gastos/nuevo", to: "expenses#new", as: :new_expense
+      get "gastos/confirmar", to: "expenses#confirm", as: :expense_confirm
+      post "gastos", to: "expenses#create"
+      get "gastos/:id/corregir", to: "expenses#edit", as: :expense_correction
+      get "gastos/:id/corregir/confirmar", to: "expenses#confirm_correction", as: :expense_correction_confirm
+      post "gastos/:id/corregir", to: "expenses#correct"
+      get "rendicion", to: "settlements#show", as: :settlement
+      get "rendicion/enviar", to: "settlements#confirm", as: :settlement_confirm
+      post "rendicion/enviar", to: "settlements#submit"
     end
+    # R4: cobro de una parada ("¿Te pagaron?") y foto del remito firmado.
+    scope "paradas/:stop_id", as: "stop", constraints: { stop_id: /\d+/ } do
+      get "cobro", to: "collections#new", as: :collection
+      post "cobro", to: "collections#create"
+      get "cobro/importe", to: "collections#amount", as: :collection_amount
+      get "cobro/pedidos", to: "collections#orders", as: :collection_orders
+      get "cobro/confirmar", to: "collections#confirm", as: :collection_confirm
+      post "cobro/no-pagaron", to: "collections#unpaid", as: :collection_unpaid
+      get "foto", to: "photos#new", as: :photo
+      post "foto", to: "photos#create"
+      post "foto/sin-firma", to: "photos#no_signature", as: :photo_no_signature
+    end
+    get "cobros/:id/corregir", to: "collections#edit", as: :collection_correction
+    get "cobros/:id/corregir/confirmar", to: "collections#confirm_correction", as: :collection_correction_confirm
+    post "cobros/:id/corregir", to: "collections#correct"
     # R3: el recorrido del día del repartidor. Solo el repartidor dueño (ver Reparto::StopsController).
     resources :stops, path: "paradas", only: [:index, :show] do
       member do
@@ -52,6 +78,9 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  # R4: fotos de remitos firmados. Nunca públicas: solo administración y el repartidor del recorrido.
+  get "fotos-remitos/:id", to: "delivery_photos#show", as: :delivery_photo, constraints: { id: /\d+/ }
 
   resource :dashboard, only: [:show]
 
@@ -262,7 +291,13 @@ Rails.application.routes.draw do
         patch :driver, path: "repartidor"
         get :sheet, path: "hoja-de-ruta"
         get "vista-repartidor(/:stop_id)", action: :preview, as: :preview, constraints: { stop_id: /\d+/ }
+        # R4: cierre de la rendición (solo admin).
+        post :confirm_settlement, path: "cerrar"
       end
+      # R4: historial de rendiciones y diferencias de caja.
+      collection { get :settlements, path: "rendiciones" }
+      resources :collections, controller: "delivery_collections", path: "cobros", only: [:new, :create, :edit, :update], constraints: { id: /\d+/ }
+      resources :expenses, controller: "delivery_expenses", path: "gastos", only: [:new, :create, :edit, :update], constraints: { id: /\d+/ }
       resources :stops, controller: "delivery_route_stops", path: "paradas", only: [:create, :update], constraints: { id: /\d+/ } do
         collection { post :add_orders, path: "agregar-pedidos" }
         member do

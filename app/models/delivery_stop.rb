@@ -18,12 +18,23 @@ class DeliveryStop < ApplicationRecord
   DELIVERY_STATUSES = %w[pending delivered not_delivered done].freeze
   DELIVERY_STATUS_LABELS = { "pending" => "Falta", "delivered" => "Entregado", "not_delivered" => "No entregado", "done" => "Hecho" }.freeze
   NOT_DELIVERED_REASONS = ["Estaba cerrado", "No lo quisieron recibir", "No llegué", "Otro motivo"].freeze
+  # R4: respuesta a "¿Te pagaron?" (informativa; el dinero está en DeliveryCollection).
+  PAYMENT_REPORTS = {
+    "paid_all" => "Pagó todo", "partial" => "Pagó una parte", "none" => "No pagó",
+    "other" => "Pagó otro importe", "unidentified" => "Pagó (a identificar)"
+  }.freeze
+  # R4 (D9): excepción justificada a la foto del remito. "Ahora no puedo" NO es excepción:
+  # la foto queda pendiente.
+  RECEIPT_EXCEPTIONS = { "no_signature" => "El cliente no quiso firmar" }.freeze
 
   belongs_to :delivery_route, inverse_of: :stops
   belongs_to :order, optional: true
   belongs_to :customer, optional: true
   belongs_to :removed_by, class_name: "User", optional: true
   belongs_to :delivery_recorded_by, class_name: "User", optional: true
+  belongs_to :receipt_exception_by, class_name: "User", optional: true
+  has_many :collections, -> { order(:created_at, :id) }, class_name: "DeliveryCollection", dependent: :restrict_with_exception
+  has_many :photos, -> { order(:created_at, :id) }, class_name: "DeliveryPhoto", dependent: :restrict_with_exception
 
   validates :kind, inclusion: { in: KINDS }
   validates :position, numericality: { only_integer: true, greater_than: 0 }
@@ -37,6 +48,8 @@ class DeliveryStop < ApplicationRecord
   validates :delivery_status, inclusion: { in: DELIVERY_STATUSES }
   validates :delivery_status, exclusion: { in: %w[delivered], message: "no aplica a una parada manual" }, unless: :order?
   validates :not_delivered_reason, presence: true, if: -> { delivery_status == "not_delivered" }
+  validates :payment_report, inclusion: { in: PAYMENT_REPORTS.keys }, allow_nil: true
+  validates :receipt_exception, inclusion: { in: RECEIPT_EXCEPTIONS.keys }, allow_nil: true
 
   scope :active, -> { where(removed_at: nil) }
   scope :removed, -> { where.not(removed_at: nil) }
@@ -110,4 +123,24 @@ class DeliveryStop < ApplicationRecord
     warnings << "La fecha de entrega del pedido cambió al #{I18n.l(order.delivery_date, format: '%d/%m')}." if order.delivery_date != delivery_route.date
     warnings
   end
+
+  # --- R4: cobro y remito ---------------------------------------------------------------
+
+  def payment_report_label
+    PAYMENT_REPORTS[payment_report]
+  end
+
+  def receipt_exception_label
+    RECEIPT_EXCEPTIONS[receipt_exception]
+  end
+
+  # D9: pedido entregado que sigue con saldo (no pagó o pagó una parte) → foto del remito firmado.
+  def receipt_photo_required?
+    order? && delivery_status == "delivered" && order.balance_due_cents.positive?
+  end
+
+  def receipt_photo_pending?
+    receipt_photo_required? && photos.none? && receipt_exception.blank?
+  end
+
 end

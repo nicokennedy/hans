@@ -1,0 +1,19 @@
+<div class="container py-4" style="max-width: 760px">
+  <p class="text-muted mb-1"><%= link_to "← #{@route.title}", admin_delivery_route_path(@route, anchor: "rendicion") %></p>
+  <h1 class="h3">Corregir un cobro</h1>
+  <p><strong><%= @collection.customer.name %></strong> · <%= format_money(@collection.amount_cents) %> registrado por <%= @collection.created_by.display_name %> el <%= l(@collection.created_at, format: "%d/%m %H:%M") %><%= " · A identificar" if @collection.unidentified? %>.</p>
+  <p class="text-muted small">Se anula el cobro (y su pago de cuenta corriente, con el motivo) y se registra el correcto. Importe 0 = anularlo sin reemplazo. Si es de otro cliente, anulalo acá y registralo en la parada que corresponde.</p>
+
+  <%= form_with url: admin_delivery_route_collection_path(@route, @collection), method: :patch, local: true, class: "product-card",
+        data: { turbo_confirm: "¿Corregir este cobro?" } do %>
+    <%= hidden_field_tag :request_token, @request_token %>
+    <label class="form-label" for="importe">Importe correcto</label>
+    <%= text_field_tag :importe, CustomerAccounts::Money.format_pesos(@collection.amount_cents), id: "importe", class: "form-control mb-2", inputmode: "numeric", required: true %>
+    <div class="form-check mb-2"><%= check_box_tag :a_identificar, "1", @collection.unidentified?, class: "form-check-input", id: "a_identificar" %><label class="form-check-label" for="a_identificar">A identificar (todo a saldo a favor, sin aplicar)</label></div>
+    <%= render "admin/delivery_collections/allocation_fields", orders: @orders, values: @collection.allocation_map %>
+    <p class="small text-muted mt-1">Los saldos mostrados todavía incluyen este cobro; al corregir se libera primero.</p>
+    <label class="form-label mt-2" for="motivo">Motivo (obligatorio)</label>
+    <%= text_field_tag :motivo, nil, id: "motivo", class: "form-control mb-2", required: true %>
+    <%= submit_tag "Corregir cobro", class: "btn btn-dark", data: { turbo_submits_with: "Guardando…" } %>
+  <% end %>
+</div>

@@ -29,7 +29,44 @@
   </section>
 <% end %>
 
-<% if %w[pending not_delivered].include?(@stop.delivery_status) %>
+<% route_open = @route.open_for_driver? %>
+<% if !route_open %>
+  <p class="reparto-note">Ya enviaste la rendición de este reparto: acá solo se puede mirar.</p>
+<% end %>
+
+<% if @stop.order? %>
+  <% collections = @stop.collections.includes(:customer_payment).to_a %>
+  <% if collections.any? || @stop.payment_report %>
+    <section class="reparto-card">
+      <p class="reparto-kicker">COBROS</p>
+      <% collections.each do |collection| %>
+        <div class="reparto-row">
+          <span>
+            <span class="<%= 'reparto-strike' unless collection.counts? %>"><%= l(collection.created_at, format: "%H:%M") %> · efectivo</span>
+            <% if collection.unidentified? %> <span class="reparto-tag">A identificar</span><% end %>
+            <% if collection.voided? %> <span class="reparto-tag">Corregido</span><% elsif collection.voided_outside? %> <span class="reparto-tag">Anulado por administración</span><% end %>
+          </span>
+          <strong class="<%= 'reparto-strike' unless collection.counts? %>"><%= format_money(collection.amount_cents) %></strong>
+        </div>
+        <% if route_open && collection.counts? %>
+          <%= link_to "Corregir este cobro", reparto_collection_correction_path(collection), class: "reparto-link" %>
+        <% end %>
+      <% end %>
+      <% if collections.none?(&:counts?) && @stop.payment_report == "none" %><p class="reparto-text">No te pagaron.</p><% end %>
+    </section>
+  <% end %>
+  <% if @stop.receipt_photo_pending? %>
+    <p class="reparto-warning">📷 Falta la foto del remito firmado.</p>
+    <%= link_to "📷 SACAR LA FOTO DEL REMITO", reparto_stop_photo_path(@stop), class: "reparto-button" unless @route.confirmed? %>
+  <% elsif @stop.photos.any? %>
+    <p class="reparto-text">📷 Foto del remito guardada.</p>
+  <% elsif @stop.receipt_exception %>
+    <p class="reparto-text">📷 <%= @stop.receipt_exception_label %>.</p>
+  <% end %>
+<% end %>
+
+<% if !route_open %>
+<% elsif %w[pending not_delivered].include?(@stop.delivery_status) %>
   <% if @stop.delivery_status == "not_delivered" %>
     <section class="reparto-card"><%= render "reparto/stops/status_chip", stop: @stop %></section>
   <% end %>
@@ -42,7 +79,13 @@
   <% if @stop.delivery_status == "pending" %>
     <%= link_to not_delivered_reparto_stop_path(@stop), class: "reparto-button" do %>✖ <%= @stop.order? ? "NO PUDE ENTREGARLO" : "NO PUDE" %><% end %>
   <% end %>
+  <% if @stop.order? && @stop.delivery_status == "not_delivered" %>
+    <%= link_to "💵 IGUAL ME PAGARON ALGO", reparto_stop_collection_path(@stop), class: "reparto-button" %>
+  <% end %>
 <% else %>
+  <% if @stop.order? %>
+    <%= link_to "💵 REGISTRAR UN COBRO", reparto_stop_collection_path(@stop), class: "reparto-button" %>
+  <% end %>
   <section class="reparto-done">
     <div class="reparto-check" aria-hidden="true">✔</div>
     <p class="reparto-big"><%= @stop.order? ? "Entregado" : "Hecho" %> a las <%= l(@stop.delivery_recorded_at, format: "%H:%M") %></p>

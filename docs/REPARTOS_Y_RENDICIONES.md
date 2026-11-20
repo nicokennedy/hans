@@ -648,3 +648,33 @@ Caso real: Chiara sale con 6 pedidos, vuelve a HANS y sale de nuevo con otros 4.
 - **Portal del repartidor**: con un solo reparto hoy, la portada es la de siempre. Con varios, la portada lista "REPARTO 1 / REPARTO 2" con paradas y avance (Sin empezar / En curso: X de N / Terminado) y botones grandes; cada uno abre `/reparto/repartos/:id` y su lista `/reparto/repartos/:id/paradas`, solo con sus paradas. Las paradas se buscan dentro de los recorridos de HOY del repartidor. "SÍ, LO ENTREGUÉ" y "NO PUDE ENTREGARLO" no cambiaron.
 - **Vista previa del admin**: "Ver como repartidor" de cada recorrido indica "su Reparto N"; sigue sin botones de entrega.
 - Tests: `test/services/delivery_routes/several_routes_test.rb`, `test/controllers/reparto/several_routes_test.rb` y casos nuevos en `admin/delivery_routes_controller_test.rb`.
+
+## 15. R4 — Cobros, remitos, gastos y rendición por recorrido (rama `repartos-r4`, solo local)
+
+Decisiones financieras aprobadas (20/11/2026):
+1. **Cobro sin identificar**: se registra en la cuenta corriente del cliente de la parada como saldo a favor, sin aplicarlo a pedidos, marcado "A identificar" en la rendición. Administración lo imputa con "Aplicar saldo a favor"; si era de otro cliente, se anula con motivo y se registra donde corresponde.
+2. **Correcciones**: antes del cierre, el repartidor (hasta enviar) y administración (desde Repartos) corrigen con motivo: se anula el cobro y su `CustomerPayment` (`CustomerAccounts::VoidPayment`) y se registra el correcto; la rendición se recalcula. Después del cierre: la rendición queda cerrada con sus importes históricos; las correcciones se hacen en la cuenta corriente y la rendición muestra un aviso. No se reabren rendiciones cerradas.
+3. **Gastos mayores al efectivo**: el repartidor no puede ("Supera lo que cobraste ($X). Avisale a administración."). Administración puede como excepción explícita con motivo; si los gastos superan los cobros, la diferencia queda como **importe pendiente de resolver** (el efectivo a entregar es $0). No se crean reintegros, gastos ni movimientos para compensar.
+
+### Modelo
+- `delivery_collections`: vínculo del cobro con recorrido, parada, cliente, repartidor y modo (`allocated` / `unidentified`). El dinero es el `CustomerPayment` (efectivo contraentrega, `paid_on` = día del cobro, usuario = quien lo registra), creado con `CustomerAccounts::RegisterPayment` en la misma transacción. `customer_payment_id` y `request_token` únicos. Correcciones: `voided_*` + `replaces_id`. Nunca se borra ni se edita el importe.
+- `delivery_photos`: foto del remito (Active Storage; en producción solo R2, `RetailCatalog::PhotoStorage`). Se sirve por `/fotos-remitos/:id`, solo a administración y al repartidor del recorrido, `Cache-Control: private, no-store`.
+- `delivery_expenses`: gastos con el efectivo del recorrido. `admin_exception` + `exception_reason`. `expense_id` único: pasa a Administración una sola vez.
+- `delivery_stops`: `payment_report` (respuesta a "¿Te pagaron?") y `receipt_exception` ("El cliente no quiso firmar").
+- `delivery_routes`: `submitted_*`, `confirmed_*`, totales congelados (`collected_cents`, `expenses_cents`, `expected_cash_cents`), `counted_cash_cents`, `difference_cents` (diferencia de caja), `unresolved_cents`, `confirmation_note`.
+
+### Servicios (`app/services/delivery_routes/`)
+- `Collections#record / #correct / #report_unpaid`: recorrido bloqueado (FOR UPDATE) → `RegisterPayment` (bloquea cliente y pedidos, valida saldos, sobrante = saldo a favor) → `DeliveryCollection`. Idempotente por `request_token` (doble toque, reintento, solicitudes simultáneas).
+- `Expenses#record / #correct`: límite del efectivo disponible, excepción de administración.
+- `Photos#attach / #no_signature`: la subida va aparte; si falla, la parada queda "Falta la foto del remito".
+- `Settlement`: cálculo (nunca editable): efectivo a entregar = cobros vigentes − gastos vigentes; un cobro anulado desde la cuenta corriente deja de contar y se avisa.
+- `Settlements#submit` (repartidor) / `#confirm` (solo admin): congela totales; el cierre registra lo contado, la diferencia de caja (motivo obligatorio; nunca gasto) y crea los gastos con `Finance::SaveExpense` + pago en efectivo (categoría elegida; por defecto "Logística y envíos").
+- `Access.money_error`: repartidor dueño mientras el recorrido está abierto; admin hasta confirmar.
+
+### Pantallas
+- Repartidor: "SÍ, LO ENTREGUÉ" → **¿Te pagaron?** (todo / una parte / no me pagaron / otro importe con elección de pedidos / no sé a qué pedido) → **confirmación del importe** → foto del remito si quedó saldo (sacar foto, "El cliente no quiso firmar", "Ahora no puedo" = pendiente) → listo. "Registrar un cobro" después de entregar. Corregir cobro con motivo. **Gastos del reparto** y **Mi rendición** (detalle, efectivo a entregar, avisos, enviar con confirmación). Todo de HOY y de sus recorridos.
+- Administración → Repartos → recorrido: sección **Cobros y rendición** (cobros con su aplicación y enlace a la cuenta corriente, gastos, remitos con foto, registrar/corregir, confirmar el cierre). **Rendiciones** (`/admin/repartos/rendiciones`): por confirmar, confirmadas, con diferencia o pendiente, avisos de cobros anulados después del cierre y de rendiciones sin enviar de días anteriores (D8).
+- Pedido (admin): aviso "Este pedido está en Chiara · Reparto N: el efectivo lo registra el repartidor, no lo cargues de nuevo".
+
+### Tests
+`test/services/delivery_routes/{collections,settlements,photos}_test.rb`, `test/controllers/reparto/money_flow_test.rb`, `test/controllers/admin/delivery_settlements_test.rb`.

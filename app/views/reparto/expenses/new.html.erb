@@ -1,0 +1,18 @@
+<%= link_to "◀ VOLVER A GASTOS", reparto_route_expenses_path(@route), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · NUEVO GASTO</p>
+  <h1 class="reparto-date">¿Qué pagaste?</h1>
+  <p class="reparto-text">Solo con la plata que cobraste en el reparto. Te quedan <strong><%= format_money(@summary.available_cents) %></strong>.</p>
+</header>
+
+<%= form_with url: reparto_route_expense_confirm_path(@route), method: :get, local: true, class: "reparto-form" do %>
+  <% (DeliveryExpense::QUICK_CONCEPTS + ["Otro"]).each_with_index do |concept, i| %>
+    <label class="reparto-choice"><%= radio_button_tag :concepto, concept, params[:concepto] == concept, id: "concepto-#{i}", required: true %> <%= concept %></label>
+  <% end %>
+  <%= text_field_tag :concepto_texto, params[:concepto_texto], class: "reparto-input", placeholder: "Si elegiste \"Otro\", escribí qué", "aria-label": "Otro concepto", maxlength: 80 %>
+  <label class="reparto-label" for="importe">¿Cuánto pagaste?</label>
+  <%= text_field_tag :importe, params[:importe], id: "importe", class: "reparto-input reparto-amount", inputmode: "numeric", autocomplete: "off", placeholder: "$ 0", required: true %>
+  <label class="reparto-label" for="notas">Nota (opcional)</label>
+  <%= text_field_tag :notas, params[:notas], id: "notas", class: "reparto-input", maxlength: 500 %>
+  <button type="submit" class="reparto-button reparto-button-primary">SEGUIR ▶</button>
+<% end %>

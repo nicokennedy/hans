@@ -26,6 +26,8 @@
 <% end %>
 
 <%= link_to reparto_route_stops_path(route), class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
+<%= link_to reparto_route_expenses_path(route), class: "reparto-button" do %>💵 GASTOS DEL REPARTO<% end %>
+<%= link_to reparto_route_settlement_path(route), class: "reparto-button#{' reparto-button-primary' if next_stop.nil? && stops.any? && route.open_for_driver?}" do %>🧾 <%= route.open_for_driver? ? "MI RENDICIÓN" : "RENDICIÓN ENVIADA" %><% end %>
 <% if todays_routes.many? %>
   <%= link_to reparto_root_path, class: "reparto-button" do %>◀ MIS REPARTOS DE HOY<% end %>
 <% end %>

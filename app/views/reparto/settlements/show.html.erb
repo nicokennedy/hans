@@ -1,0 +1,24 @@
+<%= link_to "◀ VOLVER AL REPARTO", route_home_path(@route), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · <%= l(@route.date, format: "%d/%m") %></p>
+  <h1 class="reparto-date">Mi rendición</h1>
+</header>
+
+<% if @route.submitted? %>
+  <p class="reparto-note">✔ Enviada a administración el <%= l(@route.submitted_at, format: "%d/%m a las %H:%M") %>. Entregá el efectivo a administración.</p>
+<% elsif @route.confirmed? %>
+  <p class="reparto-note">✔ Administración confirmó el cierre el <%= l(@route.confirmed_at, format: "%d/%m a las %H:%M") %>.</p>
+<% end %>
+
+<%= render "reparto/settlements/detail", summary: @summary %>
+
+<% if @route.open_for_driver? %>
+  <% if @summary.pending_stops.any? %>
+    <p class="reparto-warning"><%= @summary.pending_stops.size == 1 ? "Te falta 1 parada" : "Te faltan #{@summary.pending_stops.size} paradas" %> por marcar.</p>
+  <% end %>
+  <% if @summary.pending_photo_stops.any? %>
+    <p class="reparto-warning">📷 <%= @summary.pending_photo_stops.size == 1 ? "Falta 1 foto de remito" : "Faltan #{@summary.pending_photo_stops.size} fotos de remitos" %>: <%= @summary.pending_photo_stops.map(&:display_name).join(", ") %>.</p>
+  <% end %>
+  <%= link_to "📤 ENVIAR LA RENDICIÓN", reparto_route_settlement_confirm_path(@route), class: "reparto-button reparto-button-primary" %>
+  <%= link_to "💵 VER O ANOTAR GASTOS", reparto_route_expenses_path(@route), class: "reparto-button" %>
+<% end %>

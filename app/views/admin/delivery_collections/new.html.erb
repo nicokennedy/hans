@@ -1,0 +1,26 @@
+<div class="container py-4" style="max-width: 760px">
+  <p class="text-muted mb-1"><%= link_to "← #{@route.title}", admin_delivery_route_path(@route, anchor: "rendicion") %></p>
+  <h1 class="h3">Registrar un cobro en efectivo</h1>
+  <p class="text-muted">Se registra como pago de cuenta corriente (efectivo contraentrega) vinculado a este recorrido. Las transferencias se registran como siempre desde la cuenta corriente.</p>
+
+  <%= form_with url: new_admin_delivery_route_collection_path(@route), method: :get, local: true, class: "mb-3" do %>
+    <label class="form-label" for="stop_id">Parada</label>
+    <div class="d-flex gap-2">
+      <%= select_tag :stop_id, options_for_select(@stops.map { |s| ["#{s.position}. #{s.display_name} · #{s.order.number}", s.id] }, @stop&.id), include_blank: "Elegí la parada", id: "stop_id", class: "form-select" %>
+      <%= submit_tag "Elegir", name: nil, class: "btn btn-outline-dark" %>
+    </div>
+  <% end %>
+
+  <% if @stop %>
+    <%= form_with url: admin_delivery_route_collections_path(@route), method: :post, local: true, class: "product-card",
+          data: { turbo_confirm: "¿Registrar este cobro en efectivo?" } do %>
+      <%= hidden_field_tag :stop_id, @stop.id %>
+      <%= hidden_field_tag :request_token, @request_token %>
+      <label class="form-label" for="importe">Importe recibido</label>
+      <%= text_field_tag :importe, nil, id: "importe", class: "form-control mb-2", inputmode: "numeric", required: true %>
+      <div class="form-check mb-2"><%= check_box_tag :a_identificar, "1", false, class: "form-check-input", id: "a_identificar" %><label class="form-check-label" for="a_identificar">A identificar (todo a saldo a favor, sin aplicar)</label></div>
+      <%= render "admin/delivery_collections/allocation_fields", orders: @orders, values: CustomerAccounts::Distribution.suggest(@orders.first(1), @orders.first&.balance_due_cents.to_i).allocations %>
+      <%= submit_tag "Registrar cobro", class: "btn btn-dark mt-2", data: { turbo_submits_with: "Guardando…" } %>
+    <% end %>
+  <% end %>
+</div>

@@ -1,0 +1,32 @@
+<%= link_to "◀ CAMBIAR", @plan.kind == "todo" ? reparto_stop_collection_path(@stop) : reparto_stop_collection_amount_path(@stop, tipo: @plan.kind, importe: params[:importe]), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">¿Te pagaron en efectivo?</h1>
+  <p class="reparto-amount"><%= format_money(@plan.amount_cents) %></p>
+</header>
+
+<section class="reparto-card">
+  <% if @plan.unidentified %>
+    <div class="reparto-row"><span>A identificar (queda a favor del cliente)</span><strong><%= format_money(@plan.amount_cents) %></strong></div>
+  <% else %>
+    <% @plan.allocations.each do |order_id, cents| %>
+      <% order = @orders_by_id[order_id] %>
+      <div class="reparto-row"><span><%= order_id == @stop.order_id ? "Este pedido" : "Pedido del #{l(order.delivery_date, format: '%d/%m')}" %></span><strong><%= format_money(cents) %></strong></div>
+    <% end %>
+    <% if @plan.credit_cents.positive? %>
+      <div class="reparto-row"><span>Queda a favor del cliente</span><strong><%= format_money(@plan.credit_cents) %></strong></div>
+    <% end %>
+  <% end %>
+</section>
+
+<%= form_with url: reparto_stop_collection_path(@stop), method: :post, local: true do %>
+  <%= hidden_field_tag :tipo, @plan.kind %>
+  <%= hidden_field_tag :importe, CustomerAccounts::Money.format_pesos(@plan.amount_cents) %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <% if @plan.kind == "otro" %>
+    <% @plan.allocations.each do |order_id, cents| %><%= hidden_field_tag "asignar[#{order_id}]", CustomerAccounts::Money.format_pesos(cents) %><% end %>
+    <% if @plan.allocations.empty? %><%= hidden_field_tag "asignar[0]", "" %><% end %>
+  <% end %>
+  <button type="submit" class="reparto-button reparto-button-primary" data-saving="Guardando…">✔ SÍ, ME PAGARON <%= format_money(@plan.amount_cents) %></button>
+<% end %>
+<%= link_to "✖ NO, CAMBIAR EL IMPORTE", @plan.kind == "todo" ? reparto_stop_collection_path(@stop) : reparto_stop_collection_amount_path(@stop, tipo: @plan.kind, importe: params[:importe]), class: "reparto-button" %>

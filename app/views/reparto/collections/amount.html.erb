@@ -1,0 +1,18 @@
+<%= link_to "◀ VOLVER", reparto_stop_collection_path(@stop), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
+  <h1 class="reparto-date">¿Cuánto te pagaron?</h1>
+  <% if @kind == "identificar" %>
+    <p class="reparto-text">Queda a favor del cliente y administración lo asigna después.</p>
+  <% end %>
+</header>
+
+<% if @kind != "identificar" %><%= render "reparto/collections/customer_balance" %><% end %>
+
+<% next_step = @kind == "otro" && @previous_orders.any? ? reparto_stop_collection_orders_path(@stop) : reparto_stop_collection_confirm_path(@stop) %>
+<%= form_with url: next_step, method: :get, local: true, class: "reparto-form" do %>
+  <%= hidden_field_tag :tipo, @kind %>
+  <label class="reparto-label" for="importe">Importe en efectivo</label>
+  <%= text_field_tag :importe, params[:importe], id: "importe", class: "reparto-input reparto-amount", inputmode: "numeric", autocomplete: "off", placeholder: "$ 0", required: true %>
+  <button type="submit" class="reparto-button reparto-button-primary">SEGUIR ▶</button>
+<% end %>

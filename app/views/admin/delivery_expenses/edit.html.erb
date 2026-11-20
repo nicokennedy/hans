@@ -1,0 +1,18 @@
+<div class="container py-4" style="max-width: 760px">
+  <p class="text-muted mb-1"><%= link_to "← #{@route.title}", admin_delivery_route_path(@route, anchor: "rendicion") %></p>
+  <h1 class="h3">Corregir un gasto</h1>
+  <p><strong><%= @expense.concept %></strong> · <%= format_money(@expense.amount_cents) %> registrado por <%= @expense.created_by.display_name %> el <%= l(@expense.spent_at, format: "%d/%m %H:%M") %>.</p>
+  <%= form_with url: admin_delivery_route_expense_path(@route, @expense), method: :patch, local: true, class: "product-card", data: { turbo_confirm: "¿Corregir este gasto?" } do %>
+    <%= hidden_field_tag :request_token, @request_token %>
+    <label class="form-label" for="concepto">Concepto</label>
+    <%= text_field_tag :concepto, @expense.concept, id: "concepto", class: "form-control mb-2", maxlength: 80 %>
+    <label class="form-label" for="importe">Importe correcto (0 = anularlo)</label>
+    <%= text_field_tag :importe, CustomerAccounts::Money.format_pesos(@expense.amount_cents), id: "importe", class: "form-control mb-2", inputmode: "numeric", required: true %>
+    <label class="form-label" for="notas">Observaciones</label>
+    <%= text_field_tag :notas, @expense.notes, id: "notas", class: "form-control mb-2", maxlength: 500 %>
+    <%= render "admin/delivery_expenses/exception_fields", available: @summary.available_cents + @expense.amount_cents %>
+    <label class="form-label" for="motivo">Motivo de la corrección (obligatorio)</label>
+    <%= text_field_tag :motivo, nil, id: "motivo", class: "form-control mb-2", required: true %>
+    <%= submit_tag "Corregir gasto", class: "btn btn-dark", data: { turbo_submits_with: "Guardando…" } %>
+  <% end %>
+</div>

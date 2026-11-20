@@ -103,6 +103,13 @@
 
     <div class="mt-4 p-3 border rounded">
       <h5 class="mb-3">Registrar pago</h5>
+      <% route_stop = DeliveryStop.active.where(order_id: @order.id).joins(:delivery_route).where.not(delivery_routes: { status: "confirmed" }).includes(:delivery_route).first %>
+      <% if route_stop %>
+        <div class="alert alert-warning py-2" id="delivery-cash-warning">
+          Este pedido está en <%= link_to "#{route_stop.delivery_route.title} del #{l(route_stop.delivery_route.date, format: '%d/%m')}", admin_delivery_route_path(route_stop.delivery_route, anchor: "rendicion") %>.
+          El efectivo que cobra el repartidor lo registra él desde Repartos (aparece arriba como "Cobro de reparto"): no lo cargues de nuevo acá. Acá registrá solo transferencias u otros pagos.
+        </div>
+      <% end %>
 
       <%= form_with model: [:admin, @order, Payment.new], local: true do |f| %>
         <%= orders_context_hidden_fields %>

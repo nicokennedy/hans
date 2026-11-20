@@ -1,0 +1,31 @@
+<%= link_to "◀ VOLVER AL REPARTO", route_home_path(@route), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · GASTOS</p>
+  <h1 class="reparto-date">Gastos con la plata del reparto</h1>
+  <p class="reparto-text">Te quedan <strong><%= format_money(@summary.available_cents) %></strong> de lo que cobraste.</p>
+</header>
+
+<% if @summary.expenses.empty? %>
+  <section class="reparto-card"><p class="reparto-big">Todavía no anotaste gastos.</p></section>
+<% else %>
+  <section class="reparto-card">
+    <% @summary.expenses.each do |expense| %>
+      <div class="reparto-row">
+        <span class="<%= 'reparto-strike' if expense.voided? %>"><%= l(expense.spent_at, format: "%H:%M") %> · <%= expense.concept %><%= " (#{expense.notes})" if expense.notes %></span>
+        <strong class="<%= 'reparto-strike' if expense.voided? %>"><%= format_money(expense.amount_cents) %></strong>
+      </div>
+      <% if expense.voided? %>
+        <p class="reparto-link">Corregido: <%= expense.void_reason %></p>
+      <% elsif @route.open_for_driver? %>
+        <%= link_to "Corregir este gasto", reparto_route_expense_correction_path(@route, expense), class: "reparto-link" %>
+      <% end %>
+    <% end %>
+    <div class="reparto-row reparto-row-total"><span>Total de gastos</span><strong><%= format_money(@summary.expenses_cents) %></strong></div>
+  </section>
+<% end %>
+
+<% if @route.open_for_driver? %>
+  <%= link_to "+ ANOTAR UN GASTO", reparto_route_new_expense_path(@route), class: "reparto-button reparto-button-primary" %>
+<% else %>
+  <p class="reparto-note">Ya enviaste la rendición: los gastos no se pueden cambiar.</p>
+<% end %>

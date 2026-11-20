@@ -1,0 +1,17 @@
+<div class="container py-4" style="max-width: 760px">
+  <p class="text-muted mb-1"><%= link_to "← #{@route.title}", admin_delivery_route_path(@route, anchor: "rendicion") %></p>
+  <h1 class="h3">Registrar un gasto del recorrido</h1>
+  <p class="text-muted">Pagado con el efectivo del reparto. Pasa a Administración al confirmar el cierre.</p>
+  <%= form_with url: admin_delivery_route_expenses_path(@route), method: :post, local: true, class: "product-card", data: { turbo_confirm: "¿Registrar este gasto?" } do %>
+    <%= hidden_field_tag :request_token, @request_token %>
+    <label class="form-label" for="concepto">Concepto</label>
+    <%= text_field_tag :concepto, nil, id: "concepto", class: "form-control mb-2", required: true, maxlength: 80, list: "conceptos" %>
+    <datalist id="conceptos"><% DeliveryExpense::QUICK_CONCEPTS.each do |c| %><option value="<%= c %>"><% end %></datalist>
+    <label class="form-label" for="importe">Importe</label>
+    <%= text_field_tag :importe, nil, id: "importe", class: "form-control mb-2", inputmode: "numeric", required: true %>
+    <label class="form-label" for="notas">Observaciones (opcional)</label>
+    <%= text_field_tag :notas, nil, id: "notas", class: "form-control mb-2", maxlength: 500 %>
+    <%= render "admin/delivery_expenses/exception_fields", available: @summary.available_cents %>
+    <%= submit_tag "Registrar gasto", class: "btn btn-dark", data: { turbo_submits_with: "Guardando…" } %>
+  <% end %>
+</div>

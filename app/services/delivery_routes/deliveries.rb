@@ -75,6 +75,8 @@ module DeliveryRoutes
         outcome =
           if stop.removed?
             error("Esta parada ya no está en tu recorrido. Volvé a la lista.")
+          elsif !stop.delivery_route.open_for_driver?
+            error("Ya enviaste la rendición de este reparto: no se puede cambiar. Si hay un error, avisale a administración.")
           else
             yield(stop) || Result.new(stop: stop, errors: [], already: false)
           end

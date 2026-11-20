@@ -1,0 +1,17 @@
+<%= link_to "◀ CAMBIAR", reparto_route_new_expense_path(@route, concepto: params[:concepto], concepto_texto: params[:concepto_texto], importe: params[:importe], notas: params[:notas]), class: "reparto-back" %>
+<header class="reparto-header">
+  <p class="reparto-kicker"><%= @route.label.upcase %> · NUEVO GASTO</p>
+  <h1 class="reparto-date">¿Pagaste esto con la plata del reparto?</h1>
+  <p class="reparto-amount"><%= format_money(@amount_cents) %></p>
+  <p class="reparto-big"><%= @concept %></p>
+  <% if params[:notas].present? %><p class="reparto-text"><%= params[:notas] %></p><% end %>
+</header>
+<%= form_with url: reparto_route_expenses_path(@route), method: :post, local: true do %>
+  <%= hidden_field_tag :concepto, "Otro" %>
+  <%= hidden_field_tag :concepto_texto, @concept %>
+  <%= hidden_field_tag :importe, CustomerAccounts::Money.format_pesos(@amount_cents) %>
+  <%= hidden_field_tag :notas, params[:notas] %>
+  <%= hidden_field_tag :request_token, @request_token %>
+  <button type="submit" class="reparto-button reparto-button-primary" data-saving="Guardando…">✔ SÍ, ANOTAR <%= format_money(@amount_cents) %></button>
+<% end %>
+<%= link_to "✖ NO, CAMBIAR", reparto_route_new_expense_path(@route, concepto: params[:concepto], concepto_texto: params[:concepto_texto], importe: params[:importe], notas: params[:notas]), class: "reparto-button" %>
