@@ -100,6 +100,24 @@ class Store::HomeAndLogoTest < ActionDispatch::IntegrationTest
     assert_select "#store-brand .store-brand-name", "HANS"
     assert_select "#store-brand .store-brand-sub", "Pastelería"
     assert_select "#store-brand-logo", count: 0
+    # Pie: sin logo, el texto HANS; la frase nueva.
+    assert_select ".store-footer #store-footer-brand", "HANS"
+    assert_select ".store-footer #store-footer-logo", count: 0
+    assert_select "#store-footer-motto", "Uno más y listo."
+    assert_no_match "Hecho con cuidado", response.body
+  end
+
+  test "con logo: el pie usa el mismo logo que el encabezado y conserva la información" do
+    RetailCatalog::LogoUpload.attach(setting: @setting, file: image_upload("logo_transparent.png"))
+    @setting.save!
+
+    get store_root_path
+    header_src = css_select("#store-brand-logo").first["src"]
+    assert_select ".store-footer #store-footer-logo.store-footer-logo[alt='HANS Pastelería'][src=?]", header_src
+    assert_select ".store-footer #store-footer-brand", count: 0
+    assert_select ".store-footer .store-footer-steps li", 3
+    assert_select ".store-footer a[href='https://wa.me/#{@setting.whatsapp_number}']"
+    assert_select "#store-footer-motto", "Uno más y listo."
   end
 
   test "admin: sube un PNG transparente; el encabezado lo muestra optimizado en todas las páginas" do

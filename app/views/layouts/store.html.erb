@@ -67,7 +67,12 @@
       <div class="store-container">
         <div class="store-footer-grid">
           <div class="store-footer-brand-col">
-            <div class="store-footer-brand">HANS</div>
+            <% if store_setting.logo? %>
+              <%# El mismo logo del encabezado, recortado en círculo por CSS. %>
+              <%= image_tag store_logo_url, alt: "HANS Pastelería", class: "store-footer-logo", id: "store-footer-logo", loading: "lazy", decoding: "async" %>
+            <% else %>
+              <div class="store-footer-brand" id="store-footer-brand">HANS</div>
+            <% end %>
             <p class="store-footer-tagline">Pastelería artesanal. Cada pedido se prepara a mano y lo confirmamos personalmente por WhatsApp.</p>
           </div>
           <div>
@@ -87,7 +92,7 @@
         </div>
         <div class="store-footer-bottom">
           <span>© <%= Date.current.year %> HANS Pastelería</span>
-          <span>Hecho con cuidado, todos los días.</span>
+          <span id="store-footer-motto">Uno más y listo.</span>
         </div>
       </div>
     </footer>
