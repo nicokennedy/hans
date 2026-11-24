@@ -8,7 +8,7 @@
     <h1 class="store-summary-title" id="preview-title">Pedido de prueba</h1>
     <ul class="store-summary-lines" id="store-preview-items">
       <% @preview[:items].each do |item| %>
-        <li><span><%= item.quantity %> × <%= item.display_name %></span><span><%= store_money(item.line_total_cents) %></span></li>
+        <li><span><%= item.quantity %> × <%= item.display_name %><%= render "store/shared/composition", lines: item.composition_lines %></span><span><%= store_money(item.line_total_cents) %></span></li>
       <% end %>
     </ul>
     <div class="store-summary-row"><span>Subtotal</span><span><%= store_money(@preview[:order].subtotal_cents) %></span></div>

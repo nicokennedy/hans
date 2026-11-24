@@ -13,7 +13,7 @@ module Retail
     DETAIL_HEADERS = [
       "Pedido", "Fecha de creación", "Fecha de entrega", "Horario", "Comprador", "Teléfono", "Tipo de entrega", "Dirección",
       "Producto", "Tipo de producto", "Cantidad", "Precio unitario", "Subtotal", "Observaciones del pedido", "Estado del pedido", "Estado del pago",
-      "Origen", "Confirmación"
+      "Origen", "Confirmación", "Sabores (por caja)"
     ].freeze
 
     SUMMARY_HEADERS = [
@@ -22,7 +22,8 @@ module Retail
       "Estado del pago", "Estado del pedido", "Observaciones", "Origen", "Confirmación"
     ].freeze
 
-    DETAIL_WIDTHS = [10, 16, 16, 18, 28, 16, 14, 30, 36, 16, 10, 16, 16, 40, 16, 14, 14, 24].freeze
+    # "Sabores (por caja)" va al final para no correr las columnas que ya existían.
+    DETAIL_WIDTHS = [10, 16, 16, 18, 28, 16, 14, 30, 36, 16, 10, 16, 16, 40, 16, 14, 14, 24, 40].freeze
     SUMMARY_WIDTHS = [10, 16, 18, 28, 16, 14, 30, 18, 14, 16, 16, 16, 24, 14, 16, 40, 14, 24].freeze
 
     CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".freeze
@@ -68,7 +69,7 @@ module Retail
 
     def build_detail(sheet, styles)
       sheet.add_row DETAIL_HEADERS, style: styles[:header], height: 32
-      column_types = %i[text date date text text text text text text text integer money money text text text text text]
+      column_types = %i[text date date text text text text text text text integer money money text text text text text text]
 
       orders.each do |order|
         order.retail_order_items.each do |item|
@@ -76,7 +77,7 @@ module Retail
             order.number, order.created_at.in_time_zone.to_date, order.delivery_date, order.delivery_time_note.to_s, order.buyer_name, order.buyer_phone.to_s,
             order.delivery_kind_label, order.address.to_s, item.display_name, item.catalog? ? "Catálogo" : "Manual", item.quantity,
             pesos(item.unit_price_cents), pesos(item.line_total_cents), order.notes.to_s, order.status_label, order.payment_status_label,
-            order.source_label, order.confirmation_status_label
+            order.source_label, order.confirmation_status_label, item.composition_text
           ]
           add_data_row(sheet, row, column_types, styles)
         end

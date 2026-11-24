@@ -3,8 +3,8 @@ module Retail
   # se calcula en el servidor antes de crear nada:
   #  - datos del comprador: nombre, celular con WhatsApp, email y forma de pago (transferencia o
   #    efectivo: solo indica cómo quiere pagar, nunca registra un pago);
-  #  - productos: el carrito trae SOLO ids de VARIANTES de la tienda (tamaño o presentación) y
-  #    cantidades. Cada variante tiene que estar habilitada, su producto seguir publicado
+  #  - productos: el carrito trae SOLO claves de línea (id de VARIANTE de la tienda, o variante +
+  #    composición de una caja personalizable, ver Retail::BoxComposition) y cantidades. Cada variante tiene que estar habilitada, su producto seguir publicado
   #    (RetailProduct.for_store) y el precio sale de la variante vigente; precios, descuentos o totales
   #    del navegador no existen para este servicio;
   #  - stock online: si la variante tiene stock limitado, el pedido lo reserva al crearse (también
@@ -32,7 +32,7 @@ module Retail
       new(**args).call
     end
 
-    # cart: { retail_product_variant_id => cantidad } (lo que guarda Retail::StoreCart).
+    # cart: { clave de línea => cantidad } (lo que guarda Retail::StoreCart).
     def self.preview(**args)
       new(request_token: nil, **args).preview
     end
@@ -75,7 +75,7 @@ module Retail
         order.retail_order_items.build(product_id: item["product_id"].presence, description: item["description"], retail_product_id: item["retail_product_id"],
           retail_product_variant_id: item["retail_product_variant_id"], variant_name_snapshot: item["variant_name"],
           product_name_snapshot: item["name"], quantity: item["quantity"], unit_price_cents: item["unit_price_cents"],
-          line_total_cents: item["quantity"] * item["unit_price_cents"])
+          line_total_cents: item["quantity"] * item["unit_price_cents"], composition: item["composition"])
       end
       Result.new(record: order, errors: [])
     end
@@ -123,18 +123,20 @@ module Retail
       errors
     end
 
-    # Ítems con precio del catálogo minorista vigente. Del carrito solo se usan ids y cantidades.
+    # Ítems con precio del catálogo minorista vigente. Del carrito solo se usan claves de línea
+    # (variante o variante + composición, ver Retail::BoxComposition) y cantidades.
     def build_items(errors)
+      errors_before = errors.size
       wanted = {}
-      @cart.each do |id, quantity|
-        id = id.to_s
+      @cart.each do |key, quantity|
+        key = key.to_s
         quantity = quantity.to_s
-        next errors << "Uno de los productos del carrito no es válido." unless id.match?(/\A\d{1,18}\z/)
+        next errors << "Uno de los productos del carrito no es válido." unless BoxComposition.valid_key?(key)
         unless quantity.match?(/\A\d{1,3}\z/) && quantity.to_i.between?(1, MAX_QUANTITY)
           next errors << "Las cantidades tienen que ser de 1 a #{MAX_QUANTITY} por producto."
         end
 
-        wanted[id.to_i] = quantity.to_i
+        wanted[key] = quantity.to_i
       end
       if wanted.empty?
         errors << "Tu carrito está vacío." if errors.empty?
@@ -145,20 +147,32 @@ module Retail
         return []
       end
 
-      variants = RetailProductVariant.active.includes(:product, retail_product: :product)
-                                     .where(id: wanted.keys, retail_product_id: RetailProduct.for_store.select(:id)).index_by(&:id)
-      missing = wanted.keys - variants.keys
+      parsed = wanted.keys.index_with { |key| BoxComposition.parse_key(key) }
+      variants = RetailProductVariant.active.includes(:product, retail_product: [:product, :flavors])
+                                     .where(id: parsed.values.map(&:first).uniq, retail_product_id: RetailProduct.for_store.select(:id)).index_by(&:id)
+      missing = parsed.values.map(&:first).uniq - variants.keys
       errors << "Algunos productos del carrito ya no están disponibles. Revisá el carrito." if missing.any?
 
-      wanted.filter_map do |id, quantity|
-        variant = variants[id]
+      # Aviso temprano de stock limitado, sumando todas las líneas de la misma variante (cajas con
+      # distinta composición comparten el stock de su presentación). La reserva definitiva, con la
+      # variante bloqueada, la hace Retail::OnlineStock.
+      per_variant = Hash.new(0)
+      wanted.each { |key, quantity| per_variant[parsed[key].first] += quantity }
+      per_variant.each do |variant_id, total|
+        variant = variants[variant_id]
+        next unless variant&.limited_stock? && variant.stock_quantity < total
+
+        errors << Retail::OnlineStock::Insufficient.new(variant, variant.stock_quantity, total).message
+      end
+      return [] if errors.size > errors_before
+
+      wanted.filter_map do |key, quantity|
+        variant_id, quantities = parsed[key]
+        variant = variants[variant_id]
         next unless variant
 
-        # Aviso temprano; la reserva definitiva (con la variante bloqueada) la hace Retail::OnlineStock.
-        if variant.limited_stock? && variant.stock_quantity < quantity
-          errors << Retail::OnlineStock::Insufficient.new(variant, variant.stock_quantity, quantity).message
-          next
-        end
+        composition = composition_for(variant, quantities, errors)
+        next if composition == false
 
         wholesale = variant.wholesale_product if variant.wholesale_product&.active?
         {
@@ -170,9 +184,31 @@ module Retail
           "retail_product_id" => variant.retail_product_id,
           "retail_product_variant_id" => variant.id,
           "variant_name" => variant.name,
-          "name" => variant.full_name
+          "name" => variant.full_name,
+          "composition" => composition
         }
       end
+    end
+
+    # Caja con contenido personalizable: la composición se valida de nuevo acá (sabores del producto,
+    # habilitados y suma exacta). Devuelve el snapshot, nil (producto común) o false (error).
+    def composition_for(variant, quantities, errors)
+      unless variant.customizable?
+        return nil if quantities.nil?
+
+        errors << "“#{variant.full_name}” ya no permite elegir sabores: quitalo del carrito y agregalo de nuevo."
+        return false
+      end
+      if quantities.nil?
+        errors << "Elegí los sabores de “#{variant.full_name}” en el carrito antes de finalizar."
+        return false
+      end
+
+      result = BoxComposition.validate(variant: variant, quantities: quantities)
+      return result.snapshot if result.ok?
+
+      errors << "#{result.errors.first} Corregila en el carrito."
+      false
     end
   end
 end

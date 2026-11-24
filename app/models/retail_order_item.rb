@@ -13,6 +13,10 @@ class RetailOrderItem < ApplicationRecord
   # el cliente ("Torta nuez · 22 cm") y variant_name_snapshot solo el de la variante ("22 cm").
   # online_stock_reserved: unidades descontadas del stock online de la variante (Retail::OnlineStock).
   belongs_to :retail_product_variant, optional: true
+  # Cajas con contenido personalizable (Etapa 2): composition es la COPIA FIJA de la caja elegida
+  # ({ "units" => 24, "flavors" => [{ "id", "name", "quantity" }] }, ver Retail::BoxComposition).
+  # Editar sabores o variantes después no la cambia; solo cambia si el equipo edita la caja del
+  # pedido (queda registrado en el historial). quantity es la cantidad de cajas iguales.
 
   MAX_QUANTITY = 100_000
 
@@ -39,6 +43,20 @@ class RetailOrderItem < ApplicationRecord
 
   def display_name
     product_name_snapshot.presence || description
+  end
+
+  def box?
+    composition.is_a?(Hash) && Array(composition["flavors"]).any?
+  end
+
+  # [["Almendra", 12], ["Maicena", 12]]
+  def composition_lines
+    Retail::BoxComposition.lines(composition)
+  end
+
+  # "Almendra × 12, Maicena × 12"
+  def composition_text(separator: ", ")
+    Retail::BoxComposition.text(composition, separator: separator)
   end
 
   private

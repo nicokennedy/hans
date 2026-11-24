@@ -12,6 +12,12 @@
 #
 # Disponibilidad: active publica u oculta el producto entero (con todas sus variantes); cada variante
 # se puede deshabilitar o agotar por separado.
+#
+# Contenido personalizable (Etapa 2, opcional y genérico): con customizable_content, cada variante es
+# una caja con una cantidad EXACTA de unidades (RetailProductVariant#content_units, 1 a 200) y el
+# cliente elige cuántas de cada sabor (flavors) hasta completarla. Los sabores valen para todas las
+# variantes del producto. La validación de una composición vive en Retail::BoxComposition. Precio,
+# stock online y disponibilidad siguen siendo por variante.
 class RetailProduct < ApplicationRecord
   MAX_PRICE_CENTS = 2_000_000_000
   CODE_FORMAT = /\A[A-Z0-9][A-Z0-9-]*\z/
@@ -27,6 +33,8 @@ class RetailProduct < ApplicationRecord
   # order(:position) a secas se aplicaba a retail_products, desordenando las variantes.
   has_many :variants, -> { order("retail_product_variants.position", "retail_product_variants.id") }, class_name: "RetailProductVariant", dependent: :destroy, inverse_of: :retail_product, validate: false
   accepts_nested_attributes_for :variants, allow_destroy: true
+  has_many :flavors, -> { order("retail_product_flavors.position", "retail_product_flavors.id") }, class_name: "RetailProductFlavor", dependent: :destroy, inverse_of: :retail_product, validate: false
+  accepts_nested_attributes_for :flavors, allow_destroy: true, reject_if: ->(attrs) { attrs["id"].blank? && attrs["name"].to_s.strip.empty? }
 
   before_validation :normalize_fields
   before_validation :assign_code, on: :create
@@ -40,6 +48,7 @@ class RetailProduct < ApplicationRecord
   validates :price_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: MAX_PRICE_CENTS }, allow_nil: true
   validates :position, numericality: { only_integer: true }
   validate :variants_are_consistent
+  validate :flavors_are_consistent
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:position, Arel.sql("lower(retail_products.name)"), :id) }
@@ -51,6 +60,7 @@ class RetailProduct < ApplicationRecord
     active.joins(:retail_category).merge(RetailCategory.active)
       .where(id: RetailProductPhoto.where(primary: true).select(:retail_product_id))
       .where(id: RetailProductVariant.active.select(:retail_product_id))
+      .where("NOT retail_products.customizable_content OR EXISTS (SELECT 1 FROM retail_product_flavors f WHERE f.retail_product_id = retail_products.id AND f.active)")
   }
 
   # Precio de un producto de UNA variante, como se escribe en pesos ("4.500", "4500,50"). Con varias
@@ -85,7 +95,16 @@ class RetailProduct < ApplicationRecord
   end
 
   def purchasable?
-    variants.any?(&:purchasable?)
+    variants.any?(&:purchasable?) && (!customizable_content? || active_flavors.any?)
+  end
+
+  # Sabores en orden (sin los marcados para borrar) y los que hoy se pueden elegir.
+  def ordered_flavors
+    flavors.reject(&:marked_for_destruction?).sort_by { |f| [f.position.to_i, f.id || Float::INFINITY] }
+  end
+
+  def active_flavors
+    ordered_flavors.select(&:active?)
   end
 
   def sold_out?
@@ -100,6 +119,7 @@ class RetailProduct < ApplicationRecord
     issues << "Categoría inactiva" if retail_category && !retail_category.active?
     issues << "Sin fotografía principal" unless primary_photo
     issues << "Sin variantes habilitadas" unless variants.any?(&:active?)
+    issues << "Sin sabores habilitados" if customizable_content? && active_flavors.empty?
     issues
   end
 
@@ -119,10 +139,11 @@ class RetailProduct < ApplicationRecord
     copy = self.class.new(
       name: "#{name} (copia)".first(150), description: description, price_cents: price_cents,
       retail_category: retail_category, product: product, featured: false, active: false,
-      position: position
+      position: position, customizable_content: customizable_content
     )
     # Mismas variantes y precios, sin stock limitado ni referencias de importación.
-    variants.each { |v| copy.variants.build(name: v.name, description: v.description, position: v.position, price_cents: v.price_cents, active: v.active, product_id: v.product_id) }
+    variants.each { |v| copy.variants.build(name: v.name, description: v.description, position: v.position, price_cents: v.price_cents, active: v.active, product_id: v.product_id, content_units: v.content_units) }
+    ordered_flavors.each { |f| copy.flavors.build(name: f.name, position: f.position, active: f.active) }
     copy
   end
 
@@ -183,6 +204,30 @@ class RetailProduct < ApplicationRecord
     destroyed = variants.select(&:marked_for_destruction?)
     if destroyed.any? { |v| v.persisted? && v.retail_order_items.exists? }
       errors.add(:base, "Una variante con pedidos no se elimina: deshabilitala.")
+    end
+    if customizable_content?
+      missing = kept.select { |v| v.active? && v.content_units.nil? }
+      if missing.any?
+        errors.add(:base, "Con “Permitir personalizar el contenido”, cada variante habilitada necesita la cantidad de unidades de la caja (falta en: #{missing.map(&:label).join(', ')}).")
+      end
+    end
+  end
+
+  # Sabores: nombre obligatorio y sin repetir dentro del producto; uno usado en pedidos no se borra.
+  def flavors_are_consistent
+    kept = flavors.reject(&:marked_for_destruction?)
+    kept.each do |flavor|
+      next if flavor.valid?
+
+      flavor.errors.each { |error| errors.add(:base, "Sabor “#{flavor.name.presence || 'sin nombre'}”: #{error.full_message}") }
+    end
+    names = kept.map { |f| f.name.to_s.squish.downcase }.reject(&:empty?)
+    errors.add(:base, "Hay sabores con el mismo nombre.") if names.uniq.size != names.size
+    if flavors.select(&:marked_for_destruction?).any?(&:used_in_orders?)
+      errors.add(:base, "Un sabor que ya se usó en pedidos no se elimina: deshabilitalo.")
+    end
+    if customizable_content? && active? && kept.none?(&:active?)
+      errors.add(:base, "Con “Permitir personalizar el contenido”, cargá al menos un sabor habilitado (o desactivá el producto mientras lo preparás).")
     end
   end
 end

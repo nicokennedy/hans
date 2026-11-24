@@ -25,7 +25,7 @@
     <h2 class="store-summary-title" id="detalle-title">Detalle del pedido</h2>
     <ul class="store-summary-lines" id="store-order-items">
       <% @order.retail_order_items.each do |item| %>
-        <li><span><%= item.quantity %> × <%= item.display_name %></span><span><%= store_money(item.line_total_cents) %></span></li>
+        <li><span><%= item.quantity %> × <%= item.display_name %><%= render "store/shared/composition", lines: item.composition_lines %></span><span><%= store_money(item.line_total_cents) %></span></li>
       <% end %>
     </ul>
     <div class="store-summary-row"><span>Subtotal</span><span><%= store_money(@order.subtotal_cents) %></span></div>

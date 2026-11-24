@@ -13,9 +13,13 @@ class Store::CheckoutsController < Store::BaseController
   TOKEN_KEY = :retail_store_checkout_token
   PLACED_KEY = :retail_store_placed_orders
   HONEYPOT = :website
+  # Una caja con un sabor que ya no está disponible (u otra composición inválida) se corrige en el
+  # carrito antes de finalizar; PlaceStoreOrder lo vuelve a validar igual.
+  PROBLEMS_MESSAGE = "Hay cajas con sabores que ya no están disponibles. Corregilas antes de finalizar el pedido.".freeze
 
   def show
     return redirect_to(store_cart_path, status: :see_other) if store_cart.empty?
+    return redirect_to(store_cart_path, status: :see_other, alert: PROBLEMS_MESSAGE) if store_cart.problems?
 
     @form = { delivery_kind: "pickup" }
     prepare_form
@@ -29,6 +33,7 @@ class Store::CheckoutsController < Store::BaseController
     # volver atrás desde WhatsApp): el mismo pedido, nunca otro.
     return if redirect_to_placed_order(form_token)
     return redirect_to(store_cart_path, status: :see_other, alert: "Tu carrito está vacío.") if store_cart.empty?
+    return redirect_to(store_cart_path, status: :see_other, alert: PROBLEMS_MESSAGE) if store_cart.problems?
 
     @form = form_params
     if params[HONEYPOT].present?

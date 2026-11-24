@@ -26,6 +26,8 @@ Rails.application.routes.draw do
       post :add, path: "agregar"
       patch :update_item, path: "cantidad"
       delete :remove_item, path: "quitar"
+      # Cajas con contenido personalizable: cambiar los sabores de una caja que ya está en el carrito.
+      patch :replace_item, path: "cambiar-sabores"
     end
     resource :checkout, path: "finalizar", only: [:show, :create]
     get "pedido/:token", to: "orders#show", as: :order, constraints: { token: /[A-Za-z0-9]{32}/ }

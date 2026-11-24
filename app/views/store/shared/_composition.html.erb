@@ -1,0 +1,6 @@
+<%# Sabores de una caja con contenido personalizable. locals: lines ([[nombre, cantidad], ...]). %>
+<% if lines.present? %>
+  <ul class="store-composition" aria-label="Sabores de la caja">
+    <% lines.each do |name, quantity| %><li><%= name %> <span>× <%= quantity %></span></li><% end %>
+  </ul>
+<% end %>

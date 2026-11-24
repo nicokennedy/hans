@@ -16,6 +16,8 @@
 class RetailProductVariant < ApplicationRecord
   STOCK_MODES = { "unlimited" => "Sin límite de stock", "limited" => "Stock limitado" }.freeze
   MAX_STOCK = 100_000
+  # Cajas con contenido personalizable: unidades exactas por caja (Etapa 2).
+  MAX_CONTENT_UNITS = 200
 
   belongs_to :retail_product, inverse_of: :variants
   belongs_to :product, optional: true # producto mayorista propio de esta variante (opcional)
@@ -33,6 +35,8 @@ class RetailProductVariant < ApplicationRecord
   validates :price_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: RetailProduct::MAX_PRICE_CENTS }, allow_nil: true
   validates :position, numericality: { only_integer: true }
   validates :stock_quantity, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: MAX_STOCK }, allow_nil: true
+  validates :content_units, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_CONTENT_UNITS,
+                                            message: "tiene que ser un número entero de 1 a #{MAX_CONTENT_UNITS}" }, allow_nil: true
   validate :price_input_is_valid
   validate :stock_input_is_valid
   validate :stock_unchanged_since_form, on: :update
@@ -79,6 +83,11 @@ class RetailProductVariant < ApplicationRecord
 
   def purchasable?
     active? && !sold_out?
+  end
+
+  # Caja con contenido personalizable: el producto lo permite (las unidades se validan aparte).
+  def customizable?
+    retail_product&.customizable_content? || false
   end
 
   # Producto mayorista para producción: el de la variante o, si no tiene, el del producto.

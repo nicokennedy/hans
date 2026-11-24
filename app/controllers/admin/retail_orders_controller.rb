@@ -126,6 +126,14 @@ class Admin::RetailOrdersController < ApplicationController
   end
 
   def item_form_row(item)
+    if item.box?
+      return {
+        "id" => item.id, "kind" => "box", "retail_product_variant_id" => item.retail_product_variant_id, "quantity" => item.quantity,
+        "unit_price" => Retail::Money.format_pesos(item.unit_price_cents),
+        "composition" => Retail::BoxComposition.quantities_from_snapshot(item.composition).transform_keys(&:to_s)
+      }
+    end
+
     {
       "id" => item.id, "kind" => (item.catalog? ? "product" : "manual"), "product_id" => item.product_id,
       "description" => item.description, "quantity" => item.quantity, "unit_price" => Retail::Money.format_pesos(item.unit_price_cents)
@@ -147,6 +155,11 @@ class Admin::RetailOrdersController < ApplicationController
 
   def prepare_form
     @products = Product.active.ordered.to_a
+    # Cajas con contenido personalizable (Etapa 2): productos que lo permiten, con sus variantes y
+    # sabores, más los de las cajas que ya tiene el pedido (aunque hoy no se ofrezcan).
+    current_box_products = @order&.persisted? ? @order.retail_order_items.select(&:box?).map(&:retail_product_id).compact : []
+    @box_products = RetailProduct.where(customizable_content: true).or(RetailProduct.where(id: current_box_products))
+                                 .includes(:variants, :flavors).ordered.to_a
     # Zonas activas + la que ya tenía el pedido (aunque hoy esté desactivada), para no perderla al editar.
     @zones = RetailDeliveryZone.where(active: true).or(RetailDeliveryZone.where(id: @order&.delivery_zone_id)).ordered.to_a
   end

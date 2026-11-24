@@ -11,7 +11,7 @@
 | 4. Tienda pública, carrito, checkout y WhatsApp | Hecha, **cerrada al público** hasta que se publique desde Tienda Minorista → Tienda online (ver abajo) |
 | 5a. Variantes (tamaños/presentaciones), disponibilidad y stock online + importador de TakePedido | Implementado en la rama `feature/retail-variants-online-stock`, sin desplegar (ver abajo) |
 | Rediseño 2026 — Etapa 1: logo, sin portada, identidad visual y 5 zonas | Desplegada en producción (Heroku v115, 24/11/2026; ver abajo) |
-| Rediseño 2026 — Etapa 2: cajas con contenido personalizable | Decisiones tomadas, **sin implementar** (ver abajo) |
+| Rediseño 2026 — Etapa 2: cajas con contenido personalizable | Desplegada en producción (ver abajo). Los productos reales se configuran desde el administrador |
 | 5. Opcionales (pago online, automatizaciones) | Pendiente |
 
 ## Base que deja la Etapa 1 para la tienda
@@ -413,41 +413,90 @@ Si alguna zona se renombró (por ejemplo “Zona Centro” en lugar de “Zona 2
 una “Zona 2” nueva y dejaría la otra detrás: en ese caso, ajustar antes de desplegar. Repetir la
 segunda consulta después de migrar: los importes de los pedidos tienen que ser idénticos.
 
-## Rediseño 2026 — Etapa 2: cajas con contenido personalizable (decisiones, sin implementar)
+## Rediseño 2026 — Etapa 2: cajas con contenido personalizable
 
-Objetivo: cajas surtidas (ej. “Mix de alfajores”, Caja x 8 / x 12 / x 24) en las que el cliente
-elige cuántas unidades de cada sabor, hasta completar **exactamente** la capacidad de la caja.
-Opcional y genérico por producto (no solo alfajores ni la categoría Cajitas).
+Cajas surtidas (ej. “Mix de alfajores”, Caja x 8 / x 12 / x 24) en las que el cliente elige cuántas
+unidades de cada sabor quiere, hasta completar **exactamente** la capacidad de la caja. Opcional y
+genérico por producto (no depende de la categoría ni de que sean alfajores). Los productos que no
+lo usan no cambian. Capturas (local, con datos de prueba): `docs/tienda/etapa2/capturas/` (fuera del repo).
 
-Decisiones aprobadas:
+### Modelo (migración `20261125120000`, solo agrega)
 
-1. **Modelo** (migraciones que solo agregan):
-   - `retail_products.customizable_content` (booleano, falso por defecto): “Permitir personalizar el contenido”.
-   - `retail_product_variants.content_units` (entero, 1 a **200**, explícito; nunca se deduce del
-     nombre). Obligatorio si el producto es personalizable y la variante está habilitada.
-   - `retail_product_flavors` (producto, nombre único dentro del producto, orden, habilitado).
-     **Todos los sabores valen para todas las variantes del producto.**
-   - `retail_order_items.composition` (jsonb): copia fija `{units, flavors: [{id, name, quantity}]}`.
-     Los pedidos históricos quedan en NULL y no cambian; editar sabores o variantes después no cambia
-     pedidos ya hechos.
-   - Precio, stock online y disponibilidad siguen por variante, como hoy.
-2. **Validación única en el servidor** (`Retail::BoxComposition`), usada por la tienda, el carrito,
-   el checkout y el administrador: suma exacta, enteros ≥ 0, sabores del producto y habilitados.
-3. **Tienda**: selector de sabores con + y −, contador “12 de 24 · faltan 12”, “Agregar al carrito”
-   solo con la caja completa; al cambiar de variante se reinicia la selección y se avisa. En las
-   tarjetas, “Armar caja” lleva al detalle (sin “Agregar” rápido). Mobile primero.
-4. **Carrito**: cada línea es variante + composición (dos cajas distintas son ítems separados; iguales
-   se suman). Formato compacto en la cookie de sesión, con un test del peor caso; **si no alcanza la
-   capacidad de la cookie (~4 KB), presentar una alternativa antes de cambiar la arquitectura**.
-   Editar la composición desde el carrito. Si un sabor deja de estar disponible, la línea queda marcada
-   y no se puede finalizar hasta corregirla.
-5. **Administrador** (cambio pedido por el negocio): la composición **se puede editar** en el pedido
-   minorista (los cambios de sabores se acuerdan por WhatsApp) y **elegir al crear un pedido manual**,
-   con las mismas validaciones exactas. Los cambios quedan registrados en el historial del pedido
-   (`RetailOrderStatusChange`, nota con antes/después) si corresponde. Al cambiar de producto o
-   variante **no se borra en silencio**: se pide completar de nuevo la composición.
-6. **Dónde se muestra**: carrito, checkout, vista previa, pedido recibido, WhatsApp, detalle del pedido
-   en el administrador, Excel y planilla de producción (detalle por caja y total por sabor).
-7. **Stock**: no se descuenta stock por sabor ni cambia la lógica de stock general ni los vínculos
-   mayoristas existentes. La disponibilidad de sabores se maneja a mano. Las cajas personalizables
-   nuevas se cargan como **productos especiales, sin vínculo mayorista**.
+- `retail_products.customizable_content`: “Permitir personalizar el contenido” (falso por defecto).
+- `retail_product_variants.content_units`: unidades exactas de la caja (1 a **200**, con restricción
+  en la base). Es un campo explícito: nunca se deduce del nombre.
+- `retail_product_flavors`: sabores del producto (nombre único dentro del producto, orden y
+  disponibilidad manual). **Valen para todas las variantes del producto.**
+- `retail_order_items.composition` (jsonb): copia fija de la caja,
+  `{"units": 24, "flavors": [{"id", "name", "quantity"}]}`. `quantity` del ítem es la cantidad de
+  cajas iguales. Los pedidos anteriores quedan en NULL y no cambian; renombrar, deshabilitar sabores o
+  cambiar unidades después no modifica pedidos hechos.
+- Precio, stock online y disponibilidad siguen por variante, como antes.
+
+### Una sola validación: `Retail::BoxComposition`
+
+La usan la tienda, el carrito, el checkout (`Retail::PlaceStoreOrder`) y el administrador
+(`Retail::SaveOrder`): producto personalizable, variante con unidades, cantidades enteras de 0 o
+más, sabores de ese producto y habilitados, y **suma exacta** (se puede elegir todo de un sabor).
+El equipo puede conservar en un pedido un sabor que se deshabilitó después, pero no agregar uno
+deshabilitado. El navegador solo ayuda (`app/javascript/box_composition.js`, con tests en Node).
+
+### Administrador
+
+- **Productos**: casilla “Permitir personalizar el contenido”, “Unidades por caja” en cada variante y
+  sección de sabores (agregar, renombrar, ordenar con el número de orden, deshabilitar). Un sabor usado
+  en pedidos no se borra: se deshabilita. Un producto personalizable activo necesita al menos un sabor
+  habilitado y unidades en cada variante habilitada; sin sabores habilitados no se muestra en la tienda.
+- **Pedidos minoristas**: “+ Agregar caja con sabores” en pedidos manuales y edición de las cajas de
+  cualquier pedido (los cambios de sabores se acuerdan por WhatsApp). Contador en vivo y precio sugerido
+  de la presentación. Cambiar de presentación **no borra** la composición: si las unidades no coinciden,
+  el servidor pide completarla de nuevo. Cada caja agregada, quitada o con otra composición queda en el
+  historial del pedido como “Cambio de cajas” (antes → ahora, quién y cuándo).
+- **Planilla de producción** (pantalla e impresión): sabores de cada caja en “Productos especiales” y
+  la tabla “Cajas con sabores — total por sabor” (cajas × unidades), solo de pedidos confirmados.
+- **Excel**: columna nueva al final del detalle, “Sabores (por caja)”.
+
+### Tienda
+
+- Tarjeta del catálogo: “Armar caja” lleva al detalle (sin agregar rápido).
+- Detalle: presentaciones (con sus unidades), sabores con − y +, “Las 24” / “+N” para completar lo que
+  falta con un sabor en un toque, “Vaciar”, contador “12 de 24 · faltan 12” fijo bajo el encabezado en
+  el celular y barra de progreso. “Agregar al carrito” (y la barra fija del celular) se habilitan solo
+  con la caja exacta. Al cambiar de presentación la selección vuelve a cero y se avisa.
+- Carrito: cada caja muestra sus sabores; dos composiciones distintas son ítems separados y dos iguales
+  se suman. “Cambiar sabores” abre el detalle con la caja precargada y la reemplaza (misma cantidad).
+  Si un sabor deja de estar disponible, la caja queda marcada (“Corregir sabores”) y no se puede
+  finalizar hasta corregirla; el servidor también lo rechaza.
+- Checkout, vista previa, “Pedido recibido” y WhatsApp muestran los sabores de cada caja
+  (“Cada caja:” cuando son varias iguales).
+
+### Limitación conocida: capacidad del carrito (mejora futura)
+
+**Decisión (aprobada):** el carrito sigue guardándose en la sesión del navegador (cookie cifrada de
+Rails, 4 KB). Para la operación minorista de HANS alcanza; no se migra a la base de datos en esta etapa.
+
+- Cada línea es la variante + la composición en formato compacto (`"12:3x12.5x12"`); las claves de
+  antes (solo la variante) siguen valiendo. Las cajas personalizables ocupan más que un producto común.
+- Medido con el peor caso: 30 cajas distintas de un producto con 10 sabores **no entrarían** (4.220
+  bytes). Por eso `Retail::StoreCart::MAX_STORED_BYTES` (1.800 bytes del carrito) frena antes. Hoy
+  entran **22 cajas distintas de 10 sabores** o **28 de 2 sabores**; con el checkout abierto la cookie
+  mide como máximo ~3,7 KB. Los productos comunes siguen con el tope de 30 líneas de siempre.
+- Al llegar al tope:
+  - **agregar** una caja nueva no se hace y el cliente ve: “Tu carrito llegó al máximo de cajas
+    distintas que podemos guardar. Finalizá este pedido o escribinos por WhatsApp para sumar más.”;
+  - **cambiar los sabores** de una caja que agrandaría el carrito no se hace, la caja queda como estaba
+    y se avisa (“No pudimos guardar el cambio…”);
+  - en los dos casos el carrito no se modifica (no se pierde nada) y el pedido se puede finalizar con
+    lo que ya tenía. Los mensajes no mencionan detalles técnicos.
+- Cubierto por tests en `test/controllers/store/customizable_box_test.rb`. Para volver a medir:
+  `MEDIR_CARRITO=1 bin/rails test test/controllers/store/customizable_box_test.rb -n "/cookie/"`.
+
+**Mejora futura (si hiciera falta más capacidad):** guardar el carrito en la base de datos (tabla de
+carritos con un token en la cookie), o achicar las claves (ids en base 36). Ninguna es necesaria hoy.
+
+### Stock
+
+No cambia: el stock online sigue por variante (cajas) y se comparte entre cajas con distinta
+composición; no se descuenta stock por sabor ni cambia el stock general ni los vínculos mayoristas.
+Las cajas personalizables nuevas se cargan como productos especiales, sin vínculo mayorista (si una
+variante tuviera vínculo, se aplica la regla de siempre: cuenta como ese producto).

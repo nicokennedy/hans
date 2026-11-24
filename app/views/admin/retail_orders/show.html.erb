@@ -41,7 +41,11 @@
       <tbody>
         <% @items.each do |item| %>
           <tr>
-            <td><%= item.display_name %> <% if item.manual? %><span class="badge text-bg-secondary">Manual</span><% end %></td>
+            <td><%= item.display_name %> <% if item.manual? %><span class="badge text-bg-secondary">Manual</span><% end %>
+              <% if item.box? %>
+                <div class="small mt-1 retail-item-composition"><span class="text-muted"><%= item.quantity > 1 ? "Cada caja:" : "Sabores:" %></span> <%= item.composition_text %></div>
+              <% end %>
+            </td>
             <td class="text-end"><%= item.quantity %></td>
             <td class="text-end"><%= retail_money(item.unit_price_cents) %></td>
             <td class="text-end"><%= retail_money(item.line_total_cents) %></td>
@@ -114,7 +118,11 @@
       <% @status_changes.each do |change| %>
         <li>
           <%= change.created_at.in_time_zone.strftime("%d/%m/%Y %H:%M") %> —
-          <% if change.from_status %><%= RetailOrder::STATUS_LABELS[change.from_status] %> → <% end %><strong><%= RetailOrder::STATUS_LABELS[change.to_status] %></strong>
+          <% if change.from_status.present? && change.from_status == change.to_status %>
+            <strong>Cambio de cajas</strong><%# cambios de composición de cajas personalizables (Retail::SaveOrder) %>
+          <% else %>
+            <% if change.from_status %><%= RetailOrder::STATUS_LABELS[change.from_status] %> → <% end %><strong><%= RetailOrder::STATUS_LABELS[change.to_status] %></strong>
+          <% end %>
           <% if change.user %> · <%= change.user.email %><% end %>
           <% if change.note.present? %> · <%= change.note %><% end %>
         </li>

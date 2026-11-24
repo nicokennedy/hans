@@ -7,9 +7,13 @@
 class ProductionDaySheet
   RETAIL_COLUMN = "HANS".freeze
 
-  SpecialItem = Struct.new(:description, :quantity, :buyer_name, :time_note, :delivery_kind_label, :notes, :retail_order, keyword_init: true)
+  SpecialItem = Struct.new(:description, :quantity, :buyer_name, :time_note, :delivery_kind_label, :notes, :retail_order, :composition_text, keyword_init: true)
+  # Cajas con contenido personalizable (Etapa 2) de los pedidos que cuentan para el día: total de
+  # unidades por sabor de cada producto (cajas × unidades del sabor en cada caja). Sale de la copia
+  # guardada en cada pedido, no de los sabores actuales. No toca stock.
+  FlavorTotal = Struct.new(:product_name, :flavor_name, :units, keyword_init: true)
 
-  attr_reader :date, :customers, :rows, :special_items, :awaiting_orders
+  attr_reader :date, :customers, :rows, :special_items, :awaiting_orders, :flavor_totals
 
   def self.for(date)
     new(date)
@@ -47,7 +51,7 @@ class ProductionDaySheet
 
   def build
     orders = Order.includes(:customer, :order_items).where(delivery_date: date).where.not(status: "canceled")
-    retail_orders = RetailOrder.for_delivery_date(date).includes(retail_order_items: :product).order(:delivery_time_note, :id)
+    retail_orders = RetailOrder.for_delivery_date(date).includes(retail_order_items: [:product, :retail_product]).order(:delivery_time_note, :id)
 
     names = orders.map { |order| order.customer.name }
     names << RETAIL_COLUMN if retail_orders.any?
@@ -66,8 +70,13 @@ class ProductionDaySheet
     end
 
     @special_items = []
+    flavor_units = Hash.new(0)
     retail_orders.each do |retail|
       retail.retail_order_items.each do |item|
+        if item.box?
+          product_name = item.retail_product&.name || item.display_name.split(" · ").first
+          item.composition_lines.each { |name, quantity| flavor_units[[product_name, name]] += quantity * item.quantity }
+        end
         if item.catalog?
           grouped[item.product_id][RETAIL_COLUMN] += item.quantity
           display_names[item.product_id] ||= item.product&.name || item.product_name_snapshot
@@ -75,11 +84,15 @@ class ProductionDaySheet
         else
           @special_items << SpecialItem.new(
             description: item.description, quantity: item.quantity, buyer_name: retail.buyer_name,
-            time_note: retail.delivery_time_note, delivery_kind_label: retail.delivery_kind_label, notes: retail.notes, retail_order: retail
+            time_note: retail.delivery_time_note, delivery_kind_label: retail.delivery_kind_label, notes: retail.notes, retail_order: retail,
+            composition_text: item.box? ? "#{item.quantity > 1 ? 'Cada caja: ' : ''}#{item.composition_text}" : nil
           )
         end
       end
     end
+
+    @flavor_totals = flavor_units.map { |(product_name, flavor_name), units| FlavorTotal.new(product_name: product_name, flavor_name: flavor_name, units: units) }
+                                 .sort_by { |row| [row.product_name.to_s.downcase, -row.units, row.flavor_name.to_s.downcase] }
 
     # Pedidos de la tienda pendientes de confirmación para esta fecha: se muestran aparte para que
     # el equipo los vea, pero NO suman a las cantidades de arriba hasta que se confirmen.

@@ -31,7 +31,12 @@ module Retail
 
     # attributes: Hash con buyer_name, buyer_phone, buyer_email, delivery_date (texto ISO), delivery_kind,
     #   delivery_time_note, address, notes, planned_payment_method, shipping (texto en pesos).
-    # items: [{ "id", "kind" ("product"|"manual"), "product_id", "description", "quantity", "unit_price" }]
+    # items: [{ "id", "kind" ("product"|"manual"|"box"), "product_id", "description", "quantity", "unit_price" }]
+    #   "box" (Etapa 2): una caja con contenido personalizable cargada o editada por el equipo, con
+    #   "retail_product_variant_id" y "composition" ({ "id de sabor" => cantidad }). Se valida igual que
+    #   en la tienda (Retail::BoxComposition: sabores del producto y suma exacta). El equipo puede
+    #   conservar en un pedido un sabor que se deshabilitó después, pero no agregar uno deshabilitado.
+    #   Cada cambio de composición queda en el historial del pedido.
     #   Los ítems de la TIENDA los arma Retail::PlaceStoreOrder en el servidor desde el catálogo
     #   minorista (nunca desde el navegador) y traen además "retail_product_id", "name" (nombre del
     #   producto de la tienda) y "unit_price_cents" (precio vigente del catálogo); solo se aceptan
@@ -78,8 +83,10 @@ module Retail
         order.created_by ||= @user if creating
         order.save!
 
+        previous_boxes = creating ? {} : box_snapshots(order)
         sync_items(order, parsed_items)
         order.retail_order_items.reset
+        log_box_changes(order, previous_boxes) unless creating
         order.recalculate_payment_state!
 
         log_creation(order) if creating
@@ -211,7 +218,7 @@ module Retail
     end
 
     def blank_row?(row)
-      %w[product_id description quantity unit_price].all? { |key| row[key].to_s.strip.empty? }
+      %w[product_id description quantity unit_price retail_product_variant_id].all? { |key| row[key].to_s.strip.empty? }
     end
 
     def parse_items(errors)
@@ -219,9 +226,14 @@ module Retail
         label = "Ítem #{index + 1}"
         row_errors = []
         manual = row[:kind].to_s == "manual"
+        box = row[:kind].to_s == "box" && !store_row?(row)
         product = nil
+        box_data = nil
 
-        if manual
+        if box
+          box_data = parse_box(row, label, row_errors)
+          product = box_data&.dig(:product)
+        elsif manual
           row_errors << "#{label}: la descripción del producto manual es obligatoria." if row[:description].to_s.strip.empty?
           row_errors << "#{label}: la descripción es demasiado larga." if row[:description].to_s.squish.length > 200
         else
@@ -249,10 +261,15 @@ module Retail
         errors.concat(row_errors)
         next if row_errors.any?
 
-        { id: row[:id].to_s.match?(/\A\d{1,18}\z/) ? row[:id].to_i : nil, product: product,
+        if box_data
+          next box_data.except(:product).merge(id: row_id(row), product: product, quantity: quantity, unit_price_cents: price)
+        end
+
+        { id: row_id(row), product: product,
           description: manual ? row[:description].to_s.squish : nil, quantity: quantity, unit_price_cents: price,
           retail_product_id: store_row?(row) ? row[:retail_product_id] : nil, name: store_row?(row) ? row[:name].to_s.squish.first(200) : nil,
-          retail_product_variant_id: store_row?(row) ? row[:retail_product_variant_id] : nil, variant_name: store_row?(row) ? row[:variant_name].to_s.squish.first(60).presence : nil }
+          retail_product_variant_id: store_row?(row) ? row[:retail_product_variant_id] : nil, variant_name: store_row?(row) ? row[:variant_name].to_s.squish.first(60).presence : nil,
+          composition: store_row?(row) && row[:composition].is_a?(Hash) ? row[:composition] : nil }
       end
     end
 
@@ -260,6 +277,77 @@ module Retail
     # catálogo). Solo existe en el alta de la tienda: el formulario del equipo no puede usarlo.
     def store_row?(row)
       @fulfillment.present? && row[:retail_product_id].is_a?(Integer) && row[:unit_price_cents].is_a?(Integer)
+    end
+
+    def row_id(row)
+      row[:id].to_s.match?(/\A\d{1,18}\z/) ? row[:id].to_i : nil
+    end
+
+    def existing_items
+      @existing_items ||= @order.persisted? ? @order.retail_order_items.to_a.index_by(&:id) : {}
+    end
+
+    # Caja cargada por el equipo: variante de un producto con contenido personalizable + composición
+    # validada con Retail::BoxComposition. Al cambiar de presentación la composición se valida contra
+    # la nueva cantidad de unidades: si no coincide, se pide completarla de nuevo (nunca se borra sola).
+    def parse_box(row, label, row_errors)
+      text = row[:retail_product_variant_id].to_s
+      variant = text.match?(/\A\d{1,18}\z/) ? RetailProductVariant.includes(:product, retail_product: [:product, :flavors]).find_by(id: text.to_i) : nil
+      if variant.nil?
+        row_errors << "#{label}: elegí la caja (producto y presentación)."
+        return nil
+      end
+
+      current = existing_items[row_id(row)]
+      unless variant.customizable?
+        row_errors << "#{label}: “#{variant.full_name}” no permite elegir sabores."
+        return nil
+      end
+      if !variant.active? && current&.retail_product_variant_id != variant.id
+        row_errors << "#{label}: la presentación “#{variant.full_name}” está deshabilitada."
+        return nil
+      end
+
+      quantities, errors = BoxComposition.quantities_from_params(row[:composition])
+      if errors.any?
+        row_errors << "#{label}: #{errors.first}"
+        return nil
+      end
+      # Sabores que el pedido ya tenía (aunque hoy estén deshabilitados) se pueden conservar.
+      allowed = current && current.retail_product_id == variant.retail_product_id ? BoxComposition.quantities_from_snapshot(current.composition).keys : []
+      result = BoxComposition.validate(variant: variant, quantities: quantities, allowed_inactive_ids: allowed)
+      unless result.ok?
+        row_errors << "#{label}: #{result.errors.first}"
+        return nil
+      end
+
+      wholesale = variant.wholesale_product if variant.wholesale_product&.active?
+      { product: wholesale, description: wholesale ? nil : variant.full_name, box: true,
+        retail_product_id: variant.retail_product_id, name: variant.full_name.first(200),
+        retail_product_variant_id: variant.id, variant_name: variant.name, composition: result.snapshot }
+    end
+
+    # { id del ítem => [nombre, texto de la composición] } de las cajas del pedido antes de guardar.
+    def box_snapshots(order)
+      order.retail_order_items.reload.select(&:box?).to_h { |item| [item.id, [item.display_name, item.composition_text]] }
+    end
+
+    # Historial del pedido: cada caja agregada, quitada o con otra composición (antes → ahora).
+    def log_box_changes(order, previous)
+      current = box_snapshots(order)
+      notes = []
+      current.each do |id, (name, text)|
+        before = previous[id]
+        if before.nil?
+          notes << "Caja agregada: #{name} (#{text})"
+        elsif before != [name, text]
+          notes << "Composición de #{before[0]}: antes #{before[1]}; ahora #{name == before[0] ? '' : "#{name}: "}#{text}"
+        end
+      end
+      previous.each { |id, (name, text)| notes << "Caja quitada: #{name} (#{text})" unless current.key?(id) }
+      return if notes.empty?
+
+      RetailOrderStatusChange.create!(retail_order: order, from_status: order.status, to_status: order.status, user: @user, note: notes.join(" · "))
     end
 
     def sync_items(order, parsed_items)
@@ -278,6 +366,7 @@ module Retail
           item.product_name_snapshot = data[:name] # el nombre que vio el cliente en la tienda
           item.retail_product_variant_id = data[:retail_product_variant_id]
           item.variant_name_snapshot = data[:variant_name]
+          item.composition = data[:composition] if data[:composition] # caja personalizable: copia fija
         end
         item.quantity = data[:quantity]
         item.unit_price_cents = data[:unit_price_cents]

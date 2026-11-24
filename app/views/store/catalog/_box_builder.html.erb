@@ -1,0 +1,38 @@
+<%# Selector de sabores de una caja con contenido personalizable (Etapa 2). Va dentro del formulario
+    de "Agregar al carrito" (store_box_controller.js). locals: product, selected (variante elegida),
+    quantities ({ id de sabor => cantidad } para editar una caja del carrito; vacío al armar una nueva). %>
+<% flavors = product.active_flavors %>
+<% units = selected.content_units.to_i %>
+<section class="store-box" id="store-box" aria-labelledby="store-box-title">
+  <div class="store-box-head">
+    <div>
+      <h2 class="store-label store-box-title" id="store-box-title">Elegí los sabores</h2>
+      <p class="store-box-help">Armá tu caja de <strong data-store-box-target="units"><%= units %></strong> unidades como quieras: todas de un sabor o combinadas.</p>
+    </div>
+    <button type="button" class="store-link-btn store-box-reset" data-action="store-box#reset" data-store-box-target="reset">Vaciar</button>
+  </div>
+
+  <div class="store-box-status" aria-live="polite">
+    <div class="store-box-counter" id="store-box-counter" data-store-box-target="counter">0 de <%= units %> · faltan <%= units %></div>
+    <div class="store-box-bar" role="progressbar" aria-label="Unidades elegidas" aria-valuemin="0" aria-valuemax="<%= units %>" aria-valuenow="0">
+      <span data-store-box-target="progress"></span>
+    </div>
+  </div>
+  <p class="store-box-notice" role="status" data-store-box-target="notice" hidden></p>
+
+  <ul class="store-box-flavors" role="list">
+    <% flavors.each do |flavor| %>
+      <% value = quantities[flavor.id].to_i %>
+      <li class="store-box-flavor" data-store-box-target="flavor" data-flavor-id="<%= flavor.id %>" data-flavor-name="<%= flavor.name %>" id="store-flavor-<%= flavor.id %>">
+        <span class="store-box-flavor-name"><%= flavor.name %></span>
+        <div class="store-box-controls">
+          <button type="button" class="store-box-btn" data-action="store-box#decrement" data-flavor-id="<%= flavor.id %>" data-store-box-target="minus" aria-label="Quitar una de <%= flavor.name %>"><%= store_icon(:minus, size: 18) %></button>
+          <output class="store-box-count" data-store-box-target="count" aria-label="Unidades de <%= flavor.name %>"><%= value %></output>
+          <button type="button" class="store-box-btn" data-action="store-box#increment" data-flavor-id="<%= flavor.id %>" data-store-box-target="plus" aria-label="Sumar una de <%= flavor.name %>"><%= store_icon(:plus, size: 18) %></button>
+          <button type="button" class="store-box-fill" data-action="store-box#fill" data-flavor-id="<%= flavor.id %>" data-store-box-target="fill">Las <%= units %></button>
+        </div>
+        <%= hidden_field_tag "flavors[#{flavor.id}]", value, id: nil, data: { store_box_target: "input", flavor_id: flavor.id } %>
+      </li>
+    <% end %>
+  </ul>
+</section>

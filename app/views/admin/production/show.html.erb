@@ -110,12 +110,29 @@
             <tbody>
               <% @special_items.each do |item| %>
                 <tr>
-                  <td class="fw-bold"><%= item.description %></td>
+                  <td class="fw-bold"><%= item.description %><% if item.composition_text %><div class="small fw-normal production-composition"><%= item.composition_text %></div><% end %></td>
                   <td class="text-center fw-bold"><%= item.quantity %></td>
                   <td><%= item.buyer_name %> <span class="text-muted small">(<%= item.delivery_kind_label %>)</span></td>
                   <td><%= item.time_note %></td>
                   <td><%= item.notes %></td>
                 </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @flavor_totals.any? %>
+      <div class="product-card mt-4 production-flavors" id="production-flavor-totals">
+        <h2 class="h5 fw-bold mb-1">CAJAS CON SABORES — TOTAL POR SABOR</h2>
+        <div class="small text-muted mb-3">Unidades a preparar de cada sabor (cajas × unidades de ese sabor en cada caja), de los pedidos minoristas confirmados del día.</div>
+        <div class="table-responsive">
+          <table class="production-table align-middle mb-0">
+            <thead><tr><th>Producto</th><th>Sabor</th><th class="text-center">Unidades</th></tr></thead>
+            <tbody>
+              <% @flavor_totals.each do |row| %>
+                <tr><td><%= row.product_name %></td><td class="fw-bold"><%= row.flavor_name %></td><td class="text-center fw-bold"><%= row.units %></td></tr>
               <% end %>
             </tbody>
           </table>

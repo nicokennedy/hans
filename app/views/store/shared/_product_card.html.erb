@@ -16,6 +16,10 @@
     <div class="store-card-add">
       <% if !buyable %>
         <%# Sin acción: el producto agotado no se puede pedir. %>
+      <% elsif product.customizable_content? %>
+        <%= link_to store_product_path_for(product), class: "store-card-quick", "aria-label": "Armar la caja de #{product.name}" do %>
+          <span class="store-card-quick-label">Armar caja</span><%= store_icon(:arrow_right, size: 18) %>
+        <% end %>
       <% elsif sizes.size > 1 %>
         <%= link_to store_product_path_for(product), class: "store-card-quick", "aria-label": "Elegir #{kind == 'tamaño' ? 'el tamaño' : 'la presentación'} de #{product.name}" do %>
           <span class="store-card-quick-label">Elegir <%= kind %></span><%= store_icon(:arrow_right, size: 18) %>

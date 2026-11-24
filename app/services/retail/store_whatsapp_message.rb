@@ -23,6 +23,9 @@ module Retail
       lines << "Productos:"
       @order.retail_order_items.each do |item|
         lines << "• #{item.quantity} × #{item.display_name} — #{money(item.line_total_cents)}"
+        # Caja con contenido personalizable: sabores y cantidades de CADA caja (copia guardada en el pedido).
+        lines << "   Cada caja:" if item.box? && item.quantity > 1
+        item.composition_lines.each { |name, quantity| lines << "   - #{name} × #{quantity}" }
       end
       lines << ""
       lines << "Subtotal: #{money(@order.subtotal_cents)}"

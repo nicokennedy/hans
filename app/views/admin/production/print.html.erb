@@ -201,12 +201,24 @@
         <tbody>
           <% @special_items.each do |item| %>
             <tr>
-              <td class="product-col"><%= item.description %></td>
+              <td class="product-col"><%= item.description %><% if item.composition_text %><br><small><%= item.composition_text %></small><% end %></td>
               <td class="total-col"><%= item.quantity %></td>
               <td class="left-cell"><%= item.buyer_name %> (<%= item.delivery_kind_label %>)</td>
               <td class="left-cell"><%= item.time_note %></td>
               <td class="left-cell"><%= item.notes %></td>
             </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+
+    <% if @flavor_totals.any? %>
+      <div class="special-title">CAJAS CON SABORES — TOTAL POR SABOR</div>
+      <table class="special-table" id="print-flavor-totals">
+        <thead><tr><th>Producto</th><th>Sabor</th><th>Unidades</th></tr></thead>
+        <tbody>
+          <% @flavor_totals.each do |row| %>
+            <tr><td class="left-cell"><%= row.product_name %></td><td class="product-col"><%= row.flavor_name %></td><td class="total-col"><%= row.units %></td></tr>
           <% end %>
         </tbody>
       </table>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -654,6 +654,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
     t.bigint "retail_product_variant_id"
     t.string "variant_name_snapshot"
     t.integer "online_stock_reserved", default: 0, null: false
+    t.jsonb "composition"
     t.index ["product_id"], name: "index_retail_order_items_on_product_id"
     t.index ["retail_order_id"], name: "index_retail_order_items_on_retail_order_id"
     t.index ["retail_product_id"], name: "index_retail_order_items_on_retail_product_id"
@@ -740,6 +741,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
     t.check_constraint "source::text = ANY (ARRAY['manual'::character varying::text, 'store'::character varying::text])", name: "retail_orders_source_valid"
   end
 
+  create_table "retail_product_flavors", force: :cascade do |t|
+    t.bigint "retail_product_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "retail_product_id, lower((name)::text)", name: "index_retail_product_flavors_on_product_and_name", unique: true
+    t.index ["retail_product_id"], name: "index_retail_product_flavors_on_retail_product_id"
+  end
+
   create_table "retail_product_photos", force: :cascade do |t|
     t.bigint "retail_product_id", null: false
     t.boolean "primary", default: false, null: false
@@ -764,10 +776,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
     t.string "external_ref"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "content_units"
     t.index "retail_product_id, lower((COALESCE(name, ''::character varying))::text)", name: "index_retail_product_variants_on_product_and_name", unique: true
     t.index ["external_ref"], name: "index_retail_product_variants_on_external_ref", unique: true, where: "(external_ref IS NOT NULL)"
     t.index ["product_id"], name: "index_retail_product_variants_on_product_id"
     t.index ["retail_product_id"], name: "index_retail_product_variants_on_retail_product_id"
+    t.check_constraint "content_units IS NULL OR content_units >= 1 AND content_units <= 200", name: "retail_product_variants_content_units_range"
     t.check_constraint "price_cents >= 0", name: "retail_product_variants_price_non_negative"
     t.check_constraint "stock_quantity IS NULL OR stock_quantity >= 0", name: "retail_product_variants_stock_non_negative"
   end
@@ -784,6 +798,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
     t.integer "position", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "customizable_content", default: false, null: false
     t.index "lower((code)::text)", name: "index_retail_products_on_lower_code", unique: true
     t.index ["active", "position"], name: "index_retail_products_on_active_and_position"
     t.index ["product_id"], name: "index_retail_products_on_product_id"
@@ -989,6 +1004,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_24_120000) do
   add_foreign_key "retail_orders", "users", column: "confirmed_by_id"
   add_foreign_key "retail_orders", "users", column: "created_by_id"
   add_foreign_key "retail_orders", "users", column: "rejected_by_id"
+  add_foreign_key "retail_product_flavors", "retail_products", on_delete: :cascade
   add_foreign_key "retail_product_photos", "retail_products", on_delete: :cascade
   add_foreign_key "retail_product_variants", "products", on_delete: :nullify
   add_foreign_key "retail_product_variants", "retail_products", on_delete: :cascade

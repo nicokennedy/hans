@@ -6,7 +6,7 @@ import { formatPesos } from "payment_distribution"
 // muestra subtotales, envío y total en vivo (exactos, ver retail_totals.js). El precio es
 // SIEMPRE manual: nunca se completa solo. El servidor recalcula y valida todo al guardar.
 export default class extends Controller {
-  static targets = ["list", "productTemplate", "manualTemplate", "row", "shipping", "subtotal", "total", "errors", "zone"]
+  static targets = ["list", "productTemplate", "manualTemplate", "boxTemplate", "row", "shipping", "subtotal", "total", "errors", "zone"]
 
   connect() {
     this.recalculate()
@@ -20,6 +20,12 @@ export default class extends Controller {
   addManual(event) {
     event?.preventDefault()
     this.append(this.manualTemplateTarget)
+  }
+
+  // Caja con contenido personalizable (variante + sabores, ver retail_box_controller.js).
+  addBox(event) {
+    event?.preventDefault()
+    if (this.hasBoxTemplateTarget) this.append(this.boxTemplateTarget)
   }
 
   append(template) {

@@ -139,7 +139,7 @@
           <% @lines.each do |line| %>
             <li>
               <span class="store-summary-thumb"><%= store_photo_tag(line.product.primary_photo, variant: :thumb, alt: "") %><span class="store-summary-qty"><%= line.quantity %></span></span>
-              <span class="store-summary-name"><%= line.product.name %><% if line.variant.name.present? %><small><%= line.variant.name %></small><% end %></span>
+              <span class="store-summary-name"><%= line.product.name %><% if line.variant.name.present? %><small><%= line.variant.name %></small><% end %><% if line.box? %><%= render "store/shared/composition", lines: line.composition_lines %><% end %></span>
               <span class="store-summary-amount"><%= store_money(line.line_total_cents) %></span>
             </li>
           <% end %>

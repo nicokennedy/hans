@@ -83,7 +83,7 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
   private
 
   def set_product
-    @product = RetailProduct.includes(:variants).find(params[:id])
+    @product = RetailProduct.includes(:variants, :flavors).find(params[:id])
   end
 
   def load_form_options
@@ -93,7 +93,9 @@ class Admin::RetailCatalog::ProductsController < Admin::RetailCatalog::BaseContr
 
   def product_params
     permitted = params.require(:retail_product).permit(:name, :code, :description, :price, :retail_category_id, :product_id, :active, :featured, :position,
-      variants_attributes: [:id, :name, :description, :price, :position, :active, :stock_mode, :stock_input, :stock_quantity_seen, :product_id, :_destroy])
+      :customizable_content,
+      variants_attributes: [:id, :name, :description, :price, :position, :active, :stock_mode, :stock_input, :stock_quantity_seen, :product_id, :content_units, :_destroy],
+      flavors_attributes: [:id, :name, :position, :active, :_destroy])
     permitted[:product_id] = nil if permitted[:product_id].blank?
     permitted[:variants_attributes]&.each_value { |v| v[:product_id] = nil if v.key?(:product_id) && v[:product_id].blank? }
     permitted

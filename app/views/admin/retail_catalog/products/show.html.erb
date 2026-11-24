@@ -29,11 +29,12 @@
       <% if @product.description.present? %><div class="col-12"><div class="small text-muted">Descripción</div><div style="white-space: pre-line"><%= @product.description %></div></div><% end %>
     </div>
     <div class="table-responsive mt-3" id="retail-product-variants"><table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Variante</th><th class="text-end">Precio</th><th>Disponibilidad</th><th>Stock online</th><th>Mayorista</th></tr></thead>
+      <thead><tr><th>Variante</th><% if @product.customizable_content? %><th class="text-end">Unidades</th><% end %><th class="text-end">Precio</th><th>Disponibilidad</th><th>Stock online</th><th>Mayorista</th></tr></thead>
       <tbody>
         <% @product.variants.each do |variant| %>
           <tr class="<%= 'text-muted' unless variant.active? %>">
             <td><%= variant.label %><% if variant.description.present? %><div class="small" style="white-space: pre-line"><%= variant.description %></div><% end %><% if variant.external_ref.present? %><div class="small text-muted"><%= variant.external_ref %></div><% end %></td>
+            <% if @product.customizable_content? %><td class="text-end"><%= variant.content_units || tag.span("Sin definir", class: "badge text-bg-warning") %></td><% end %>
             <td class="text-end fw-bold"><%= retail_catalog_money(variant.price_cents) %></td>
             <td><%= variant.active? ? (variant.sold_out? ? tag.span("Agotada", class: "badge text-bg-danger") : tag.span("Habilitada", class: "badge text-bg-success")) : tag.span("Deshabilitada", class: "badge text-bg-secondary") %></td>
             <td><%= variant.limited_stock? ? pluralize(variant.stock_quantity, "unidad", plural: "unidades") : "Sin límite" %></td>
@@ -42,6 +43,20 @@
         <% end %>
       </tbody>
     </table></div>
+    <% if @product.customizable_content? %>
+      <div class="mt-3" id="retail-product-flavors">
+        <div class="small text-muted mb-1">Contenido personalizable · sabores (valen para todas las variantes)</div>
+        <% if @product.ordered_flavors.empty? %>
+          <span class="badge text-bg-warning">Sin sabores cargados</span>
+        <% else %>
+          <div class="d-flex flex-wrap gap-2">
+            <% @product.ordered_flavors.each do |flavor| %>
+              <span class="badge <%= flavor.active? ? 'text-bg-success' : 'text-bg-secondary' %>"><%= flavor.name %><%= " · no disponible" unless flavor.active? %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
     <% unless @product.ready_for_store? %>
       <div class="alert alert-light border small mt-3 mb-0" id="retail-publication-issues">
         <strong>Todavía no está listo para la tienda:</strong> <%= @product.publication_issues.join(" · ") %>.

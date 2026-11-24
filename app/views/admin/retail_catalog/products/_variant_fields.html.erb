@@ -24,6 +24,11 @@
           "aria-label": "Unidades disponibles (solo con stock limitado)" %>
     <span class="small text-muted">Con stock limitado, los pedidos online lo descuentan y los cancelados lo devuelven.</span>
   </div>
+  <div class="row g-2 mt-1" data-toggle-section-target="body">
+    <div class="col-6 col-md-3"><%= v.label :content_units, "Unidades por caja *", class: "form-label small" %>
+      <%= v.number_field :content_units, class: "form-control form-control-sm", min: 1, max: RetailProductVariant::MAX_CONTENT_UNITS, step: 1, inputmode: "numeric", placeholder: "Ej.: 24" %></div>
+    <div class="col-12 col-md-9 d-flex align-items-end"><span class="small text-muted">Cantidad exacta que el cliente completa eligiendo sabores (1 a <%= RetailProductVariant::MAX_CONTENT_UNITS %>). No se deduce del nombre de la variante.</span></div>
+  </div>
   <div class="mt-2"><%= v.label :description, "Descripción propia de esta variante (opcional)", class: "form-label small mb-1" %>
     <%= v.text_area :description, class: "form-control form-control-sm", rows: 2, maxlength: 2000, placeholder: "Ej.: Mínimo 4 por variedad. Se muestra al elegir esta variante." %></div>
   <div class="d-flex flex-wrap gap-3 mt-2 align-items-center">

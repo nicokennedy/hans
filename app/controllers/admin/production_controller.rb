@@ -19,6 +19,7 @@ class Admin::ProductionController < ApplicationController
     @rows = sheet.rows
     @special_items = sheet.special_items
     @awaiting_orders = sheet.awaiting_orders
+    @flavor_totals = sheet.flavor_totals
   end
 
   def print

@@ -1040,6 +1040,105 @@ textarea.store-input { min-height: 104px; resize: vertical; }
   font-size: 14px;
 }
 
+// ---------------------------------------------------------------- Cajas con contenido personalizable
+// Selector de sabores (Etapa 2). Mobile primero: filas grandes para el pulgar, contador fijo debajo
+// del encabezado mientras se recorren los sabores y "Las 24" para llenar la caja de un sabor en un toque.
+.store-box {
+  margin: 4px 0 22px;
+  padding: 18px 16px 8px;
+  border: 1.5px solid $sage;
+  border-radius: $radius;
+  background: $paper;
+  @include md { padding: 22px 22px 10px; }
+}
+.store-box-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.store-box-title { margin-bottom: 4px; }
+.store-box-help { font-size: 13.5px; color: $cocoa; margin: 0 0 12px; strong { color: $espresso; } }
+.store-box-reset { flex: none; min-height: 32px; @include hover { color: $sage-deep; } &:disabled { opacity: .45; cursor: default; text-decoration: none; } }
+.store-box-status {
+  position: sticky;
+  top: $header-h;
+  z-index: 5;
+  margin: 0 -16px 10px;
+  padding: 10px 16px;
+  background: rgba($paper, .96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid $line;
+  @include md { top: $header-h-md; margin: 0 -22px 12px; padding: 10px 22px; }
+}
+.store-box-counter { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-bottom: 8px; color: $espresso; }
+.store-box-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: $peach-soft;
+  overflow: hidden;
+  span { display: block; height: 100%; width: 0; background: $sage; border-radius: inherit; transition: width .25s $ease, background-color .25s; }
+}
+.is-box-complete .store-box-bar span { background: $sage-deep; }
+.is-box-complete .store-box-counter { color: $sage-deep; }
+.store-box-notice { background: $peach-soft; border-radius: $radius-sm; padding: 10px 12px; font-size: 13.5px; margin: 0 0 10px; color: $espresso; }
+.store-box-flavors { list-style: none; margin: 0; padding: 0; }
+.store-box-flavor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+  border-radius: $radius-sm;
+  border-bottom: 1px solid $line;
+  transition: background-color .2s;
+  &:last-child { border-bottom: 0; }
+  &.is-chosen { background: $peach-soft; }
+}
+.store-box-flavor-name { font-weight: 500; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
+.store-box-controls { display: flex; align-items: center; gap: 6px; flex: none; }
+.store-box-btn, .store-box-fill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid $sage;
+  background: $paper;
+  color: $espresso;
+  cursor: pointer;
+  font-family: $sans;
+  transition: background-color .2s, border-color .2s, opacity .2s;
+  @include hover { background: $sage-soft; border-color: $sage-deep; }
+  &:focus-visible { outline: 2px solid $sage-deep; outline-offset: 2px; }
+  &:disabled { opacity: .35; cursor: not-allowed; background: $paper; border-color: $line-strong; }
+}
+.store-box-btn:not(:disabled) { &:active { background: $sage; } }
+.store-box-count { min-width: 28px; text-align: center; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.store-box-fill { min-width: 58px; padding: 0 10px; font-size: 13px; font-weight: 700; background: $sage; border-color: $sage; @include hover { background: $sage-hover; } }
+.store-add-form .store-btn[aria-disabled="true"] { cursor: not-allowed; }
+.store-box-editing { background: $peach-soft; border-radius: $radius-sm; padding: 12px 14px; font-size: 14px; margin-bottom: 14px; a { color: $sage-deep; font-weight: 600; } }
+
+// Carrito, checkout, pedido: sabores de cada caja.
+.store-line-flavors, .store-composition {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: $radius-sm;
+  background: $peach-soft;
+  font-size: 13px;
+  color: $espresso-soft;
+  li { display: flex; justify-content: space-between; gap: 12px; }
+  li + li { margin-top: 2px; }
+}
+.store-composition { display: block; margin-top: 4px; padding: 6px 8px; font-size: 12.5px; li { justify-content: flex-start; gap: 6px; span { color: $espresso; font-weight: 600; } } }
+// Dentro de los resúmenes, la lista de sabores no hereda el espaciado ni las líneas de los productos.
+.store-summary-lines .store-composition li, .store-summary-lines .store-composition { border: 0; }
+.store-summary-lines .store-composition li { padding: 0; margin: 0; display: flex; }
+.store-summary-lines .store-composition li + li { margin-top: 2px; }
+.store-line-edit { font-size: 13.5px; font-weight: 600; color: $sage-deep !important; text-underline-offset: 3px; min-height: 36px; display: inline-flex; align-items: center; }
+.store-line.has-problem { background: rgba($peach, .25); border-radius: $radius-sm; }
+.store-line-problem { color: $danger; font-weight: 600; }
+span.store-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+
 // ---------------------------------------------------------------- Pie
 // Fondo verde agua con textos oscuros; el logo configurable en círculo (o el texto HANS si no hay).
 .store-footer {

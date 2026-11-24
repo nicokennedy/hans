@@ -1,0 +1,21 @@
+<%# locals: fl (fields_for builder de un sabor). Sabores de un producto con contenido personalizable. %>
+<% flavor = fl.object %>
+<div class="border rounded p-2 mb-2 retail-flavor-row" data-retail-variants-target="row">
+  <%= fl.hidden_field :id if flavor.persisted? %>
+  <div class="row g-2 align-items-center">
+    <div class="col-12 col-md-5"><%= fl.text_field :name, class: "form-control form-control-sm", maxlength: 60, placeholder: "Ej.: Almendra", "aria-label": "Nombre del sabor" %></div>
+    <div class="col-4 col-md-2"><%= fl.number_field :position, class: "form-control form-control-sm", "aria-label": "Orden del sabor", title: "Orden" %></div>
+    <div class="col-8 col-md-5 d-flex flex-wrap gap-3 align-items-center">
+      <div class="form-check mb-0"><%= fl.check_box :active, class: "form-check-input" %><%= fl.label :active, "Disponible", class: "form-check-label small" %></div>
+      <% if flavor.persisted? %>
+        <% if flavor.used_in_orders? %>
+          <span class="small text-muted">Usado en pedidos: para que no se elija, deshabilitalo.</span>
+        <% else %>
+          <div class="form-check mb-0"><%= fl.check_box :_destroy, class: "form-check-input" %><%= fl.label :_destroy, "Eliminar", class: "form-check-label small text-danger" %></div>
+        <% end %>
+      <% else %>
+        <button type="button" class="btn btn-sm btn-link text-danger p-0" data-action="retail-variants#remove">Quitar</button>
+      <% end %>
+    </div>
+  </div>
+</div>

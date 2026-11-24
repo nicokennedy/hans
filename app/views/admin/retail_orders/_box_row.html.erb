@@ -1,0 +1,71 @@
+<%# Caja con contenido personalizable en un pedido minorista (Etapa 2). locals: index, row (Hash string keys), box_products.
+    row: "id", "retail_product_variant_id", "quantity", "unit_price", "composition" ({ "id de sabor" => cantidad }).
+    El servidor valida igual que la tienda (Retail::BoxComposition). Cambiar de presentación NO borra la
+    composición: si la cantidad de unidades no coincide, se pide completarla de nuevo. %>
+<% composition = (row["composition"].is_a?(Hash) ? row["composition"] : {}).to_h.transform_keys(&:to_s) %>
+<% selected_id = row["retail_product_variant_id"].to_s %>
+<% selected_product = box_products.find { |p| p.variants.any? { |v| v.id.to_s == selected_id } } %>
+<div class="retail-item-row retail-box-row border rounded p-2 mb-2" data-retail-order-target="row" data-controller="retail-box"
+     data-retail-box-units-value="<%= selected_product&.variants&.find { |v| v.id.to_s == selected_id }&.content_units.to_i %>">
+  <%= hidden_field_tag "items[#{index}][id]", row["id"], id: nil if row["id"].present? %>
+  <%= hidden_field_tag "items[#{index}][kind]", "box", id: nil %>
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-5">
+      <label class="form-label small mb-0">Caja personalizable <span class="badge text-bg-info">Sabores</span></label>
+      <select name="items[<%= index %>][retail_product_variant_id]" class="form-select form-select-sm" data-field="product" data-retail-box-target="variant"
+              data-action="change->retail-box#variantChanged change->retail-order#recalculate">
+        <option value="">Elegí la caja</option>
+        <% box_products.each do |product| %>
+          <optgroup label="<%= product.name %>">
+            <% product.variants.each do |variant| %>
+              <% next unless variant.active? || variant.id.to_s == selected_id %>
+              <option value="<%= variant.id %>" data-product-id="<%= product.id %>" data-units="<%= variant.content_units %>" data-price="<%= Retail::Money.format_pesos(variant.price_cents) %>"
+                      <%= "selected" if variant.id.to_s == selected_id %>><%= variant.full_name %> — <%= variant.content_units ? "#{variant.content_units} u." : "sin unidades" %><%= " (deshabilitada)" unless variant.active? %></option>
+            <% end %>
+          </optgroup>
+        <% end %>
+      </select>
+    </div>
+    <div class="col-3 col-md-2">
+      <label class="form-label small mb-0">Cajas</label>
+      <%= text_field_tag "items[#{index}][quantity]", row["quantity"].presence || (row["id"].present? ? nil : 1), id: nil, inputmode: "numeric", class: "form-control form-control-sm text-end", data: { field: "quantity", action: "input->retail-order#recalculate" } %>
+    </div>
+    <div class="col-4 col-md-2">
+      <label class="form-label small mb-0">Precio unit. ($)</label>
+      <%= text_field_tag "items[#{index}][unit_price]", row["unit_price"], id: nil, inputmode: "decimal", class: "form-control form-control-sm text-end", placeholder: "Precio",
+            data: { field: "price", retail_box_target: "price", action: "input->retail-order#recalculate" } %>
+    </div>
+    <div class="col-3 col-md-2 text-end">
+      <label class="form-label small mb-0">Subtotal</label>
+      <div class="fw-bold small" data-field="subtotal">$0</div>
+    </div>
+    <div class="col-2 col-md-1 text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger" data-action="retail-order#remove" aria-label="Quitar caja">✕</button>
+    </div>
+  </div>
+
+  <div class="mt-2 p-2 rounded bg-light">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+      <span class="small fw-semibold">Sabores de cada caja</span>
+      <span class="small fw-bold" data-retail-box-target="counter">Elegí la caja</span>
+    </div>
+    <% box_products.each do |product| %>
+      <% saved_ids = composition.select { |_, q| q.to_i.positive? }.keys %>
+      <% flavors = product.ordered_flavors.select { |f| f.active? || saved_ids.include?(f.id.to_s) } %>
+      <div class="row g-2" data-retail-box-target="group" data-product-id="<%= product.id %>" <%= "hidden" unless product == selected_product %>>
+        <% if flavors.empty? %>
+          <div class="col-12 small text-muted">Este producto no tiene sabores habilitados.</div>
+        <% end %>
+        <% flavors.each do |flavor| %>
+          <div class="col-6 col-md-3">
+            <label class="form-label small mb-0"><%= flavor.name %><%= " (no disponible)" unless flavor.active? %></label>
+            <input type="number" min="0" max="<%= RetailProductVariant::MAX_CONTENT_UNITS %>" step="1" inputmode="numeric" class="form-control form-control-sm text-end"
+                   name="items[<%= index %>][composition][<%= flavor.id %>]" value="<%= product == selected_product ? composition[flavor.id.to_s].to_i : 0 %>"
+                   data-retail-box-target="flavor" data-action="input->retail-box#recount" <%= "disabled" unless product == selected_product %>>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+    <div class="form-text">La suma tiene que ser exactamente la cantidad de unidades de la caja. Se puede elegir todo de un mismo sabor.</div>
+  </div>
+</div>

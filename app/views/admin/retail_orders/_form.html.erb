@@ -55,6 +55,7 @@
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-order#addProduct">+ Agregar producto</button>
         <button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-order#addManual">+ Agregar producto manual</button>
+        <% if @box_products.any? %><button type="button" class="btn btn-sm btn-outline-dark" data-action="retail-order#addBox" id="retail-add-box">+ Agregar caja con sabores</button><% end %>
       </div>
     </div>
     <div class="small text-muted mb-2">El precio se carga siempre a mano (no se usa el precio mayorista). Los productos manuales aparecen en producción pero no descuentan stock.</div>
@@ -63,7 +64,11 @@
       <% rows = @form[:items].presence || [{ "kind" => "product" }] %>
       <% rows.each_with_index do |row, index| %>
         <% row = row.to_h.stringify_keys %>
-        <%= render "admin/retail_orders/item_row", index: index, row: row, kind: (row["kind"] == "manual" ? "manual" : "product"), products: @products %>
+        <% if row["kind"] == "box" %>
+          <%= render "admin/retail_orders/box_row", index: index, row: row, box_products: @box_products %>
+        <% else %>
+          <%= render "admin/retail_orders/item_row", index: index, row: row, kind: (row["kind"] == "manual" ? "manual" : "product"), products: @products %>
+        <% end %>
       <% end %>
     </div>
     <template data-retail-order-target="productTemplate">
@@ -72,6 +77,11 @@
     <template data-retail-order-target="manualTemplate">
       <%= render "admin/retail_orders/item_row", index: "NEW_INDEX", row: {}, kind: "manual", products: @products %>
     </template>
+    <% if @box_products.any? %>
+      <template data-retail-order-target="boxTemplate">
+        <%= render "admin/retail_orders/box_row", index: "NEW_INDEX", row: {}, box_products: @box_products %>
+      </template>
+    <% end %>
 
     <div class="row g-2 mt-3 justify-content-end">
       <div class="col-6 col-md-3">
