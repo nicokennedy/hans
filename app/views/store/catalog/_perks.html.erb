@@ -1,0 +1,29 @@
+<%# Información comercial de la tienda (retiro, envío, anticipación y confirmación por WhatsApp).
+    Va debajo de «Nuestras especialidades». locals: pickup, delivery, lead (de RetailFulfillment::Options). %>
+<% pickup = local_assigns.fetch(:pickup) %>
+<% delivery = local_assigns.fetch(:delivery) %>
+<% lead = local_assigns.fetch(:lead) %>
+<section class="store-perks <%= local_assigns[:extra_class] %>" id="como-comprar" aria-label="Cómo comprar">
+  <div class="store-container">
+    <ul class="store-perks-list">
+      <li>
+        <%= store_icon(:pin, size: 22) %>
+        <div><strong><%= pickup[:name] %></strong><span>Sin costo</span></div>
+      </li>
+      <li>
+        <%= store_icon(:truck, size: 22) %>
+        <div><strong><%= delivery[:name] %></strong><span>Costo según la zona</span></div>
+      </li>
+      <% if lead.positive? %>
+        <li>
+          <%= store_icon(:calendar, size: 22) %>
+          <div><strong>Pedí con <%= lead %> <%= lead == 1 ? "día" : "días" %> de anticipación</strong><span>Sin entregas los domingos</span></div>
+        </li>
+      <% end %>
+      <li>
+        <%= store_icon(:chat, size: 22) %>
+        <div><strong>Confirmación por WhatsApp</strong><span>Te respondemos personalmente</span></div>
+      </li>
+    </ul>
+  </div>
+</section>

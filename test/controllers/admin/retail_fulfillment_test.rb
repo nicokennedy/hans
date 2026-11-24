@@ -84,13 +84,13 @@ class Admin::RetailFulfillmentTest < ActionDispatch::IntegrationTest
     assert_equal 500_000, order.shipping_cents
 
     assert_difference "RetailDeliveryZone.count", 1 do
-      post admin_retail_catalog_delivery_zones_path, params: { retail_delivery_zone: { name: "Zona 4", coverage: "Sierra", price: "9.000", active: "1" } }
+      post admin_retail_catalog_delivery_zones_path, params: { retail_delivery_zone: { name: "Zona 6", coverage: "Sierra", price: "9.000", active: "1" } }
     end
-    assert_equal 900_000, RetailDeliveryZone.find_by!(name: "Zona 4").price_cents
+    assert_equal 900_000, RetailDeliveryZone.find_by!(name: "Zona 6").price_cents
 
     post admin_retail_catalog_delivery_zones_path, params: { retail_delivery_zone: { name: "zona 1", price: "1" } }
     assert_response :unprocessable_entity
-    post admin_retail_catalog_delivery_zones_path, params: { retail_delivery_zone: { name: "Zona 5", price: "-10" } }
+    post admin_retail_catalog_delivery_zones_path, params: { retail_delivery_zone: { name: "Zona 7", price: "-10" } }
     assert_response :unprocessable_entity
 
     patch admin_retail_catalog_delivery_zone_path(@zone1), params: { retail_delivery_zone: { price: "5.800" } }

@@ -2,7 +2,7 @@
   <div class="mb-3">
     <div class="text-muted small">Tienda Minorista</div>
     <h1 class="fw-bold mb-0">Tienda online</h1>
-    <div class="text-muted small">Publicación de la tienda pública, portada, WhatsApp de HANS y datos para transferencia.</div>
+    <div class="text-muted small">Publicación de la tienda pública, logo, WhatsApp de HANS y datos para transferencia.</div>
   </div>
   <%= render "admin/retail_catalog/shared/nav" %>
 
@@ -53,66 +53,40 @@
     <% end %>
   </div>
 
-  <div class="product-card mb-4" id="store-hero">
+  <div class="product-card mb-4" id="store-logo">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
       <div>
-        <h2 class="fs-5 fw-bold mb-1">Portada de la tienda</h2>
-        <div class="small text-muted">Lo primero que ve el cliente. Cambiala para campañas (Navidad, Pascuas, Día de la Madre) sin tocar código.</div>
+        <h2 class="fs-5 fw-bold mb-1">Logo de la tienda</h2>
+        <div class="small text-muted">Se muestra en el encabezado de la tienda pública, en celulares y computadoras, con sus proporciones originales. Sin logo, el encabezado muestra el texto “HANS Pastelería”.</div>
       </div>
-      <%= link_to "Ver la portada", store_root_path, class: "btn btn-sm btn-outline-dark", target: "_blank", rel: "noopener", id: "store-hero-open" %>
+      <%= link_to "Ver la tienda", store_root_path, class: "btn btn-sm btn-outline-dark", target: "_blank", rel: "noopener", id: "store-logo-open" %>
     </div>
-    <%= render "admin/administration/shared/errors", errors: @hero_errors %>
+    <%= render "admin/administration/shared/errors", errors: @logo_errors %>
 
-    <div class="row g-4">
-      <div class="col-12 col-lg-4">
-        <div class="small fw-semibold mb-2">Foto de portada</div>
-        <% if @setting.hero_image? %>
-          <div class="rounded-3 overflow-hidden border mb-2" style="aspect-ratio: 4 / 5; background: #f4ede2;">
-            <%= image_tag rails_storage_proxy_path(@setting.hero_image.variant(:hero_sm)), alt: @setting.hero_image_alt.to_s, id: "store-hero-current",
-                  style: "width: 100%; height: 100%; object-fit: cover; object-position: #{@setting.hero_image_position};" %>
-          </div>
-          <div class="small text-muted mb-2" id="store-hero-mode">Se muestra esta foto (recortada al marco en arco, encuadre: <%= RetailStoreSetting::HERO_POSITIONS[@setting.hero_image_position].downcase %>).</div>
-          <%= button_to "Quitar la foto de portada", hero_image_admin_retail_catalog_store_settings_path, method: :delete, class: "btn btn-sm btn-outline-danger", id: "store-hero-remove",
-                form: { data: { turbo_confirm: "¿Quitar la foto de portada? La tienda vuelve a mostrar la composición con fotos de productos." } } %>
-        <% else %>
-          <div class="rounded-3 border d-flex align-items-center justify-content-center text-center p-3 mb-2 small text-muted" style="aspect-ratio: 4 / 5; background: #f4ede2; border-style: dashed !important;" id="store-hero-mode">
-            Sin foto de portada.<br>La tienda arma la portada sola con las fotos de los productos destacados.
-          </div>
+    <div class="row g-4 align-items-start">
+      <div class="col-12 col-lg-5">
+        <div class="small fw-semibold mb-2">Logo actual</div>
+        <%# Fondo marfil como el encabezado de la tienda, para ver cómo queda el fondo transparente. %>
+        <div class="rounded-3 border d-flex align-items-center justify-content-center p-4 mb-2" style="min-height: 140px; background: #fbf8f3;" id="store-logo-preview">
+          <% if @setting.logo? %>
+            <%= image_tag rails_storage_proxy_path(@setting.logo.variant(RetailStoreSetting::LOGO_VARIANT)), alt: "Logo de HANS Pastelería", id: "store-logo-current",
+                  style: "max-height: 72px; max-width: 100%; width: auto; height: auto;" %>
+          <% else %>
+            <span class="small text-muted text-center" id="store-logo-empty">Sin logo: el encabezado muestra el texto “HANS Pastelería”.</span>
+          <% end %>
+        </div>
+        <% if @setting.logo? %>
+          <%= button_to "Quitar el logo", logo_admin_retail_catalog_store_settings_path, method: :delete, class: "btn btn-sm btn-outline-danger", id: "store-logo-remove",
+                form: { data: { turbo_confirm: "¿Quitar el logo? El encabezado de la tienda vuelve a mostrar el texto “HANS Pastelería”." } } %>
         <% end %>
       </div>
 
-      <div class="col-12 col-lg-8">
-        <%= form_with url: hero_admin_retail_catalog_store_settings_path, method: :patch, local: true, multipart: true, id: "store-hero-form" do %>
-          <div class="mb-3">
-            <label class="form-label" for="hero_title">Título</label>
-            <%= text_area_tag :hero_title, @setting.hero_title, class: "form-control", rows: 2, maxlength: RetailStoreSetting::HERO_TITLE_MAX,
-                  placeholder: RetailStoreSetting::DEFAULT_HERO_TITLE %>
-            <div class="form-text">Hasta <%= RetailStoreSetting::HERO_TITLE_MAX %> caracteres. Con <kbd>Enter</kbd> pasás a una segunda línea, que se muestra en itálica y color de acento. Vacío: “<%= RetailStoreSetting::DEFAULT_HERO_TITLE.tr("\n", " ") %>”.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="hero_subtitle">Subtítulo</label>
-            <%= text_area_tag :hero_subtitle, @setting.hero_subtitle, class: "form-control", rows: 3, maxlength: RetailStoreSetting::HERO_SUBTITLE_MAX,
-                  placeholder: RetailStoreSetting::DEFAULT_HERO_SUBTITLE %>
-            <div class="form-text">Una o dos frases cortas (hasta <%= RetailStoreSetting::HERO_SUBTITLE_MAX %> caracteres). Vacío: se usa el texto por defecto. El botón “Explorar productos” se muestra siempre.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="hero_image"><%= @setting.hero_image? ? "Reemplazar la foto" : "Subir una foto" %></label>
-            <%= file_field_tag :hero_image, class: "form-control", accept: "image/jpeg,image/png,image/webp" %>
-            <div class="form-text">JPEG, PNG o WebP de hasta 10 MB. Ideal: vertical (4:5), de al menos 1200 px de ancho, con el producto centrado. La tienda la optimiza sola.</div>
-          </div>
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-8">
-              <label class="form-label" for="hero_image_alt">Descripción de la foto</label>
-              <%= text_field_tag :hero_image_alt, @setting.hero_image_alt, class: "form-control", maxlength: 150, placeholder: "Ej. Torta de Navidad con frutos rojos" %>
-              <div class="form-text">Para lectores de pantalla y buscadores.</div>
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="hero_image_position">Encuadre</label>
-              <%= select_tag :hero_image_position, options_for_select(RetailStoreSetting::HERO_POSITIONS.invert, @setting.hero_image_position), class: "form-select" %>
-              <div class="form-text">Qué parte conservar al recortar.</div>
-            </div>
-          </div>
-          <%= submit_tag "Guardar portada", class: "btn btn-dark", data: { turbo_submits_with: "Guardando…" } %>
+      <div class="col-12 col-lg-7">
+        <%= form_with url: logo_admin_retail_catalog_store_settings_path, method: :patch, local: true, multipart: true, id: "store-logo-form" do %>
+          <label class="form-label" for="logo"><%= @setting.logo? ? "Reemplazar el logo" : "Subir el logo" %></label>
+          <%= file_field_tag :logo, class: "form-control", accept: "image/png,image/webp", required: true %>
+          <div class="form-text">PNG o WebP de hasta 5 MB, idealmente con <strong>fondo transparente</strong> y horizontal, de al menos 600 px de ancho. Se respetan sus proporciones: en el celular se ve a unos 40 px de alto y en la computadora a 52 px.</div>
+          <%= submit_tag (@setting.logo? ? "Reemplazar logo" : "Guardar logo"), class: "btn btn-dark mt-3", data: { turbo_submits_with: "Guardando…" } %>
         <% end %>
       </div>
     </div>

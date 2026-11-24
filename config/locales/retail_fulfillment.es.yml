@@ -7,7 +7,7 @@ es:
     attributes:
       retail_delivery_zone:
         name: "El nombre"
-        coverage: "La cobertura"
+        coverage: "La descripción"
         price: "El costo de envío"
         price_cents: "El costo de envío"
         position: "El orden"

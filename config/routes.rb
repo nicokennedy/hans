@@ -215,9 +215,9 @@ Rails.application.routes.draw do
       resource :store_settings, path: "tienda-online", only: [:show, :update] do
         patch :publish
         patch :unpublish
-        # Portada de la tienda: título, subtítulo y foto de campaña (opcional).
-        patch :hero, path: "portada"
-        delete :hero_image, path: "portada/foto", action: :remove_hero_image
+        # Logo del encabezado de la tienda (PNG o WebP con fondo transparente).
+        patch :logo
+        delete :logo, action: :remove_logo
       end
     end
     # Pedidos minoristas: ventas manuales a compradores individuales, independientes de los

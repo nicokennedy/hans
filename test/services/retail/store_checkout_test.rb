@@ -64,7 +64,7 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
   end
 
   test "envío a domicilio: cada zona cobra su precio y el total lo suma" do
-    expected = { "Zona 1" => 500_000, "Zona 2" => 600_000, "Zona 3" => 700_000 }
+    expected = { "Zona 1" => 500_000, "Zona 2" => 600_000, "Zona 3" => 700_000, "Zona 4" => 600_000, "Zona 5" => 700_000 }
     @zones.each do |zone|
       order = place({ delivery_kind: "delivery", delivery_zone_id: zone.id.to_s, address: "Alem 123" }).record
       assert_equal expected.fetch(zone.name), order.shipping_cents

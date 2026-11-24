@@ -32,8 +32,13 @@
           <%= link_to "Productos", store_root_path(anchor: "productos"), class: "store-header-link" %>
           <%= link_to "Cómo comprar", store_root_path(anchor: "como-comprar"), class: "store-header-link" %>
         </nav>
-        <%= link_to store_root_path, class: "store-brand", "aria-label": "HANS Pastelería, inicio de la tienda" do %>
-          <span class="store-brand-name">HANS</span><span class="store-brand-sub">Pastelería</span>
+        <%= link_to store_root_path, class: "store-brand #{'store-brand-has-logo' if store_setting.logo?}", id: "store-brand", "aria-label": "HANS Pastelería, inicio de la tienda" do %>
+          <% if store_setting.logo? %>
+            <%# Logo cargado en Tienda Minorista → Tienda online (WebP optimizado, conserva la transparencia). %>
+            <%= image_tag store_logo_url, alt: "HANS Pastelería", class: "store-brand-logo", id: "store-brand-logo", decoding: "async", fetchpriority: "high" %>
+          <% else %>
+            <span class="store-brand-name">HANS</span><span class="store-brand-sub">Pastelería</span>
+          <% end %>
         <% end %>
         <div class="store-header-actions">
           <% unless content_for?(:hide_cart) %>

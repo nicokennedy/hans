@@ -7,9 +7,11 @@
 #    código de país: 5492235275412).
 #  - bank_transfer_details: datos para transferencia que ve el cliente que elige transferencia. Vacío
 #    hasta que el equipo los cargue (no se inventan): mientras tanto se pasan por WhatsApp.
-#  - Portada (hero): título, subtítulo y una foto opcional para campañas (Navidad, Pascuas...). Sin
-#    foto, la portada arma sola la composición con fotos reales del catálogo. Título y subtítulo
-#    vacíos usan los textos por defecto. La foto se sube con RetailCatalog::HeroImageUpload.
+#  - logo: imagen del encabezado de la tienda (PNG o WebP, con fondo transparente). Se sube, reemplaza
+#    y quita con RetailCatalog::LogoUpload. Sin logo, el encabezado muestra el texto "HANS Pastelería".
+#  - Portada (hero): título, subtítulo y una foto opcional. DESDE LA ETAPA 1 DEL REDISEÑO 2026 LA
+#    TIENDA NO LA MUESTRA y su configuración se sacó del administrador, pero los datos (columnas
+#    hero_* y la foto hero_image) se conservan intactos por si se vuelve a usar.
 class RetailStoreSetting < ApplicationRecord
   DEFAULT_WHATSAPP = "5492235275412".freeze
   DEFAULT_HERO_TITLE = "Hecho a mano,\npara compartir.".freeze
@@ -27,6 +29,14 @@ class RetailStoreSetting < ApplicationRecord
   has_one_attached :hero_image do |attachable|
     attachable.variant :hero, resize_to_limit: [1600, 1600], format: :webp, saver: { quality: 82 }
     attachable.variant :hero_sm, resize_to_limit: [900, 900], format: :webp, saver: { quality: 80 }
+  end
+
+  # Logo del encabezado. La tienda sirve solo esta versión: WebP (conserva la transparencia), con las
+  # proporciones originales y nunca más grande que 800×320 (alcanza para pantallas de alta densidad
+  # con el logo a 56 px de alto). El tamaño en pantalla lo da el CSS (.store-brand-logo).
+  LOGO_VARIANT = :header
+  has_one_attached :logo do |attachable|
+    attachable.variant :header, resize_to_limit: [800, 320], format: :webp, saver: { quality: 90, alpha_q: 100 }
   end
 
   before_validation :normalize_fields
@@ -66,6 +76,10 @@ class RetailStoreSetting < ApplicationRecord
 
   def hero_image?
     hero_image.attached?
+  end
+
+  def logo?
+    logo.attached?
   end
 
   private

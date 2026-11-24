@@ -216,8 +216,9 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
     assert_select "#delivery_date option[value='2026-11-14']", "Sábado 14/11 · 8:30 a 13:00 hs"
     assert_select ".store-option", text: /Retiro por zona Plaza del Agua\s*Gratis/
     assert_select ".store-option-text", text: "Lunes a viernes: 14:00 a 17:00 hs · sábado: 11:00 a 13:00 hs"
-    assert_select ".store-zone", 3
-    assert_select ".store-zone", text: /Zona 2\s*\$6\.000\s*Centro, zona Facultad/
+    assert_select ".store-zone", 5
+    assert_select ".store-zone", text: /Zona 2\s*\$6\.000\s*Av\. Patricio Peralta Ramos - Av\. Juan B\. Justo - Av\. M\. Champagnat - Av\. Libertad/
+    assert_select ".store-zone", text: /Zona 5\s*\$7\.000\s*Barrios del sur/
     assert_select "input[name=planned_payment_method]", 2
     assert_select ".store-option", text: "Transferencia bancaria"
     assert_select ".store-option", text: "Efectivo"

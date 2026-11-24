@@ -42,9 +42,11 @@ class RetailFulfillment::RulesTest < ActiveSupport::TestCase
 
     zones = RetailDeliveryZone.ordered.map { |z| [z.name, z.coverage, z.price_cents, z.active?] }
     assert_equal [
-      ["Zona 1", "Costa, Independencia, Colón, Vértiz", 500_000, true],
-      ["Zona 2", "Centro, zona Facultad", 600_000, true],
-      ["Zona 3", "Constitución, barrios privados, Champagnat hasta Allio", 700_000, true]
+      ["Zona 1", "Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. Independencia", 500_000, true],
+      ["Zona 2", "Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. M. Champagnat - Av. Libertad", 600_000, true],
+      ["Zona 3", "Av. Libertad - Av. M. Champagnat - Av. José Estrada", 700_000, true],
+      ["Zona 4", "Av. Mario Bravo - Av. Jacinto Peralta Ramos - Av. de los Trabajadores", 600_000, true],
+      ["Zona 5", "Barrios del sur", 700_000, true]
     ], zones
     assert_equal "Retiro por zona Plaza del Agua", RetailFulfillment.service_name("pickup")
     assert_equal "Envío a domicilio", RetailFulfillment.service_name("delivery")
@@ -167,7 +169,7 @@ class RetailFulfillment::RulesTest < ActiveSupport::TestCase
 
   # --- Costos y total ---
 
-  test "retiro gratis; zonas 1, 2 y 3 a $5.000, $6.000 y $7.000; total = productos + envío" do
+  test "retiro gratis; zonas 1 a 5 a $5.000, $6.000, $7.000, $6.000 y $7.000; total = productos + envío" do
     pickup = quote(service: "pickup", date: WED, subtotal_cents: 2_500_000)
     assert pickup.ok?, pickup.errors.inspect
     assert_equal 0, pickup.shipping_cents
@@ -175,7 +177,7 @@ class RetailFulfillment::RulesTest < ActiveSupport::TestCase
     assert_nil pickup.zone
     assert_nil pickup.address
 
-    { "Zona 1" => 500_000, "Zona 2" => 600_000, "Zona 3" => 700_000 }.each do |name, cents|
+    { "Zona 1" => 500_000, "Zona 2" => 600_000, "Zona 3" => 700_000, "Zona 4" => 600_000, "Zona 5" => 700_000 }.each do |name, cents|
       result = quote(service: "delivery", date: WED.iso8601, zone_id: zone(name).id.to_s, address: " Alem 123 ", subtotal_cents: 2_500_000)
       assert result.ok?, result.errors.inspect
       assert_equal cents, result.shipping_cents
@@ -227,7 +229,7 @@ class RetailFulfillment::RulesTest < ActiveSupport::TestCase
     assert_equal (WED + 1).iso8601, delivery[:dates].first[:date]
     assert_equal "Franja de entrega", delivery[:window_name]
     assert delivery[:dates].none? { |d| Date.iso8601(d[:date]).sunday? }
-    assert_equal ["Zona 1", "Zona 2"], options[:zones].map { |z| z[:name] }
+    assert_equal ["Zona 1", "Zona 2", "Zona 4", "Zona 5"], options[:zones].map { |z| z[:name] }
     assert_equal "$5.000", options[:zones].first[:price]
   end
 end

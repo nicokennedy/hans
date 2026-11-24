@@ -7,9 +7,9 @@
     <div class="col-6 col-md-2"><%= f.label :position, "Orden", class: "form-label" %><%= f.number_field :position, class: "form-control" %></div>
     <div class="col-12 col-md-2 d-flex align-items-end"><div class="form-check"><%= f.check_box :active, class: "form-check-input" %><%= f.label :active, "Activa", class: "form-check-label" %></div></div>
     <div class="col-12">
-      <%= f.label :coverage, "Cobertura (orientativa)", class: "form-label" %>
-      <%= f.text_field :coverage, class: "form-control", maxlength: 300, placeholder: "Barrios o referencias que ayudan al cliente a elegir su zona" %>
-      <div class="form-text">Es un texto de ayuda: el cliente elige su zona a mano y no se valida la dirección.</div>
+      <%= f.label :coverage, "Descripción (avenidas o barrios que cubre)", class: "form-label" %>
+      <%= f.text_field :coverage, class: "form-control", maxlength: 300, placeholder: "Ej.: Av. Libertad - Av. M. Champagnat - Av. José Estrada" %>
+      <div class="form-text">El cliente la ve debajo del nombre de la zona en el checkout. Es orientativa: el cliente elige su zona a mano y no se valida la dirección.</div>
     </div>
   </div></div>
   <% if @zone.persisted? %>

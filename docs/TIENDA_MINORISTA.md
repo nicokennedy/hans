@@ -10,6 +10,8 @@
 | 3. Reglas de retiro y delivery | Hecha: Tienda Minorista → Entregas (ver abajo) |
 | 4. Tienda pública, carrito, checkout y WhatsApp | Hecha, **cerrada al público** hasta que se publique desde Tienda Minorista → Tienda online (ver abajo) |
 | 5a. Variantes (tamaños/presentaciones), disponibilidad y stock online + importador de TakePedido | Implementado en la rama `feature/retail-variants-online-stock`, sin desplegar (ver abajo) |
+| Rediseño 2026 — Etapa 1: logo, sin portada, identidad visual y 5 zonas | Implementada (ver abajo) |
+| Rediseño 2026 — Etapa 2: cajas con contenido personalizable | Decisiones tomadas, **sin implementar** (ver abajo) |
 | 5. Opcionales (pago online, automatizaciones) | Pendiente |
 
 ## Base que deja la Etapa 1 para la tienda
@@ -63,7 +65,7 @@ mayoristas no se usan ni se modifican.
 Domingos sin servicio. La dirección del punto de retiro **no está definida**: se carga en
 "Reglas generales" (mientras esté vacía, el cliente ve solo el nombre de la modalidad).
 
-### Zonas de envío (iniciales)
+### Zonas de envío (iniciales, reemplazadas en el rediseño 2026: ver más abajo)
 
 | Zona | Cobertura (orientativa) | Costo |
 |---|---|---|
@@ -331,25 +333,82 @@ heroku run --no-tty -a hans -- bin/rails "retail_catalog:import_takepedido[-]" <
   orden, completa la descripción si estaba vacía y su variante única pasa a ser el tamaño más grande.
 - No borra productos ni variantes y no toca pedidos, productos mayoristas ni stock de producción.
 
-## Diseño de la tienda y portada configurable
+## Diseño de la tienda
 
 Dirección de arte de la tienda pública (layout `store`, `app/assets/stylesheets/store.scss`):
-pastelería boutique + editorial gastronómica. Marfil, espresso, crema y manteca, con un único
-acento albaricoque (el naranja de HANS, más profundo para que sea legible). Titulares en Fraunces y
-todo lo funcional (precios, botones, formularios) en DM Sans (Google Fonts). Mobile first.
+pastelería boutique + editorial gastronómica. Titulares en Fraunces y todo lo funcional (precios,
+botones, formularios) en DM Sans (Google Fonts). Mobile first. Los colores se describen en el
+rediseño 2026 (abajo).
 
-### Portada (Tienda Minorista → Tienda online → Portada de la tienda)
+## Rediseño 2026 — Etapa 1: logo, página principal, identidad visual y zonas
 
-- **Título**: hasta 80 caracteres y dos líneas; la segunda (con Enter) se muestra en itálica y color
-  de acento. Vacío: “Hecho a mano, / para compartir.”
-- **Subtítulo**: hasta 240 caracteres. Vacío: el texto por defecto.
-- **Foto de portada** (opcional): JPEG, PNG o WebP de hasta 10 MB, validada por su contenido y
-  guardada en el mismo almacenamiento que las fotos del catálogo (R2 en producción;
-  `RetailCatalog::HeroImageUpload`). Se sirven versiones WebP optimizadas (`hero` 1600 px y
-  `hero_sm` 900 px). Subir otra la reemplaza; “Quitar la foto de portada” la borra.
-- **Descripción** (texto alternativo) y **encuadre** (centro, arriba o abajo) de la foto.
-- **Sin foto**, la portada arma sola una composición con las fotos reales de los productos
-  (destacados primero). El botón “Explorar productos” se muestra siempre.
+No cambia el panel de administración ni el portal mayorista, ni precios, stock, anticipación, días,
+horarios, formas de pago, confirmación por WhatsApp, vista previa ni publicación de la tienda.
 
-Pensado para campañas (Navidad, Pascuas, Día de la Madre): se cambia sin tocar código y no afecta
-precios, stock, checkout ni pedidos.
+### Logo (Tienda Minorista → Tienda online → Logo de la tienda)
+
+- Subir, reemplazar y quitar. **Solo PNG o WebP** (admiten fondo transparente), hasta 5 MB, validados
+  por su contenido (`RetailCatalog::LogoUpload`). No se acepta SVG (puede traer código) ni JPEG
+  (no tiene transparencia).
+- Mismo almacenamiento que las fotos del catálogo (R2 en producción; si R2 no está habilitado, la
+  subida se rechaza). La tienda sirve una sola versión WebP (`RetailStoreSetting#logo`, variante
+  `header`): conserva la transparencia y las proporciones y nunca pasa de 800×320.
+- En pantalla: 40 px de alto en el celular (alineado a la izquierda, ancho máximo 200 px) y 52 px en
+  computadoras (centrado, ancho máximo 280 px). El ancho sale de las proporciones del logo.
+- **Sin logo**: el encabezado muestra el texto “HANS / Pastelería” de siempre. El pie mantiene el
+  texto HANS (decisión: el pie es oscuro).
+
+### Página principal
+
+Orden: encabezado (logo y navegación) → **Nuestras especialidades** (arcos de categorías) →
+información comercial (retiro por zona Plaza del Agua, envío a domicilio, anticipación, confirmación
+por WhatsApp; partial `store/catalog/_perks`) → navegación por categorías → catálogo (sin cambios).
+El enlace “Cómo comprar” del encabezado sigue llevando a la información comercial (`#como-comprar`).
+
+**La portada (hero) ya no se muestra** y su sección salió del administrador (rutas y acciones
+`hero`/`remove_hero_image` eliminadas). Los datos se conservan sin tocar: columnas `hero_title`,
+`hero_subtitle`, `hero_image_alt`, `hero_image_position` y la foto `hero_image` (no se borró del
+almacenamiento). Volver a usarla es solo de vistas y rutas.
+
+### Identidad visual
+
+- Colores de marca: **durazno `#FDD8BE`** y **verde agua `#AEC4C2`**, usados solo como superficies,
+  marcos, insignias y estados, siempre con texto oscuro: banda de información comercial (verde agua
+  suave), marcos de fotos y arcos (durazno), contador del carrito e insignia “Destacado” (durazno),
+  opción elegida en el checkout (durazno suave), resaltados y selección de texto.
+- Acento de texto (itálicas, enlaces al pasar el mouse, íconos, precios destacados, foco): **verde
+  agua profundo `#3E5E5B`**. Se eliminó el terracota.
+- Contrastes verificados (WCAG): espresso sobre durazno 12,2:1; sobre verde agua 8,9:1; verde agua
+  profundo sobre marfil 6,7:1, sobre durazno suave 6,1:1 y sobre verde agua suave 5,7:1. El durazno y
+  el verde agua nunca se usan como color de letra sobre marfil (1,3:1 y 1,7:1).
+- Fondos marfil, textos espresso, tipografías y espacios se mantienen.
+
+### Zonas de envío definitivas
+
+| Zona | Descripción | Costo |
+|---|---|---|
+| Zona 1 | Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. Independencia | $5.000 |
+| Zona 2 | Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. M. Champagnat - Av. Libertad | $6.000 |
+| Zona 3 | Av. Libertad - Av. M. Champagnat - Av. José Estrada | $7.000 |
+| Zona 4 | Av. Mario Bravo - Av. Jacinto Peralta Ramos - Av. de los Trabajadores | $6.000 |
+| Zona 5 | Barrios del sur | $7.000 |
+
+Las cinco quedan habilitadas. El retiro por zona Plaza del Agua sigue gratis. Nombre, descripción
+(antes “cobertura”), precio, orden y disponibilidad se cambian desde **Tienda Minorista → Entregas**,
+sin código ni deploy.
+
+Migración de datos `20261124120000_update_retail_delivery_zones_2026` (idempotente, no destructiva):
+busca cada zona por nombre sin distinguir mayúsculas, actualiza descripción, precio y orden y la
+habilita, o la crea si no existe; otras zonas solo pasan detrás en el orden. **No toca
+`retail_orders`**: cada pedido conserva su zona, `delivery_zone_name` y `shipping_cents`.
+
+**Antes de aplicarla en producción**, revisar las zonas existentes con una consulta de solo lectura:
+
+```bash
+heroku pg:psql -a hans -c "SELECT id, name, coverage, price_cents, active, position FROM retail_delivery_zones ORDER BY position, id;"
+heroku pg:psql -a hans -c "SELECT delivery_zone_id, delivery_zone_name, COUNT(*), MIN(shipping_cents), MAX(shipping_cents) FROM retail_orders WHERE delivery_zone_id IS NOT NULL GROUP BY 1, 2 ORDER BY 1;"
+```
+
+Si alguna zona se renombró (por ejemplo “Zona Centro” en lugar de “Zona 2”), la migración crearía
+una “Zona 2” nueva y dejaría la otra detrás: en ese caso, ajustar antes de desplegar. Repetir la
+segunda consulta después de migrar: los importes de los pedidos tienen que ser idénticos.

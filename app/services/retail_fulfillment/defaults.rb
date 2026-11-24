@@ -11,10 +11,14 @@ module RetailFulfillment
       "delivery" => { 1 => [510, 780], 2 => [510, 780], 3 => [510, 780], 4 => [510, 780], 5 => [510, 780], 6 => [510, 780] }
     }.freeze
 
+    # Zonas definitivas (rediseño 2026); son las mismas que deja la migración
+    # 20261124120000_update_retail_delivery_zones_2026 en una base existente.
     ZONES = [
-      { name: "Zona 1", coverage: "Costa, Independencia, Colón, Vértiz", price_cents: 500_000 },
-      { name: "Zona 2", coverage: "Centro, zona Facultad", price_cents: 600_000 },
-      { name: "Zona 3", coverage: "Constitución, barrios privados, Champagnat hasta Allio", price_cents: 700_000 }
+      { name: "Zona 1", coverage: "Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. Independencia", price_cents: 500_000 },
+      { name: "Zona 2", coverage: "Av. Patricio Peralta Ramos - Av. Juan B. Justo - Av. M. Champagnat - Av. Libertad", price_cents: 600_000 },
+      { name: "Zona 3", coverage: "Av. Libertad - Av. M. Champagnat - Av. José Estrada", price_cents: 700_000 },
+      { name: "Zona 4", coverage: "Av. Mario Bravo - Av. Jacinto Peralta Ramos - Av. de los Trabajadores", price_cents: 600_000 },
+      { name: "Zona 5", coverage: "Barrios del sur", price_cents: 700_000 }
     ].freeze
 
     module_function

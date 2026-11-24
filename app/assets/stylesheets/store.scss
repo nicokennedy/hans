@@ -1,10 +1,14 @@
 // Tienda pública minorista de HANS (layout "store").
 //
-// Dirección de arte: pastelería boutique + editorial gastronómica. Fondo marfil, tinta espresso,
-// manteca y crema para superficies, y un único acento albaricoque (el naranja de HANS, llevado a un
-// tono más profundo y legible). Titulares en Fraunces (serif editorial con itálicas suaves) y todo lo
-// funcional (precios, botones, formularios) en DM Sans. El marco en arco de las fotos de portada y
-// categorías es la firma visual.
+// Dirección de arte: pastelería boutique + editorial gastronómica. Fondo marfil y tinta espresso, con
+// los colores de marca de HANS usados con mesura (rediseño 2026):
+//  - Durazno #FDD8BE y verde agua #AEC4C2: SOLO superficies, marcos, insignias y estados, siempre con
+//    texto oscuro encima (espresso sobre durazno 12,2:1; sobre verde agua 8,9:1). Como texto sobre
+//    marfil no se leen (1,3:1 y 1,7:1), así que nunca se usan para letras.
+//  - Verde agua profundo #3E5E5B: el único acento para texto (itálicas, enlaces, íconos, precios
+//    destacados, foco). 6,7:1 sobre marfil. Reemplaza al terracota anterior.
+// Titulares en Fraunces (serif editorial con itálicas suaves) y todo lo funcional (precios, botones,
+// formularios) en DM Sans. El marco en arco de las fotos de categorías es la firma visual.
 //
 // Mobile first: cada componente se diseña primero para el celular (Instagram / WhatsApp).
 // Solo la base de Bootstrap (reboot y utilidades); los componentes son propios de la tienda.
@@ -20,17 +24,25 @@
 @import "bootstrap/utilities/api";
 
 // ---------------------------------------------------------------- Tokens
+// Colores de marca HANS
+$peach: #FDD8BE;      // durazno
+$sage: #AEC4C2;       // verde agua
+$sage-deep: #3E5E5B;  // verde agua profundo: acento legible para texto (6,7:1 sobre marfil)
+
 $ivory: #fbf8f3;      // fondo
 $paper: #fffdf9;      // superficies elevadas
-$cream: #f4ede2;      // bloques suaves
-$butter: #ebddc6;     // manteca: marcos y acentos cálidos
-$line: #e6dccd;       // líneas finas
-$line-strong: #d6c8b4;
+$peach-soft: mix($peach, $ivory, 45%); // durazno suave: selección, avisos, resaltados
+$sage-soft: mix($sage, $ivory, 32%);   // verde agua suave: banda de información comercial
+$cream: mix($peach, $ivory, 18%);      // bloques suaves (apenas cálidos)
+$butter: mix($peach, $ivory, 70%);     // marcos de fotos (se ve mientras cargan)
+$line: #e8ded3;       // líneas finas
+$line-strong: #d6cabd;
 $espresso: #2a1d16;   // tinta principal
 $cocoa: #6b5646;      // texto secundario (7:1 sobre marfil)
 $cocoa-soft: #8f7a69; // texto terciario (solo tamaños grandes o decorativo)
-$accent: #a84f2a;     // albaricoque HANS profundo (5,2:1 sobre marfil)
-$accent-soft: #f6e4d6;
+$espresso-soft: #4a3a30; // texto secundario sobre las superficies de marca (verde agua, durazno)
+$accent: $sage-deep;  // acento de texto, íconos y foco
+$accent-soft: $peach-soft;
 $whatsapp: #1c7f47;
 $whatsapp-dark: #166a3b;
 $danger: #a8322a;
@@ -100,7 +112,7 @@ $header-h: 64px;
 }
 
 // Titulares editoriales
-.store-display-title, .store-hero-title, .store-section-title, .store-featured-title, .store-page-title, .store-product-name {
+.store-display-title, .store-section-title, .store-featured-title, .store-page-title, .store-product-name {
   font-family: $serif;
   font-weight: 400;
   font-optical-sizing: auto;
@@ -171,6 +183,18 @@ $header-h: 64px;
 }
 .store-brand-name { font-family: $serif; font-weight: 500; font-size: 26px; letter-spacing: .22em; margin-right: -.22em; @include md { font-size: 30px; } }
 .store-brand-sub { font-size: 9.5px; letter-spacing: .42em; text-transform: uppercase; color: $cocoa; margin-top: 5px; margin-right: -.42em; }
+// Logo cargado en el administrador: alto fijo (no salta al cargar) y ancho según sus proporciones
+// originales, con un máximo para logos muy horizontales. Fondo transparente: se ve sobre el marfil.
+.store-brand-has-logo { align-items: flex-start; @include md { align-items: center; } }
+.store-brand-logo {
+  display: block;
+  height: 40px;
+  width: auto;
+  max-width: 200px; // entra en 320 px de ancho junto al carrito
+  object-fit: contain;
+  object-position: left center;
+  @include md { height: 52px; max-width: 280px; object-position: center; }
+}
 .store-header-actions { display: flex; justify-content: flex-end; }
 
 .store-cart-link {
@@ -194,8 +218,8 @@ $header-h: 64px;
   position: absolute;
   top: 4px;
   left: 22px;
-  background: $accent;
-  color: #fff;
+  background: $peach;
+  color: $espresso;
   border-radius: 999px;
   min-width: 18px;
   height: 18px;
@@ -227,7 +251,7 @@ $header-h: 64px;
   animation: store-rise .5s $ease both;
   + .store-flash { margin-top: 8px; }
 }
-.store-flash-ok { background: $espresso; color: $ivory; .store-icon { color: #b9d8c2; } }
+.store-flash-ok { background: $espresso; color: $ivory; .store-icon { color: $sage; } }
 .store-flash-error { background: #f8e6e3; color: $danger; border-radius: $radius-sm; }
 .store-cart .store-flash-error, .store-checkout .store-flash-error { margin-bottom: 16px; }
 .store-errors {
@@ -299,136 +323,28 @@ $header-h: 64px;
   @include hover { color: $danger; }
 }
 
-// ---------------------------------------------------------------- Portada
-.store-hero { padding: 24px 0 40px; @include md { padding: 56px 0 72px; } }
-.store-hero-grid {
-  display: grid;
-  gap: 36px;
-  align-items: center;
-  @include lg { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 64px; }
-}
-.store-hero-copy { animation: store-rise .8s $ease both; }
-.store-hero-title {
-  font-size: clamp(44px, 12.5vw, 92px);
-  line-height: .98;
-  margin: 0 0 28px;
-  letter-spacing: -.03em;
-  em { display: inline-block; }
-}
-// Títulos de campaña más largos (cargados desde el administrador): un escalón más chico para que
-// no ocupen cuatro líneas.
-.store-hero-title-long { font-size: clamp(38px, 10vw, 64px); line-height: 1.02; }
-.store-hero-has-custom .store-hero-grid { @include lg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.store-hero-how { display: none; @media (min-width: 420px) { display: inline-flex; } }
-.store-hero-text { font-size: 16px; color: $cocoa; max-width: 440px; margin-bottom: 28px; @include md { font-size: 18px; } }
-.store-hero-actions { display: flex; flex-wrap: wrap; gap: 8px 4px; align-items: center; .store-btn-lg { padding: 16px 26px; } }
-
-// Composición: arco grande + foto vertical + círculo, asimétrico.
-.store-hero-visual {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.55fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 12px;
-  animation: store-rise 1s .1s $ease both;
-  @include md { gap: 20px; }
-}
-.store-hero-frame {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  background: $butter;
-  img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1.2s $ease; }
-  @include hover { img { transform: scale(1.04); } }
-}
-.store-hero-main {
-  grid-row: 1 / span 2;
-  aspect-ratio: 4 / 5;
-  // Arco: semicírculo arriba (radio vertical = mitad del ancho = 40% del alto en 4:5).
-  border-radius: #{"50% 50% 16px 16px / 40% 40% 16px 16px"};
-}
-.store-hero-side { aspect-ratio: 4 / 5; border-radius: $radius; align-self: end; margin-top: 18%; }
-.store-hero-round { aspect-ratio: 1; border-radius: 50%; width: 78%; justify-self: center; }
-.store-hero-count-1 { grid-template-columns: 1fr; max-width: 480px; justify-self: center; width: 100%; .store-hero-main { grid-row: auto; } }
-.store-hero-count-2 { .store-hero-side { grid-row: 1 / span 2; align-self: center; margin-top: 0; } }
-.store-hero-caption {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  background: rgba($ivory, .92);
-  backdrop-filter: blur(6px);
-  color: $espresso;
-  font-size: 12.5px;
-  font-weight: 500;
-  padding: 7px 14px;
-  border-radius: 999px;
-  white-space: nowrap;
-  max-width: calc(100% - 32px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: none;
-  @include md { display: block; }
-}
-// Foto de campaña (configurada en el administrador): un solo arco protagonista, con un círculo
-// manteca detrás que da profundidad. En el celular el arco es más bajo para que la foto no empuje
-// todo hacia abajo.
-.store-hero-custom {
-  grid-template-columns: 1fr;
-  position: relative;
-  isolation: isolate;
-  &::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    width: 46%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: $butter;
-    right: -6%;
-    bottom: -6%;
-    opacity: .7;
-  }
-  .store-hero-main {
-    grid-row: auto;
-    aspect-ratio: 1;
-    border-radius: #{"50% 50% 16px 16px / 50% 50% 16px 16px"};
-    width: 100%;
-  }
-  @include md {
-    width: 82%;
-    justify-self: center;
-    .store-hero-main { aspect-ratio: 4 / 5; border-radius: #{"50% 50% 16px 16px / 40% 40% 16px 16px"}; }
-  }
-  @include lg { width: 78%; }
-}
-.store-hero-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(180deg, $cream, $butter);
-  span { font-family: $serif; font-size: 120px; font-style: italic; color: rgba($espresso, .18); }
-}
-
-// Información de compra: discreta, con íconos de línea.
-.store-perks { border-top: 1px solid $line; border-bottom: 1px solid $line; scroll-margin-top: 90px; }
+// Información comercial (debajo de «Nuestras especialidades»): banda verde agua suave, con íconos de
+// línea en el acento. Texto siempre oscuro sobre el verde.
+.store-perks { background: $sage-soft; margin-top: 36px; scroll-margin-top: 90px; @include md { margin-top: 56px; } }
+.store-perks-standalone { margin-top: 32px; }
 .store-perks-list {
   list-style: none;
   margin: 0;
-  padding: 18px 0;
+  padding: 22px 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px 16px;
-  @include lg { grid-template-columns: repeat(4, 1fr); padding: 22px 0; }
+  @include lg { grid-template-columns: repeat(4, 1fr); padding: 26px 0; }
   li { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.35; }
-  .store-icon { color: $accent; margin-top: 1px; }
+  .store-icon { color: $sage-deep; margin-top: 1px; }
   strong { display: block; font-weight: 600; color: $espresso; }
-  span { color: $cocoa; }
+  span { color: $espresso-soft; }
   @include md { li { font-size: 14px; } }
 }
 
-// Categorías: arcos con la foto real del primer producto de cada una.
-.store-categories { padding: 48px 0 8px; @include md { padding: 80px 0 16px; } }
+// Categorías: arcos con la foto real del primer producto de cada una. Es la primera sección debajo
+// del encabezado (sin portada), así que el espacio superior es corto.
+.store-categories { padding: 28px 0 0; @include md { padding: 48px 0 0; } }
 .store-heading-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; @include md { margin-bottom: 36px; } }
 .store-display-title { font-size: clamp(30px, 7vw, 48px); line-height: 1.05; margin: 0; }
 .store-category-tiles {
@@ -462,6 +378,7 @@ $header-h: 64px;
   border-radius: #{"50% 50% 14px 14px / 37.5% 37.5% 14px 14px"};
   overflow: hidden;
   background: $butter;
+  box-shadow: inset 0 0 0 1px rgba($peach, .9);
   margin-bottom: 12px;
   img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1s $ease; }
 }
@@ -479,8 +396,9 @@ $header-h: 64px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid $line;
-  margin-top: 40px;
-  @include md { top: 76px; margin-top: 64px; }
+  // Viene después de la banda de información comercial, que ya separa visualmente: margen corto.
+  margin-top: 16px;
+  @include md { top: 76px; margin-top: 24px; }
 }
 .store-chips {
   display: flex;
@@ -502,7 +420,7 @@ $header-h: 64px;
   color: $cocoa !important;
   position: relative;
   transition: color .2s;
-  &::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: $espresso; transform: scaleX(0); transition: transform .3s $ease; }
+  &::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: $sage-deep; transform: scaleX(0); transition: transform .3s $ease; }
   @include hover { color: $espresso !important; &::after { transform: scaleX(1); } }
 }
 
@@ -613,7 +531,7 @@ $header-h: 64px;
   line-height: 1.3;
 }
 .store-badge-soldout { background: $espresso; color: $ivory; }
-.store-badge-featured { background: rgba($paper, .94); color: $accent; }
+.store-badge-featured { background: $peach; color: $espresso; }
 .store-card.is-sold-out {
   .store-card-photo img { filter: grayscale(.55) opacity(.75); }
   .store-card-price { color: $cocoa; text-decoration: line-through; text-decoration-thickness: 1px; }
@@ -1007,7 +925,7 @@ textarea.store-input { min-height: 104px; resize: vertical; }
   transition: border-color .2s, background-color .2s, box-shadow .2s;
   > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
   @include hover { border-color: $espresso; }
-  &:has(> input:checked) { border-color: $espresso; box-shadow: inset 0 0 0 1px $espresso; background: $ivory; }
+  &:has(> input:checked) { border-color: $espresso; box-shadow: inset 0 0 0 1px $espresso; background: $peach-soft; }
   &:has(> input:focus-visible) { outline: 2px solid $accent; outline-offset: 2px; }
   // Indicador de selección propio
   &::after {
@@ -1074,8 +992,8 @@ textarea.store-input { min-height: 104px; resize: vertical; }
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  background: #e5efe7;
-  color: $success;
+  background: $sage-soft;
+  color: $sage-deep;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1120,7 +1038,7 @@ textarea.store-input { min-height: 104px; resize: vertical; }
 .store-footer-brand { font-family: $serif; font-weight: 400; font-size: 56px; letter-spacing: .18em; color: $ivory; line-height: 1; margin-bottom: 16px; @include md { font-size: 72px; } }
 .store-footer-tagline { max-width: 340px; margin: 0; }
 .store-footer-title { font-family: $sans; font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgba($ivory, .5); margin: 0 0 14px; }
-.store-footer-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; li::marker { color: #e0a47f; } }
+.store-footer-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; li::marker { color: $peach; } }
 .store-footer-link {
   display: inline-flex;
   align-items: center;
@@ -1129,7 +1047,7 @@ textarea.store-input { min-height: 104px; resize: vertical; }
   font-weight: 500;
   text-decoration: none;
   min-height: 44px;
-  @include hover { color: #e0a47f !important; }
+  @include hover { color: $peach !important; }
 }
 .store-footer-bottom {
   display: flex;

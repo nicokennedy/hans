@@ -1,4 +1,4 @@
-# Zona de envío a domicilio de la tienda minorista. El cliente la elige a mano (la cobertura es
+# Zona de envío a domicilio de la tienda minorista. El cliente la elige a mano (la descripción, columna coverage, es
 # orientativa, no un límite geográfico automático) y el costo sale de acá, nunca del cliente.
 # Cada pedido guarda la zona, su nombre y el costo aplicado (shipping_cents): si el precio cambia
 # después, los pedidos anteriores conservan el suyo. Una zona usada por pedidos no se borra: se
