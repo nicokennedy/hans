@@ -10,7 +10,7 @@
 | 3. Reglas de retiro y delivery | Hecha: Tienda Minorista → Entregas (ver abajo) |
 | 4. Tienda pública, carrito, checkout y WhatsApp | Hecha, **cerrada al público** hasta que se publique desde Tienda Minorista → Tienda online (ver abajo) |
 | 5a. Variantes (tamaños/presentaciones), disponibilidad y stock online + importador de TakePedido | Implementado en la rama `feature/retail-variants-online-stock`, sin desplegar (ver abajo) |
-| Rediseño 2026 — Etapa 1: logo, sin portada, identidad visual y 5 zonas | Implementada (ver abajo) |
+| Rediseño 2026 — Etapa 1: logo, sin portada, identidad visual y 5 zonas | Desplegada en producción (Heroku v115, 24/11/2026; ver abajo) |
 | Rediseño 2026 — Etapa 2: cajas con contenido personalizable | Decisiones tomadas, **sin implementar** (ver abajo) |
 | 5. Opcionales (pago online, automatizaciones) | Pendiente |
 
@@ -412,3 +412,42 @@ heroku pg:psql -a hans -c "SELECT delivery_zone_id, delivery_zone_name, COUNT(*)
 Si alguna zona se renombró (por ejemplo “Zona Centro” en lugar de “Zona 2”), la migración crearía
 una “Zona 2” nueva y dejaría la otra detrás: en ese caso, ajustar antes de desplegar. Repetir la
 segunda consulta después de migrar: los importes de los pedidos tienen que ser idénticos.
+
+## Rediseño 2026 — Etapa 2: cajas con contenido personalizable (decisiones, sin implementar)
+
+Objetivo: cajas surtidas (ej. “Mix de alfajores”, Caja x 8 / x 12 / x 24) en las que el cliente
+elige cuántas unidades de cada sabor, hasta completar **exactamente** la capacidad de la caja.
+Opcional y genérico por producto (no solo alfajores ni la categoría Cajitas).
+
+Decisiones aprobadas:
+
+1. **Modelo** (migraciones que solo agregan):
+   - `retail_products.customizable_content` (booleano, falso por defecto): “Permitir personalizar el contenido”.
+   - `retail_product_variants.content_units` (entero, 1 a **200**, explícito; nunca se deduce del
+     nombre). Obligatorio si el producto es personalizable y la variante está habilitada.
+   - `retail_product_flavors` (producto, nombre único dentro del producto, orden, habilitado).
+     **Todos los sabores valen para todas las variantes del producto.**
+   - `retail_order_items.composition` (jsonb): copia fija `{units, flavors: [{id, name, quantity}]}`.
+     Los pedidos históricos quedan en NULL y no cambian; editar sabores o variantes después no cambia
+     pedidos ya hechos.
+   - Precio, stock online y disponibilidad siguen por variante, como hoy.
+2. **Validación única en el servidor** (`Retail::BoxComposition`), usada por la tienda, el carrito,
+   el checkout y el administrador: suma exacta, enteros ≥ 0, sabores del producto y habilitados.
+3. **Tienda**: selector de sabores con + y −, contador “12 de 24 · faltan 12”, “Agregar al carrito”
+   solo con la caja completa; al cambiar de variante se reinicia la selección y se avisa. En las
+   tarjetas, “Armar caja” lleva al detalle (sin “Agregar” rápido). Mobile primero.
+4. **Carrito**: cada línea es variante + composición (dos cajas distintas son ítems separados; iguales
+   se suman). Formato compacto en la cookie de sesión, con un test del peor caso; **si no alcanza la
+   capacidad de la cookie (~4 KB), presentar una alternativa antes de cambiar la arquitectura**.
+   Editar la composición desde el carrito. Si un sabor deja de estar disponible, la línea queda marcada
+   y no se puede finalizar hasta corregirla.
+5. **Administrador** (cambio pedido por el negocio): la composición **se puede editar** en el pedido
+   minorista (los cambios de sabores se acuerdan por WhatsApp) y **elegir al crear un pedido manual**,
+   con las mismas validaciones exactas. Los cambios quedan registrados en el historial del pedido
+   (`RetailOrderStatusChange`, nota con antes/después) si corresponde. Al cambiar de producto o
+   variante **no se borra en silencio**: se pide completar de nuevo la composición.
+6. **Dónde se muestra**: carrito, checkout, vista previa, pedido recibido, WhatsApp, detalle del pedido
+   en el administrador, Excel y planilla de producción (detalle por caja y total por sabor).
+7. **Stock**: no se descuenta stock por sabor ni cambia la lógica de stock general ni los vínculos
+   mayoristas existentes. La disponibilidad de sabores se maneja a mano. Las cajas personalizables
+   nuevas se cargan como **productos especiales, sin vínculo mayorista**.
