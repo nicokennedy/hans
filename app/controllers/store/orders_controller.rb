@@ -1,5 +1,7 @@
-# "Pedido recibido": la pantalla del cliente después de registrar el pedido, con el número, el
-# resumen y el botón para abrir WhatsApp con el mensaje armado desde el pedido guardado.
+# "Pedido recibido": pantalla de RESPALDO del pedido registrado (WhatsApp se abre directamente al
+# finalizar el checkout). Muestra el número, el resumen y el botón para volver a abrir WhatsApp con el
+# mensaje armado desde el pedido guardado; se llega si WhatsApp no se abrió o si el cliente vuelve a
+# la tienda. No abre nada sola.
 #
 # Acceso: solo con el public_token (32 caracteres aleatorios, nunca el id). Se puede reabrir las
 # veces que haga falta (recarga, volver desde WhatsApp) sin crear otro pedido. Para no dejar datos
@@ -19,7 +21,6 @@ class Store::OrdersController < Store::BaseController
     message = Retail::StoreWhatsappMessage.new(@order, number: store_setting.whatsapp_number)
     @whatsapp_url = message.url
     @whatsapp_text = message.text
-    @open_whatsapp = flash[:store_open_whatsapp].present?
     @pickup_details = RetailFulfillmentSetting.current.pickup_point_details if @order.pickup?
 
     response.set_header("Cache-Control", "no-store")

@@ -18,7 +18,7 @@ module Retail
     def text
       lines = []
       lines << "[VISTA PREVIA DE PRUEBA: este pedido no se registró]" if @preview
-      lines << "Hola HANS! 🍰 Quiero confirmar mi pedido #{@order.persisted? ? "##{@order.number}" : '(número de prueba)'}."
+      lines << "Hola HANS! Quiero confirmar mi pedido #{@order.persisted? ? "##{@order.number}" : '(número de prueba)'}."
       lines << ""
       lines << "Productos:"
       @order.retail_order_items.each do |item|

@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Botón flotante de WhatsApp de la tienda (consultas generales). Siempre visible al hacer scroll,
 // salvo mientras quedaría encima de controles de compra: sabores de una caja, cantidades, presentaciones,
-// "Agregar al carrito", "Continuar con el pedido", los campos del checkout o "Enviar pedido por WhatsApp". En ese momento se
+// "Agregar al carrito", "Continuar con el pedido", los campos del checkout o "Finalizar pedido por WhatsApp". En ese momento se
 // corre (queda semitransparente y no se puede tocar) y vuelve cuando esos controles salen de la zona
 // inferior de la pantalla. Arriba de la barra fija de "Agregar" se ubica por CSS.
 const AVOID = [

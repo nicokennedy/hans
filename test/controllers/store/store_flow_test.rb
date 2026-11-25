@@ -223,23 +223,34 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
     assert_select ".store-option", text: "Transferencia bancaria"
     assert_select ".store-option", text: "Efectivo"
     assert_select "textarea[name=notes][placeholder=?]", "Texto para la torta, observaciones, alergias, etc."
-    assert_select "#store-submit", text: /Enviar pedido por WhatsApp/
+    assert_select "#store-submit", text: /Finalizar pedido por WhatsApp/
     assert_select "#store-pickup-details", /por WhatsApp/
     assert_no_match(/Retiro en (el local|sucursal)/i, response.body)
   end
 
-  test "checkout completo: crea el pedido pendiente, vacía el carrito y muestra el pedido recibido con WhatsApp" do
+  test "checkout completo: registra el pedido pendiente, vacía el carrito y abre WhatsApp directo con el pedido" do
     open_store!
     fill_cart
     @token = checkout_token
-    assert_select "#store-checkout-form[data-turbo=true]"
+    # Sin Turbo: el envío es una navegación normal, así la redirección a WhatsApp sale del toque del cliente.
+    assert_select "#store-checkout-form[data-turbo=false][data-action~='submit->store-checkout#submitting']"
+    assert_select "#store-submit", /Finalizar pedido por WhatsApp/
+    assert_select "#store-submit svg"
+    assert_equal "no-store", response.headers["Cache-Control"], "el checkout no queda en la caché de atrás/adelante"
 
     assert_difference "RetailOrder.count", 1 do
       post store_checkout_path, params: checkout_params(delivery_kind: "delivery", delivery_date: WED.iso8601,
         delivery_zone_id: @zone2.id, address: "Alem 123", planned_payment_method: "cash_on_delivery")
     end
     order = RetailOrder.order(:id).last
-    assert_redirected_to store_order_path(order.public_token)
+    # Un solo toque: la respuesta lleva directo a wa.me con el mensaje del pedido guardado.
+    assert_response :see_other
+    assert response.location.start_with?("https://wa.me/5492235275412?text="), response.location
+    sent = URI.decode_www_form_component(response.location.split("?text=").last)
+    assert_includes sent, "Quiero confirmar mi pedido ##{order.number}."
+    assert_includes sent, "Total: $34.000"
+    assert_equal "no-referrer", response.headers["Referrer-Policy"]
+    assert order.confirmation_awaiting?, "abrir WhatsApp no confirma el pedido"
     assert order.source_store?
     assert order.confirmation_awaiting?
     assert_equal 3_400_000, order.total_cents
@@ -250,11 +261,18 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
     assert_equal "Texto: Feliz cumple", order.notes
     assert Retail::StoreCart.new(session).empty?
 
+    # Pantalla de respaldo: volver a la tienda (atrás desde WhatsApp) lleva al pedido registrado.
+    get store_checkout_path
+    assert_redirected_to store_order_path(order.public_token)
     follow_redirect!
     assert_response :success
     assert_select "#store-order-number", order.number
     assert_select "#store-order-total", "$34.000"
-    assert_select "#store-order[data-store-whatsapp-auto-value=true]"
+    assert_select "#store-order[data-controller]", 0, "no abre nada sola"
+    assert_select "#store-wa-float", 0, "sin el botón flotante: la pantalla tiene su propio botón de WhatsApp"
+    assert_select "a#store-back-to-store[href=?]", store_root_path, text: /Volver a la tienda/
+    assert_no_match(/botón verde/, response.body)
+    assert_select "#store-whatsapp-button", /Abrir el pedido en WhatsApp/
     link = css_select("#store-whatsapp-button").first["href"]
     assert link.start_with?("https://wa.me/5492235275412?text=")
     text = URI.decode_www_form_component(link.split("?text=").last)
@@ -266,9 +284,31 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
     assert_equal "noindex, nofollow", response.headers["X-Robots-Tag"]
     assert_no_match(/enviado|recibido por HANS|leído/i, css_select("#store-order .store-received").text.gsub("Recibimos tu pedido", ""))
 
-    # Recargar o volver desde WhatsApp: el mismo pedido, sin abrir WhatsApp solo otra vez.
-    get store_order_path(order.public_token)
-    assert_select "#store-order[data-store-whatsapp-auto-value=false]"
+    # Recargar: el mismo pedido, sin crear otro ni abrir WhatsApp solo.
+    assert_no_difference "RetailOrder.count" do
+      get store_order_path(order.public_token)
+    end
+    assert_response :success
+
+    # Pasado un rato, el checkout vacío vuelve a llevar al carrito.
+    travel 3.hours do
+      get store_checkout_path
+      assert_redirected_to store_cart_path
+    end
+  end
+
+  test "si el registro falla, no se abre WhatsApp ni se crea nada" do
+    open_store!
+    fill_cart
+    @token = checkout_token
+    assert_no_difference "RetailOrder.count" do
+      post store_checkout_path, params: checkout_params(buyer_phone: "")
+    end
+    assert_response :unprocessable_entity
+    assert_nil response.location
+    assert_no_match "wa.me/5492235275412?text=", response.body
+    assert_select "#store-checkout-errors"
+    assert_select "#store-submit:not([disabled])", /Finalizar pedido por WhatsApp/
   end
 
   test "retiro gratis con transferencia: sin zona ni dirección; datos bancarios solo si están cargados" do
@@ -280,7 +320,7 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
     assert_equal 0, order.shipping_cents
     assert_nil order.delivery_zone
     assert_nil order.address
-    follow_redirect!
+    get store_order_path(order.public_token)
     assert_select "#store-order-shipping", "Gratis"
     assert_select "#store-transfer-details", /Te pasamos los datos para transferir por WhatsApp/
 
@@ -335,13 +375,14 @@ class Store::StoreFlowTest < ActionDispatch::IntegrationTest
 
     assert_difference "RetailOrder.count", 1 do
       post store_checkout_path, params: params
-      first = response.location
+      assert response.location.start_with?("https://wa.me/"), "el primer envío abre WhatsApp"
+      order = RetailOrder.order(:id).last
       post store_checkout_path, params: params # doble toque / recarga del formulario ya enviado
-      assert_equal first, response.location
-      get store_checkout_path # volver atrás: el carrito ya está vacío
-      assert_redirected_to store_cart_path
+      assert_redirected_to store_order_path(order.public_token), "un reintento no abre WhatsApp otra vez ni crea otro pedido"
+      get store_checkout_path # volver atrás desde WhatsApp: el carrito ya está vacío
+      assert_redirected_to store_order_path(order.public_token)
       post store_checkout_path, params: params
-      assert_equal first, response.location
+      assert_redirected_to store_order_path(order.public_token)
     end
   end
 

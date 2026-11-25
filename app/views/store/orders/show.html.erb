@@ -1,24 +1,24 @@
 <% content_for :title, "Pedido #{@order.number}" %>
-<div class="store-container store-narrow" id="store-order"
-     data-controller="store-whatsapp" data-store-whatsapp-url-value="<%= @whatsapp_url %>" data-store-whatsapp-auto-value="<%= @open_whatsapp %>">
+<% content_for :hide_whatsapp_float, "1" %>
+<div class="store-container store-narrow" id="store-order">
   <div class="store-received">
     <div class="store-received-icon" aria-hidden="true"><%= store_icon(:check, size: 30, stroke: 1.6) %></div>
     <p class="store-eyebrow">Pedido registrado</p>
     <h1 class="store-page-title mb-1">Recibimos tu pedido</h1>
     <p class="store-order-number">Número de pedido <strong id="store-order-number"><%= @order.number %></strong></p>
     <% if @order.confirmation_awaiting? %>
-      <p class="store-received-text">Para terminar, envianos el mensaje por WhatsApp. El equipo de HANS revisa el pedido y te lo confirma por ese medio.</p>
+      <p class="store-received-text">Si WhatsApp no se abrió o todavía no enviaste el mensaje, podés abrirlo desde acá. El equipo de HANS revisa el pedido y te lo confirma por ese medio.</p>
     <% elsif @order.confirmation_confirmed? %>
       <p class="store-received-text" id="store-order-confirmed"><strong>HANS ya confirmó este pedido.</strong></p>
     <% else %>
       <p class="store-received-text" id="store-order-not-confirmed">Este pedido no pudo confirmarse. Escribinos por WhatsApp si tenés dudas.</p>
     <% end %>
 
-    <a href="<%= @whatsapp_url %>" class="store-btn store-btn-whatsapp store-btn-lg w-100" id="store-whatsapp-button" target="_blank" rel="noopener noreferrer">
-      <%= store_whatsapp_icon %> <%= @order.confirmation_awaiting? ? "Enviar pedido por WhatsApp" : "Escribir a HANS por WhatsApp" %>
+    <a href="<%= @whatsapp_url %>" class="store-btn store-btn-whatsapp store-btn-lg w-100" id="store-whatsapp-button" rel="noopener noreferrer">
+      <%= store_whatsapp_icon %> <%= @order.confirmation_awaiting? ? "Abrir el pedido en WhatsApp" : "Escribir a HANS por WhatsApp" %>
     </a>
-    <p class="store-help mt-2" data-store-whatsapp-target="blocked" hidden>Si WhatsApp no se abrió solo, tocá el botón verde.</p>
-    <p class="store-help mt-2 mb-0">El mensaje ya tiene tu número de pedido y el detalle. Podés volver a abrirlo desde esta página: no se genera otro pedido.</p>
+    <p class="store-help mt-2 mb-0">El mensaje ya tiene tu número de pedido y el detalle. Podés volver a abrirlo con el botón de arriba: no se genera otro pedido.</p>
+    <%= link_to store_root_path, class: "store-btn store-btn-outline store-btn-lg w-100 mt-3", id: "store-back-to-store" do %><%= store_icon(:arrow_left, size: 18) %> Volver a la tienda<% end %>
   </div>
 
   <section class="store-summary mt-4" aria-labelledby="detalle-title">
@@ -60,5 +60,4 @@
     <% end %>
   </section>
 
-  <p class="text-center mt-4"><%= link_to "Volver a la tienda", store_root_path, class: "store-muted" %></p>
 </div>

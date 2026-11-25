@@ -3,13 +3,47 @@ import { Controller } from "@hotwired/stimulus"
 // Checkout de la tienda: muestra los campos de la modalidad elegida (retiro o envío) y actualiza el
 // resumen (envío y total) como ayuda visual. Los importes reales los calcula siempre el servidor.
 export default class extends Controller {
-  static targets = ["pickup", "delivery", "shipping", "total"]
+  static targets = ["pickup", "delivery", "shipping", "total", "submit", "submitLabel"]
   static values = { subtotal: Number }
 
   connect() {
     this.update()
     const errors = document.getElementById("store-checkout-errors")
     if (errors) errors.focus()
+    // Si el navegador restaura la página desde su caché (atrás), el botón vuelve a estar disponible.
+    this.restore = (event) => { if (event.persisted) this.enableSubmit() }
+    window.addEventListener("pageshow", this.restore)
+  }
+
+  disconnect() {
+    window.removeEventListener("pageshow", this.restore)
+  }
+
+  // Envío del pedido: evita un segundo toque mientras se registra (el servidor igual es idempotente)
+  // y avisa que se está registrando. La apertura de WhatsApp la hace la respuesta del servidor.
+  submitting(event) {
+    if (this.sent) {
+      event.preventDefault()
+      return
+    }
+    this.sent = true
+    if (this.hasSubmitTarget) {
+      // Se deshabilita después de que el navegador tomó el envío, para no cancelarlo.
+      setTimeout(() => {
+        this.submitTarget.disabled = true
+        this.submitTarget.setAttribute("aria-busy", "true")
+      }, 0)
+    }
+    if (this.hasSubmitLabelTarget) this.submitLabelTarget.textContent = "Registrando tu pedido…"
+  }
+
+  enableSubmit() {
+    this.sent = false
+    if (this.hasSubmitTarget) {
+      this.submitTarget.disabled = false
+      this.submitTarget.removeAttribute("aria-busy")
+    }
+    if (this.hasSubmitLabelTarget) this.submitLabelTarget.textContent = "Finalizar pedido por WhatsApp"
   }
 
   kindChanged() {

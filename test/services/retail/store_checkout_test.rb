@@ -199,7 +199,7 @@ class Retail::StoreCheckoutTest < ActiveSupport::TestCase
     message = Retail::StoreWhatsappMessage.new(order)
     text = message.text
 
-    assert_includes text, "Hola HANS! 🍰 Quiero confirmar mi pedido ##{order.number}."
+    assert_includes text, "Hola HANS! Quiero confirmar mi pedido ##{order.number}."
     assert_includes text, "• 1 × Torta de chocolate — $20.000"
     assert_includes text, "• 2 × Cookies — $8.000"
     assert_includes text, "Subtotal: $28.000"

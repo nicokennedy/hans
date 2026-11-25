@@ -26,7 +26,8 @@
   <% end %>
 
   <%= form_with url: store_checkout_path, method: :post, id: "store-checkout-form", class: "store-checkout-grid",
-        data: { controller: "store-checkout", store_checkout_subtotal_value: @subtotal_cents, turbo: !store_preview? } do %>
+        data: { controller: "store-checkout", store_checkout_subtotal_value: @subtotal_cents, turbo: false, action: "submit->store-checkout#submitting" } do %>
+    <%# Sin Turbo: el envío es una navegación normal y la respuesta redirige directo a WhatsApp (ver Store::CheckoutsController). %>
     <%= hidden_field_tag :checkout_token, @checkout_token, id: nil %>
     <div class="store-hp" aria-hidden="true">
       <label for="website">No completar este campo</label>
@@ -148,12 +149,12 @@
         <div class="store-summary-row"><span>Envío</span><span id="store-summary-shipping" data-store-checkout-target="shipping"><%= kind == "pickup" ? "Gratis" : (selected_zone ? store_money(selected_zone.price_cents) : "Elegí la zona") %></span></div>
         <div class="store-summary-row store-summary-total"><span>Total</span><strong id="store-summary-total" data-store-checkout-target="total"><%= store_money(@subtotal_cents + (kind == "delivery" && selected_zone ? selected_zone.price_cents : 0)) %></strong></div>
 
-        <button type="submit" class="store-btn store-btn-whatsapp store-btn-lg w-100 mt-3" id="store-submit" data-turbo-submits-with="Registrando tu pedido…">
-          <%= store_whatsapp_icon %> Enviar pedido por WhatsApp
+        <button type="submit" class="store-btn store-btn-whatsapp store-btn-lg w-100 mt-3" id="store-submit" data-store-checkout-target="submit">
+          <%= store_whatsapp_icon %> <span data-store-checkout-target="submitLabel">Finalizar pedido por WhatsApp</span>
         </button>
         <ol class="store-next-steps">
           <li>Registramos tu pedido en HANS.</li>
-          <li>Se abre WhatsApp con el mensaje listo para enviarnos.</li>
+          <li>Se abre WhatsApp con el mensaje listo: solo tenés que enviarlo.</li>
           <li>El pedido queda confirmado cuando HANS te responde.</li>
         </ol>
       </div>
