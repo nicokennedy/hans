@@ -1,6 +1,3 @@
-<% pickup = @fulfillment[:services].find { |s| s[:key] == "pickup" } %>
-<% delivery = @fulfillment[:services].find { |s| s[:key] == "delivery" } %>
-<% lead = @fulfillment[:min_lead_days] %>
 <%# Orden: especialidades (arcos) → información comercial → categorías → catálogo. Sin portada. %>
 
 <% if @categories.empty? %>
@@ -11,7 +8,7 @@
       <p>Todavía no hay productos publicados. Mientras tanto podés escribirnos por WhatsApp.</p>
     </div>
   </div>
-  <%= render "store/catalog/perks", pickup: pickup, delivery: delivery, lead: lead, extra_class: "store-perks-standalone" %>
+  <%= render "store/catalog/perks", extra_class: "store-perks-standalone" %>
 
 <% else %>
   <section class="store-categories" aria-labelledby="categorias-title">
@@ -26,7 +23,6 @@
             <a class="store-category-tile" href="#categoria-<%= category.id %>">
               <span class="store-category-photo"><%= store_photo_tag(cover.primary_photo, alt: "") %></span>
               <span class="store-category-name"><%= category.name %></span>
-              <span class="store-category-count"><%= products.size %> <%= products.size == 1 ? "producto" : "productos" %></span>
             </a>
           </li>
         <% end %>
@@ -34,7 +30,7 @@
     </div>
   </section>
 
-  <%= render "store/catalog/perks", pickup: pickup, delivery: delivery, lead: lead %>
+  <%= render "store/catalog/perks" %>
 
   <div id="productos" class="store-catalog">
     <nav class="store-chips-wrap" aria-label="Categorías">

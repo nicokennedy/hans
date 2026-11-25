@@ -3,9 +3,6 @@
 <% editing = @editing # caja del carrito que se está editando (variante + composición), o nil %>
 <% selected = editing ? editing[:variant] : @product.display_variant %>
 <% box = @product.customizable_content? %>
-<% pickup = @fulfillment[:services].find { |s| s[:key] == "pickup" } %>
-<% delivery = @fulfillment[:services].find { |s| s[:key] == "delivery" } %>
-<% lead = @fulfillment[:min_lead_days] %>
 <div class="store-container store-product" id="store-product">
   <nav class="store-breadcrumb" aria-label="Ubicación">
     <%= link_to store_root_path(anchor: "productos") do %><%= store_icon(:arrow_left, size: 16) %> Tienda<% end %>
@@ -113,12 +110,8 @@
         <% end %>
       </div>
 
-      <ul class="store-product-perks">
-        <li><%= store_icon(:pin, size: 18) %><span><strong><%= pickup[:name] %></strong> sin costo</span></li>
-        <li><%= store_icon(:truck, size: 18) %><span><strong><%= delivery[:name] %></strong> según la zona</span></li>
-        <% if lead.positive? %><li><%= store_icon(:calendar, size: 18) %><span>Pedí con <strong><%= lead %> <%= lead == 1 ? "día" : "días" %></strong> de anticipación</span></li><% end %>
-        <li><%= store_icon(:chat, size: 18) %><span>Confirmamos cada pedido por WhatsApp</span></li>
-      </ul>
+      <%# Los mismos mensajes comerciales de la banda de inicio y del pie (StoreHelper#store_info_messages). %>
+      <%= render "store/shared/info_messages", list_class: "store-product-perks", icon_size: 18 %>
     </div>
   </div>
 </div>

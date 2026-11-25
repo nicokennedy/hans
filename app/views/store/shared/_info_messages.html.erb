@@ -1,0 +1,16 @@
+<%# Mensajes comerciales de la tienda (StoreHelper#store_info_messages). El de disponibilidad abre
+    WhatsApp con el número configurado. locals: list_class, icon_size (opcional), id (opcional). %>
+<% size = local_assigns.fetch(:icon_size, 22) %>
+<ul class="<%= list_class %>" <%= "id=#{id}" if local_assigns[:id] %>>
+  <% store_info_messages.each do |message| %>
+    <li class="<%= 'is-whatsapp' if message[:whatsapp] %>">
+      <% if message[:whatsapp] %>
+        <%= link_to store_whatsapp_url, class: "store-info-link", target: "_blank", rel: "noopener noreferrer" do %>
+          <span class="store-info-icon"><%= store_whatsapp_icon(size: size) %></span><span class="store-info-text"><%= message[:text] %></span>
+        <% end %>
+      <% else %>
+        <span class="store-info-icon"><%= store_icon(message[:icon], size: size) %></span><span class="store-info-text"><%= message[:text] %></span>
+      <% end %>
+    </li>
+  <% end %>
+</ul>

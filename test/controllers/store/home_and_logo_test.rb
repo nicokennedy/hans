@@ -44,23 +44,87 @@ class Store::HomeAndLogoTest < ActionDispatch::IntegrationTest
     assert_select "#store-hero, .store-hero, #store-hero-title, #store-hero-cta", count: 0
 
     body = response.body
-    markers = ['<header class="store-header"', 'id="categorias-title"', 'id="como-comprar"', 'class="store-chips"', 'id="destacados"', %(id="categoria-#{@tortas.id}")]
+    markers = ['<header class="store-header"', 'id="categorias-title"', 'id="informacion"', 'class="store-chips"', 'id="destacados"', %(id="categoria-#{@tortas.id}")]
     order = markers.map { |marker| body.index(marker) }
     assert order.all?, "faltan secciones: #{order.inspect}"
     assert_equal order.sort, order, "las secciones no están en el orden pedido"
 
     assert_select "#categorias-title", /Nuestras\s*especialidades/
     assert_select ".store-category-tile", 1
-    assert_select "#como-comprar .store-perks-list li", 4
-    assert_select "#como-comprar", /Retiro por zona Plaza del Agua/
-    assert_select "#como-comprar", /Sin costo/
-    assert_select "#como-comprar", /Envío a domicilio/
-    assert_select "#como-comprar", /Costo según la zona/
-    assert_select "#como-comprar", /Pedí con 2 días de anticipación/
-    assert_select "#como-comprar", /Confirmación por WhatsApp/
-    assert_select "#como-comprar", /Te respondemos personalmente/
+    assert_select ".store-category-tile .store-category-name", "Tortas"
+    assert_select ".store-category-tile .store-category-photo img"
+    assert_no_match(/\d+ productos?</, css_select(".store-category-tile").to_s, "los arcos no muestran la cantidad de productos")
+    assert_select "#informacion .store-perks-list li", 4
+    assert_equal ["Retiros sin cargo por zona Plaza del Agua.", "Envíos a domicilio en Mar del Plata.", "Hacé tu pedido con 2 días de anticipación.",
+                  "¿Necesitás tu pedido antes? Escribinos por WhatsApp para consultar disponibilidad."],
+                 css_select("#informacion .store-info-text").map { |e| e.text.squish }
+    assert_select "#informacion li.is-whatsapp a.store-info-link[href='https://wa.me/#{@setting.whatsapp_number}'][target=_blank]"
+    assert_select "#informacion .store-info-icon svg", 4
+    ["Sin costo", "Costo según la zona", "Sin entregas los domingos", "Te respondemos personalmente"].each { |old| assert_no_match old, css_select("#informacion").to_s }
     assert_select ".store-card", 2 # destacados + su categoría, igual que antes
-    assert_select ".store-header-link[href$='#como-comprar']", "Cómo comprar"
+  end
+
+  test "«Cómo comprar» solo en el pie: ni en el encabezado ni como sección aparte" do
+    [store_root_path, store_cart_path, store_product_path(id: @torta.id)].each do |path|
+      get path
+      assert_select ".store-header a", { text: /Cómo comprar/, count: 0 }, path
+      assert_select "a[href*='como-comprar'], #como-comprar", { count: 0 }, path
+      assert_select ".store-footer .store-footer-title", "Cómo comprar"
+      assert_select "#store-footer-steps li", 3
+    end
+    assert_equal ["Elegí tus productos.", "Seleccioná retiro o envío.", "Confirmamos tu pedido por WhatsApp."], css_select("#store-footer-steps li").map(&:text)
+  end
+
+  test "pie en tres columnas: logo sin texto, los cuatro mensajes y cómo comprar; sin columna de contacto" do
+    get store_root_path
+    assert_select ".store-footer-grid > div", 3
+    assert_select ".store-footer-brand-col p", 0
+    assert_no_match "Pastelería artesanal. Cada pedido se prepara a mano", response.body
+    assert_select ".store-footer-title", { text: "Contacto", count: 0 }
+    assert_select "#store-footer-info li", 4
+    assert_select "#store-footer-info .store-info-icon svg", 4
+    assert_select "#store-footer-info a.store-info-link[href='https://wa.me/#{@setting.whatsapp_number}']", /consultar disponibilidad/
+    assert_select ".store-footer-bottom", /© \d{4} HANS Pastelería/
+    assert_select "#store-footer-motto", "Uno más y listo."
+  end
+
+  test "botón flotante de WhatsApp en todas las páginas de la tienda, con el número configurado y sin texto" do
+    @setting.update!(whatsapp_number: "5492230000000")
+    variant = @torta.variants.first
+    pages = [store_root_path, store_product_path(id: @torta.id), store_cart_path]
+    pages.each do |path|
+      get path
+      assert_select "a#store-wa-float.store-wa-float[href='https://wa.me/5492230000000'][aria-label='Escribinos por WhatsApp'][target=_blank][data-controller=store-whatsapp-float]", 1, path
+      assert_select "#store-wa-float svg"
+      assert_select "#store-wa-float .store-wa-float-tip", "Escribinos por WhatsApp"
+    end
+    post add_store_cart_path, params: { variant_id: variant.id, quantity: 1 }
+    get store_checkout_path
+    assert_select "#store-wa-float[href='https://wa.me/5492230000000']"
+    assert_no_match "wa.me/5492230000000?text", css_select("#store-wa-float").to_s, "no lleva mensaje prearmado"
+
+    # Vista previa (tienda cerrada, administrador) y página de "Próximamente".
+    @setting.update!(published: false)
+    get store_root_path
+    assert_select "#store-closed"
+    assert_select "#store-wa-float"
+    sign_in @admin
+    get store_root_path
+    assert_select "#store-preview-bar"
+    assert_select "#store-wa-float"
+  end
+
+  test "el detalle de producto usa los mismos mensajes comerciales" do
+    get store_product_path(id: @torta.id)
+    assert_equal ["Retiros sin cargo por zona Plaza del Agua.", "Envíos a domicilio en Mar del Plata.", "Hacé tu pedido con 2 días de anticipación.",
+                  "¿Necesitás tu pedido antes? Escribinos por WhatsApp para consultar disponibilidad."],
+                 css_select(".store-product-perks .store-info-text").map { |e| e.text.squish }
+    assert_select ".store-product-perks a.store-info-link[href='https://wa.me/#{@setting.whatsapp_number}']"
+    assert_no_match "Confirmamos cada pedido por WhatsApp", response.body
+
+    RetailFulfillmentSetting.current.update!(min_lead_days: 1)
+    get store_product_path(id: @torta.id)
+    assert_select ".store-product-perks", /Hacé tu pedido con 1 día de anticipación\./
   end
 
   test "los datos de la portada se conservan pero no se muestran" do
@@ -89,7 +153,7 @@ class Store::HomeAndLogoTest < ActionDispatch::IntegrationTest
     @torta.update!(active: false)
     get store_root_path
     assert_select "#store-empty-catalog"
-    assert_select "#como-comprar.store-perks-standalone"
+    assert_select "#informacion.store-perks-standalone"
     assert_select "#categorias-title", count: 0
   end
 

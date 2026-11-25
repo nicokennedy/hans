@@ -50,6 +50,7 @@ $espresso-soft: #4a3a30; // texto secundario sobre las superficies de marca (ver
 $accent: $sage-deep;  // acento de texto, íconos y foco
 $accent-soft: $peach-soft;
 $whatsapp: #1c7f47;
+$whatsapp-float: #25D366; // verde característico de WhatsApp (botón flotante)
 $whatsapp-dark: #166a3b;
 $danger: #a8322a;
 $success: #2f6b45;
@@ -338,19 +339,34 @@ $header-h-md: 104px; // encabezado en computadoras (logo circular de 80 px)
 // línea en el acento. Texto siempre oscuro sobre el verde.
 .store-perks { background: $sage-soft; margin-top: 36px; scroll-margin-top: 100px; @include md { margin-top: 56px; } }
 .store-perks-standalone { margin-top: 32px; }
+// Cuatro mensajes: en el celular uno debajo del otro (se leen de corrido); en tablet de a dos, con
+// el de WhatsApp a lo ancho; en computadoras en una fila, con más lugar para el último (más largo).
 .store-perks-list {
   list-style: none;
   margin: 0;
-  padding: 22px 0;
+  padding: 20px 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px 16px;
-  @include lg { grid-template-columns: repeat(4, 1fr); padding: 26px 0; }
-  li { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.35; }
-  .store-icon { color: $sage-deep; margin-top: 1px; }
-  strong { display: block; font-weight: 600; color: $espresso; }
-  span { color: $espresso-soft; }
-  @include md { li { font-size: 14px; } }
+  grid-template-columns: 1fr;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: $espresso;
+  @include md { grid-template-columns: 1fr 1fr; gap: 14px 28px; li.is-whatsapp { grid-column: 1 / -1; } }
+  @include lg { grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 24px; padding: 26px 0; li.is-whatsapp { grid-column: auto; } }
+  li { display: flex; gap: 12px; align-items: flex-start; font-weight: 500; }
+}
+
+// Ítems de los mensajes comerciales (banda, pie y detalle de producto).
+.store-info-icon { flex: none; display: inline-flex; color: $sage-deep; margin-top: 1px; }
+.store-info-link {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: $espresso !important;
+  text-decoration: none;
+  .store-info-text { text-decoration: underline; text-decoration-color: rgba($sage-deep, .5); text-underline-offset: 3px; }
+  @include hover { .store-info-text { text-decoration-color: $sage-deep; } .store-info-icon { color: $whatsapp-float; } }
+  &:focus-visible { outline: 2px solid $sage-deep; outline-offset: 3px; border-radius: 4px; }
 }
 
 // Categorías: arcos con la foto real del primer producto de cada una. Es la primera sección debajo
@@ -394,7 +410,6 @@ $header-h-md: 104px; // encabezado en computadoras (logo circular de 80 px)
   img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1s $ease; }
 }
 .store-category-name { font-family: $serif; font-size: 17px; line-height: 1.2; @include md { font-size: 20px; } }
-.store-category-count { font-size: 12px; color: $cocoa; margin-top: 3px; }
 .store-category-tile { @include hover { .store-category-photo img { transform: scale(1.05); } .store-category-name { color: $accent; } } }
 
 // Navegación de categorías dentro del catálogo
@@ -721,11 +736,11 @@ $header-h-md: 104px; // encabezado en computadoras (logo circular de 80 px)
   display: grid;
   gap: 12px;
   font-size: 14px;
-  color: $cocoa;
-  li { display: flex; gap: 12px; align-items: center; }
-  .store-icon { color: $accent; }
-  strong { color: $espresso; font-weight: 600; }
+  color: $espresso-soft;
+  li { display: flex; gap: 12px; align-items: flex-start; }
+  .store-info-link { gap: 12px; }
 }
+
 
 // Barra fija de compra (solo celular)
 .store-buybar {
@@ -1143,20 +1158,32 @@ span.store-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 // Fondo verde agua con textos oscuros; el logo configurable en círculo (o el texto HANS si no hay).
 .store-footer {
   background: $sage;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
   color: $espresso-soft;
   padding: 56px 0 28px;
   font-size: 14px;
   @include md { padding: 72px 0 32px; }
   a:focus-visible { outline-color: $espresso; }
 }
+// Tres columnas: logo · mensajes · cómo comprar. En el celular, una debajo de la otra.
 .store-footer-grid {
   display: grid;
-  gap: 36px;
-  @include md { grid-template-columns: 2fr 1fr 1fr; gap: 48px; }
+  gap: 32px;
+  @include md { grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+}
+.store-footer-info {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  li { display: flex; gap: 10px; align-items: flex-start; color: $espresso; line-height: 1.4; }
+  .store-info-icon { color: $espresso; }
 }
 .store-footer-brand { font-family: $serif; font-weight: 400; font-size: 56px; letter-spacing: .18em; color: $espresso; line-height: 1; margin-bottom: 16px; @include md { font-size: 72px; } }
 .store-footer-logo {
   display: block;
+  margin-bottom: 0 !important;
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -1165,19 +1192,8 @@ span.store-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
   box-shadow: 0 0 0 4px rgba($paper, .55);
   @include md { width: 120px; height: 120px; }
 }
-.store-footer-tagline { max-width: 340px; margin: 0; }
 .store-footer-title { font-family: $sans; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: $espresso; margin: 0 0 14px; }
-.store-footer-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; li::marker { color: $sage-deep; font-weight: 700; } }
-.store-footer-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: $espresso !important;
-  font-weight: 600;
-  text-decoration: none;
-  min-height: 44px;
-  @include hover { color: $sage-deep !important; text-decoration: underline; text-underline-offset: 4px; }
-}
+.store-footer-steps { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: $espresso; li::marker { color: $sage-deep; font-weight: 700; } }
 .store-footer-bottom {
   display: flex;
   flex-wrap: wrap;
@@ -1191,7 +1207,55 @@ span.store-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 }
 
 // En el detalle, que la barra fija no tape el final de la página en el celular.
-.store-body:has(.store-buybar) .store-footer { padding-bottom: 104px; @include lg { padding-bottom: 32px; } }
+// Con la barra fija de "Agregar" y el botón de WhatsApp encima, el final del pie necesita más lugar.
+.store-body:has(.store-buybar) .store-footer { padding-bottom: calc(172px + env(safe-area-inset-bottom)) !important; @include lg { padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important; } }
+
+// ---------------------------------------------------------------- Botón flotante de WhatsApp
+// Consultas generales (independiente del envío del pedido). Respeta las áreas seguras; se corre arriba
+// de la barra fija de "Agregar" del detalle y se esconde mientras taparía controles de compra
+// (store_whatsapp_float_controller.js agrega .is-tucked).
+.store-wa-float {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 45;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $whatsapp-float;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .12);
+  text-decoration: none;
+  transition: transform .25s $ease, opacity .25s $ease, bottom .3s $ease, box-shadow .2s;
+  svg { display: block; }
+  &:focus-visible { outline: 3px solid $espresso; outline-offset: 3px; }
+  &.is-tucked { opacity: 0; transform: scale(.7); pointer-events: none; }
+  @include md { right: calc(24px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 60px; height: 60px; }
+  @include hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(0, 0, 0, .22); .store-wa-float-tip { opacity: 1; transform: translateY(-50%) translateX(0); } }
+}
+// Tooltip (solo con mouse): a la izquierda del botón.
+.store-wa-float-tip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  white-space: nowrap;
+  background: $espresso;
+  color: $ivory;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s $ease;
+  @media (hover: none) { display: none; }
+}
+// Con la barra fija de "Agregar" del detalle a la vista, el botón se ubica arriba de ella.
+.store-body:has(.store-buybar.is-visible) .store-wa-float { bottom: calc(92px + env(safe-area-inset-bottom)); @include lg { bottom: calc(24px + env(safe-area-inset-bottom)); } }
 
 @media (prefers-reduced-motion: reduce) {
   .store-body *, .store-body *::before, .store-body *::after { animation: none !important; transition: none !important; }

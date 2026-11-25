@@ -413,6 +413,31 @@ Si alguna zona se renombró (por ejemplo “Zona Centro” en lugar de “Zona 2
 una “Zona 2” nueva y dejaría la otra detrás: en ese caso, ajustar antes de desplegar. Repetir la
 segunda consulta después de migrar: los importes de los pedidos tienen que ser idénticos.
 
+## Ajustes de diseño y comunicación (noviembre 2026)
+
+Solo visuales y de textos: no cambian productos, precios, stock, sabores, pedidos, zonas, reglas ni
+la lógica del carrito y el checkout.
+
+- **Arcos de categorías**: solo foto y nombre (sin la cantidad de productos).
+- **Encabezado**: solo “Productos” (se quitó “Cómo comprar”; las instrucciones quedan en el pie).
+- **Mensajes comerciales** (`StoreHelper#store_info_messages`, un solo lugar): banda debajo de las
+  especialidades, columna central del pie y detalle de producto.
+  1. Retiros sin cargo por zona Plaza del Agua.
+  2. Envíos a domicilio en Mar del Plata.
+  3. Hacé tu pedido con N días de anticipación. (N sale de Entregas; si fuera 0, no se muestra.)
+  4. ¿Necesitás tu pedido antes? Escribinos por WhatsApp para consultar disponibilidad. (abre WhatsApp)
+  En el celular van uno debajo del otro; en tablet de a dos; en computadoras en una fila, con más
+  lugar para el último. El checkout conserva su información operativa (horarios, zonas, costos y fechas).
+- **Pie** en tres columnas: logo circular (sin texto) · los cuatro mensajes · “Cómo comprar” (1. Elegí
+  tus productos. 2. Seleccioná retiro o envío. 3. Confirmamos tu pedido por WhatsApp.). Sin columna de
+  contacto. Abajo: copyright y “Uno más y listo.”.
+- **Botón flotante de WhatsApp** (todas las páginas de la tienda, también “Próximamente” y la vista
+  previa): circular, #25D366 con el ícono blanco, abajo a la derecha, respetando las áreas seguras.
+  Abre `https://wa.me/<número de Tienda online>` sin texto (no envía nada, no crea pedidos ni toca el
+  carrito). Etiqueta accesible y tooltip con mouse: “Escribinos por WhatsApp”. En el detalle se ubica
+  arriba de la barra fija de “Agregar”, y se esconde mientras quedaría encima de sabores, cantidades,
+  presentaciones, botones de compra o campos del checkout (`store_whatsapp_float_controller.js`).
+
 ## Rediseño 2026 — Etapa 2: cajas con contenido personalizable
 
 Cajas surtidas (ej. “Mix de alfajores”, Caja x 8 / x 12 / x 24) en las que el cliente elige cuántas

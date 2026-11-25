@@ -71,6 +71,30 @@ module StoreHelper
   end
 
   # Ícono de WhatsApp (SVG en línea, sin dependencias externas).
+  # Enlace para escribirle a HANS por WhatsApp con el número configurado en Tienda Minorista →
+  # Tienda online (nunca hardcodeado). Sin texto prearmado: no envía nada solo.
+  def store_whatsapp_url
+    "https://wa.me/#{store_setting.whatsapp_number}"
+  end
+
+  # Anticipación mínima configurada en Tienda Minorista → Entregas (días calendario).
+  def store_lead_days
+    @store_lead_days ||= RetailFulfillmentSetting.current.min_lead_days
+  end
+
+  # Mensajes comerciales de la tienda (banda debajo de las especialidades, pie y detalle de producto):
+  # un solo lugar para que digan siempre lo mismo. El último abre WhatsApp.
+  def store_info_messages
+    lead = store_lead_days
+    messages = [
+      { icon: :pin, text: "Retiros sin cargo por zona Plaza del Agua." },
+      { icon: :truck, text: "Envíos a domicilio en Mar del Plata." }
+    ]
+    messages << { icon: :calendar, text: "Hacé tu pedido con #{lead} #{lead == 1 ? 'día' : 'días'} de anticipación." } if lead.positive?
+    messages << { icon: :whatsapp, text: "¿Necesitás tu pedido antes? Escribinos por WhatsApp para consultar disponibilidad.", whatsapp: true }
+    messages
+  end
+
   def store_whatsapp_icon(size: 22)
     content_tag(:svg, tag.path(d: "M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2a13.2 13.2 0 0 0 6.6 1.7c7.2 0 13-5.8 13-12.9C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.6l-.4-.2-3.8 1.2 1.2-3.7-.3-.4a10.5 10.5 0 0 1-1.7-5.8C5.1 9.9 10 5.2 16 5.2s10.9 4.7 10.9 10.6S22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-1-2.2-1.1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.2-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.3.3-.6.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.6 5.7 5 .8.3 1.4.5 1.9.7.8.3 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z", fill: "currentColor"),
       xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 32 32", width: size, height: size, "aria-hidden": true, focusable: "false")
