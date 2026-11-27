@@ -24,13 +24,13 @@
     <section class="reparto-card">
       <p class="reparto-kicker">LLEVÁS</p>
       <ul class="reparto-items">
-        <% @stop.order.order_items.each do |item| %>
-          <li><span class="reparto-qty"><%= item.quantity %></span> <%= item.product_name_snapshot %></li>
+        <% @stop.delivery_products.each do |name, quantity| %>
+          <li><span class="reparto-qty"><%= quantity %></span> <%= name %></li>
         <% end %>
       </ul>
-      <p class="reparto-total"><span>Total del pedido</span> <strong><%= format_money(@stop.order.total_cents) %></strong></p>
-      <% if @stop.order.amount_paid_cents.positive? %>
-        <p class="reparto-text">Ya pagó <%= format_money(@stop.order.amount_paid_cents) %>. Falta <%= format_money(@stop.order.balance_due_cents) %>.</p>
+      <p class="reparto-total"><span>Total del pedido</span> <strong><%= reparto_money(@stop.delivery_orders.sum(&:total_cents)) %></strong></p>
+      <% if @stop.delivery_orders.sum(&:amount_paid_cents).positive? %>
+        <p class="reparto-text">Ya pagó <%= reparto_money(@stop.delivery_orders.sum(&:amount_paid_cents)) %>. Falta <%= reparto_money(@stop.balance_due_cents) %>.</p>
       <% end %>
     </section>
   <% end %>

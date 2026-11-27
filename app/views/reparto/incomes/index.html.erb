@@ -1,0 +1,22 @@
+<% admin = current_user.admin? %>
+<div class="<%= admin ? 'container py-4' : 'reparto-income' %>">
+  <%= link_to "◀ VOLVER AL REPARTO", admin ? admin_delivery_route_path(@route, anchor: "rendicion") : route_home_path(@route), class: "reparto-back" %>
+  <h1 class="reparto-date">Otros ingresos</h1>
+  <% editable = DeliveryRoutes::Access.money_error(@route, current_user).nil? %>
+  <% if editable %>
+    <%= link_to "ANOTAR UN INGRESO", admin ? new_admin_delivery_route_income_path(@route) : new_reparto_route_income_path(@route), class: "reparto-button reparto-button-primary btn btn-dark" %>
+  <% end %>
+  <% if @incomes.empty? %><p>Sin otros ingresos registrados.</p><% end %>
+  <% @incomes.each do |income| %>
+    <section class="reparto-card border rounded p-3 mb-2">
+      <div class="reparto-row"><span><%= income.kind_label %></span><strong><%= reparto_money(income.amount_cents) %></strong></div>
+      <p><%= income.description %></p>
+      <p><%= income.created_by.display_name %> · <%= l(income.created_at, format: "%d/%m %H:%M") %></p>
+      <% if income.voided? %><p>Anulado por <%= income.voided_by.display_name %>. <%= income.void_reason %></p><% end %>
+      <% if income.evidence.attached? %><%= link_to "Ver comprobante", delivery_income_evidence_path(income) %><% end %>
+      <% if editable && !income.voided? %>
+        <%= link_to "CORREGIR", admin ? edit_admin_delivery_route_income_path(@route, income) : edit_reparto_route_income_path(@route, income), class: "reparto-button btn btn-outline-dark" %>
+      <% end %>
+    </section>
+  <% end %>
+</div>

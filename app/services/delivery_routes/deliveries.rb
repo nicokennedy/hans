@@ -24,18 +24,21 @@ module DeliveryRoutes
         next error("Esta parada no es un pedido.") unless stop.order?
         next already if stop.delivery_status == "delivered"
 
-        order = Order.lock.find(stop.order_id)
-        next error("Este pedido fue cancelado. Avisale a administración.") if order.canceled?
+        orders = Order.where(id: stop.delivery_orders.map(&:id)).order(:id).lock.to_a
+        next error("Hay un pedido cancelado. Avisale a administración.") if orders.any?(&:canceled?)
+        if stop.grouped? && orders.any? { |order| order.customer_id != stop.customer_id || order.delivery_date != stop.delivery_route.date }
+          next error("Cambió un pedido de esta entrega. Avisale a administración.")
+        end
 
         now = Time.current
         stop.update!(delivery_status: "delivered", not_delivered_reason: nil, delivery_recorded_at: now, delivery_recorded_by: @user)
-        unless order.delivered?
+        orders.reject(&:delivered?).each do |order|
           OrderEvent.create!(order: order, user: @user, event_type: "status_change", field_name: "status",
                              old_value: order.status, new_value: "delivered", reason: "Entregado por reparto (recorrido ##{stop.delivery_route_id})")
           order.update_columns(status: "delivered", updated_at: now)
         end
-        Events.record(stop.delivery_route, @user, "stop_delivered", stop: stop, order_id: order.id,
-                      summary: "#{@user.display_name} entregó el pedido #{order.number} de #{stop.display_name}.")
+        Events.record(stop.delivery_route, @user, "stop_delivered", stop: stop, order_id: stop.order_id, order_ids: orders.map(&:id),
+                      summary: "#{@user.display_name} entregó #{orders.map(&:number).join(', ')} de #{stop.display_name}.")
         nil
       end
     end
@@ -70,14 +73,17 @@ module DeliveryRoutes
 
     def record
       outcome = nil
-      DeliveryStop.transaction do
-        stop = DeliveryStop.lock.find(@stop.id)
+      DeliveryRoute.transaction do
+        route = DeliveryRoute.lock.find(@stop.delivery_route_id)
+        stop = route.stops.lock.find(@stop.id)
         outcome =
-          if stop.removed?
+          if !@user&.driver? || route.driver_id != @user.id
+            error("No tenés permiso para registrar en este recorrido.")
+          elsif stop.removed? || stop.group_leader_id?
             error("Esta parada ya no está en tu recorrido. Volvé a la lista.")
-          elsif !stop.delivery_route.open_for_driver?
+          elsif !route.open_for_driver?
             error("Ya enviaste la rendición de este reparto: no se puede cambiar. Si hay un error, avisale a administración.")
-          elsif stop.delivery_route.date < Date.current
+          elsif route.date < Date.current
             # Entregas atrasadas: no se registran desde el celular (se tratan aparte, con administración).
             error("Es de un reparto de un día anterior: no se puede marcar desde acá. Avisale a administración.")
           else

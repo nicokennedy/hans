@@ -16,7 +16,7 @@
 <% if @stop.order? %>
   <% counted = @stop.collections.select(&:counts?) %>
   <% if counted.any? %>
-    <p class="reparto-text reparto-center">💵 Cobraste <strong><%= format_money(counted.sum(&:amount_cents)) %></strong> en efectivo.</p>
+    <p class="reparto-text reparto-center">💵 Cobraste <strong><%= reparto_money(counted.sum(&:amount_cents)) %></strong> en efectivo.</p>
   <% elsif @stop.payment_report == "none" %>
     <p class="reparto-text reparto-center">No te pagaron.</p>
   <% end %>

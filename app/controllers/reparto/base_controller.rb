@@ -51,7 +51,7 @@ class Reparto::BaseController < ApplicationController
 
   # Una parada de los recorridos del repartidor (hoy o anteriores sin rendir); nunca de otro repartidor.
   def find_driver_stop(id)
-    DeliveryStop.active.where(delivery_route_id: driver_routes.map(&:id)).includes(order: [:customer, :order_items]).find(id)
+    DeliveryStop.visible.where(delivery_route_id: driver_routes.map(&:id)).includes(order: [:customer, :order_items]).find(id)
   end
 
   def find_driver_route(id)

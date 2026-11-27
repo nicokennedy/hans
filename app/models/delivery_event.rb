@@ -4,6 +4,8 @@ class DeliveryEvent < ApplicationRecord
   LABELS = {
     "route_created" => "Armó el recorrido",
     "stop_added" => "Agregó una parada",
+    "stops_grouped" => "Unificó pedidos para la entrega",
+    "stops_ungrouped" => "Desagrupó los pedidos",
     "stop_moved" => "Cambió el orden",
     "stop_removed" => "Quitó una parada",
     "stop_restored" => "Volvió a agregar una parada",
@@ -20,6 +22,9 @@ class DeliveryEvent < ApplicationRecord
     "payment_reported" => "Informó que no le pagaron",
     "photo_added" => "Subió la foto del remito",
     "receipt_exception" => "Registró que el cliente no firmó",
+    "income_recorded" => "Registró otro ingreso",
+    "income_corrected" => "Corrigió un ingreso",
+    "income_voided" => "Anuló un ingreso",
     "expense_recorded" => "Registró un gasto",
     "expense_corrected" => "Corrigió un gasto",
     "expense_voided" => "Anuló un gasto",

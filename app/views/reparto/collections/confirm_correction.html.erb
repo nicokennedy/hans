@@ -4,8 +4,8 @@
   <h1 class="reparto-date">¿Corregimos el cobro?</h1>
 </header>
 <section class="reparto-card">
-  <div class="reparto-row"><span>Habías anotado</span><strong class="reparto-strike"><%= format_money(@collection.amount_cents) %></strong></div>
-  <div class="reparto-row reparto-row-total"><span>Lo correcto es</span><strong><%= format_money(@amount_cents) %></strong></div>
+  <div class="reparto-row"><span>Habías anotado</span><strong class="reparto-strike"><%= reparto_money(@collection.amount_cents) %></strong></div>
+  <div class="reparto-row reparto-row-total"><span>Lo correcto es</span><strong><%= reparto_money(@amount_cents) %></strong></div>
   <div class="reparto-row"><span>Motivo</span><strong><%= @reason %></strong></div>
 </section>
 <%= form_with url: reparto_collection_correction_path(@collection), method: :post, local: true do %>

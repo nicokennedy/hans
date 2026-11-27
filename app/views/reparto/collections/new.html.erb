@@ -9,7 +9,7 @@
 
 <% if @own_balance.positive? %>
   <%= link_to reparto_stop_collection_confirm_path(@stop, tipo: "todo"), class: "reparto-button reparto-button-primary reparto-button-col" do %>
-    <span>✔ ME PAGARON TODO</span><span class="reparto-sub"><%= format_money(@own_balance) %> en efectivo</span>
+    <span>✔ ME PAGARON TODO</span><span class="reparto-sub"><%= reparto_money(@own_balance) %> en efectivo</span>
   <% end %>
   <%= link_to "½ ME PAGARON UNA PARTE", reparto_stop_collection_amount_path(@stop, tipo: "parte"), class: "reparto-button" %>
 <% else %>

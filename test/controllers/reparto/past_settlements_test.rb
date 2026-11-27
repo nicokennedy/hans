@@ -27,7 +27,7 @@ class Reparto::PastSettlementsTest < ActionDispatch::IntegrationTest
     get reparto_root_path
     assert_match "Hoy no tenés reparto", response.body
     assert_select "#rendiciones-pendientes", text: /RENDICIONES PENDIENTES DE DÍAS ANTERIORES/
-    assert_select "a[href=?]", reparto_route_settlement_path(@past), text: /REPARTO 1 · #{I18n.l(@yesterday, format: '%d\/%m')}.*Cobros \$500 · Gastos \$0.*Para entregar \$500.*Sin enviar/m
+    assert_select "a[href=?]", reparto_route_settlement_path(@past), text: /REPARTO 1 · #{I18n.l(@yesterday, format: '%d\/%m')}.*Cobros \$500 · Otros ingresos \$0 · Gastos \$0.*Para entregar \$500.*Sin enviar/m
   end
 
   test "money registered later keeps the route date and uses the real date of each operation" do

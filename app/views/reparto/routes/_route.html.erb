@@ -31,6 +31,7 @@
 <% end %>
 
 <%= link_to reparto_route_stops_path(route), class: "reparto-button" do %>☰ VER TODAS LAS PARADAS<% end %>
+<%= link_to "OTROS INGRESOS", reparto_route_incomes_path(route), class: "reparto-button" %>
 <%= link_to reparto_route_expenses_path(route), class: "reparto-button" do %>💵 GASTOS DEL REPARTO<% end %>
 <%= link_to reparto_route_settlement_path(route), class: "reparto-button#{' reparto-button-primary' if next_stop.nil? && stops.any? && route.open_for_driver?}" do %>🧾 <%= route.open_for_driver? ? "MI RENDICIÓN" : "RENDICIÓN ENVIADA" %><% end %>
 <% if todays_routes.many? || past_route?(route) %>

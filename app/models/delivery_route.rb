@@ -16,6 +16,7 @@ class DeliveryRoute < ApplicationRecord
   # R4: cobros, gastos y fotos del recorrido; su rendición es independiente de cualquier otro
   # recorrido (también de otro reparto del mismo repartidor ese día).
   has_many :collections, -> { order(:created_at, :id) }, class_name: "DeliveryCollection", inverse_of: :delivery_route, dependent: :restrict_with_exception
+  has_many :incomes, -> { order(:created_at, :id) }, class_name: "DeliveryIncome", inverse_of: :delivery_route, dependent: :restrict_with_exception
   has_many :expenses, -> { order(:spent_at, :id) }, class_name: "DeliveryExpense", inverse_of: :delivery_route, dependent: :restrict_with_exception
   has_many :photos, -> { order(:created_at, :id) }, class_name: "DeliveryPhoto", inverse_of: :delivery_route, dependent: :restrict_with_exception
   belongs_to :submitted_by, class_name: "User", optional: true
@@ -31,7 +32,23 @@ class DeliveryRoute < ApplicationRecord
   scope :recent_first, -> { order(date: :desc, id: :desc) }
 
   def active_stops
-    stops.active
+    stops.visible
+  end
+
+  def grouping_editable?
+    editable? && date >= Date.current &&
+      !stops.active.where.not(delivery_status: "pending").exists? &&
+      !collections.exists? && !photos.exists? && !expenses.exists? && !incomes.exists? &&
+      !stops.active.where.not(payment_report: nil).exists? &&
+      !stops.active.where.not(receipt_exception: nil).exists?
+  end
+
+  def grouping_candidates
+    return [] unless grouping_editable?
+
+    active_stops.includes(order: :customer).to_a
+                .select { |stop| stop.order? && !stop.grouped? && !stop.order.canceled? && !stop.order.delivered? && stop.order.delivery_date == date }
+                .group_by(&:grouping_key).reject { |key, stops| key.nil? || stops.size < 2 }.values
   end
 
   def removed_stops

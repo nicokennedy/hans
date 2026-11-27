@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_11_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
@@ -184,6 +184,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
     t.check_constraint "voided_at IS NULL OR void_reason IS NOT NULL", name: "delivery_expenses_void_has_reason"
   end
 
+  create_table "delivery_incomes", force: :cascade do |t|
+    t.bigint "delivery_route_id", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "voided_by_id"
+    t.bigint "replaces_id"
+    t.string "kind", null: false
+    t.string "description", null: false
+    t.bigint "amount_cents", null: false
+    t.string "request_token", null: false
+    t.datetime "voided_at"
+    t.string "void_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_delivery_incomes_on_created_by_id"
+    t.index ["delivery_route_id", "request_token"], name: "index_delivery_incomes_on_delivery_route_id_and_request_token", unique: true
+    t.index ["delivery_route_id"], name: "index_delivery_incomes_on_delivery_route_id"
+    t.index ["replaces_id"], name: "index_delivery_incomes_on_replaces_id", unique: true
+    t.index ["voided_by_id"], name: "index_delivery_incomes_on_voided_by_id"
+    t.check_constraint "amount_cents > 0", name: "delivery_income_positive_amount"
+  end
+
   create_table "delivery_photos", force: :cascade do |t|
     t.bigint "delivery_route_id", null: false
     t.bigint "delivery_stop_id", null: false
@@ -219,6 +240,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
     t.integer "difference_cents"
     t.integer "unresolved_cents"
     t.text "confirmation_note"
+    t.bigint "other_income_cents", default: 0, null: false
     t.index ["confirmed_by_id"], name: "index_delivery_routes_on_confirmed_by_id"
     t.index ["created_by_id"], name: "index_delivery_routes_on_created_by_id"
     t.index ["creation_token"], name: "index_delivery_routes_on_creation_token", unique: true, where: "(creation_token IS NOT NULL)"
@@ -261,10 +283,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
     t.string "receipt_exception"
     t.datetime "receipt_exception_at"
     t.bigint "receipt_exception_by_id"
+    t.bigint "group_leader_id"
     t.index ["customer_id"], name: "index_delivery_stops_on_customer_id"
     t.index ["delivery_recorded_by_id"], name: "index_delivery_stops_on_delivery_recorded_by_id"
     t.index ["delivery_route_id", "position"], name: "index_delivery_stops_on_delivery_route_id_and_position"
     t.index ["delivery_route_id"], name: "index_delivery_stops_on_delivery_route_id"
+    t.index ["group_leader_id"], name: "index_delivery_stops_on_group_leader_id"
     t.index ["order_id"], name: "index_delivery_stops_on_active_order", unique: true, where: "((order_id IS NOT NULL) AND (removed_at IS NULL))"
     t.index ["order_id"], name: "index_delivery_stops_on_order_id"
     t.index ["receipt_exception_by_id"], name: "index_delivery_stops_on_receipt_exception_by_id"
@@ -942,6 +966,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
   add_foreign_key "delivery_expenses", "expenses"
   add_foreign_key "delivery_expenses", "users", column: "created_by_id"
   add_foreign_key "delivery_expenses", "users", column: "voided_by_id"
+  add_foreign_key "delivery_incomes", "delivery_incomes", column: "replaces_id"
+  add_foreign_key "delivery_incomes", "delivery_routes"
+  add_foreign_key "delivery_incomes", "users", column: "created_by_id"
+  add_foreign_key "delivery_incomes", "users", column: "voided_by_id"
   add_foreign_key "delivery_photos", "delivery_routes"
   add_foreign_key "delivery_photos", "delivery_stops"
   add_foreign_key "delivery_photos", "users", column: "taken_by_id"
@@ -951,6 +979,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_120000) do
   add_foreign_key "delivery_routes", "users", column: "submitted_by_id"
   add_foreign_key "delivery_stops", "customers"
   add_foreign_key "delivery_stops", "delivery_routes"
+  add_foreign_key "delivery_stops", "delivery_stops", column: "group_leader_id"
   add_foreign_key "delivery_stops", "orders"
   add_foreign_key "delivery_stops", "users", column: "delivery_recorded_by_id"
   add_foreign_key "delivery_stops", "users", column: "receipt_exception_by_id"

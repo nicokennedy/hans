@@ -5,6 +5,10 @@ class Reparto::PhotosController < Reparto::BaseController
   before_action :require_driver!
   before_action :set_stop
 
+  def receipt
+    return head :not_found unless @stop.order?
+  end
+
   def new
     @request_token = SecureRandom.uuid
   end

@@ -21,7 +21,7 @@ class Reparto::ExpensesController < Reparto::BaseController
     errors << "Elegí o escribí qué pagaste." if @concept.blank?
     errors << "Escribí el importe." unless @amount_cents&.positive?
     available = DeliveryRoutes::Settlement.new(@route).available_cents
-    errors << "Supera lo que cobraste (#{helpers.format_money(available)}). Avisale a administración." if @amount_cents.to_i > available
+    errors << "Supera el efectivo disponible (#{helpers.reparto_money(available)}). Avisale a administración." if @amount_cents.to_i > available
     return redirect_to(reparto_route_new_expense_path(@route, params.permit(:concepto, :concepto_texto, :importe, :notas).to_h), alert: errors.join(" ")) if errors.any?
 
     @request_token = SecureRandom.uuid

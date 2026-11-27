@@ -1,0 +1,21 @@
+<div class="receipt-controls">
+  <%= link_to "◀ VOLVER", current_user.admin? ? admin_delivery_route_path(@stop.delivery_route) : reparto_stop_path(@stop), class: "reparto-back" %>
+  <button type="button" class="reparto-button" onclick="window.print()">IMPRIMIR REMITO</button>
+</div>
+<style>
+  @media print { .receipt-controls { display: none; } .delivery-receipt { break-inside: avoid; } }
+</style>
+<% ["Para el cliente", "Para HANS"].each do |copy| %>
+  <section class="reparto-card delivery-receipt">
+    <h1>HANS · Remito de entrega</h1>
+    <p><%= copy %> · <%= l(@stop.delivery_route.date, format: "%d/%m/%Y") %></p>
+    <p><strong><%= @stop.display_name %></strong> · <%= @stop.address_line %></p>
+    <p>Pedidos <%= @stop.delivery_orders.map(&:number).join(", ") %></p>
+    <ul class="reparto-items">
+      <% @stop.delivery_products.each do |name, quantity| %>
+        <li><span class="reparto-qty"><%= quantity %></span> <span><%= name %></span></li>
+      <% end %>
+    </ul>
+    <p>Firma y aclaración __________________________________</p>
+  </section>
+<% end %>

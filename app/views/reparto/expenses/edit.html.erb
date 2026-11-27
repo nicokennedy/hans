@@ -1,7 +1,7 @@
 <%= link_to "◀ VOLVER A GASTOS", reparto_route_expenses_path(@route), class: "reparto-back" %>
 <header class="reparto-header">
   <p class="reparto-kicker">CORREGIR UN GASTO</p>
-  <h1 class="reparto-date"><%= @expense.concept %>: <%= format_money(@expense.amount_cents) %></h1>
+  <h1 class="reparto-date"><%= @expense.concept %>: <%= reparto_money(@expense.amount_cents) %></h1>
 </header>
 <%= form_with url: reparto_route_expense_correction_confirm_path(@route, @expense), method: :get, local: true, class: "reparto-form" do %>
   <label class="reparto-label" for="importe">¿Cuánto pagaste en realidad?</label>

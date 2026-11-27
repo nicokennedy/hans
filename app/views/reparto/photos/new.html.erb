@@ -1,7 +1,7 @@
 <header class="reparto-header">
   <p class="reparto-kicker"><%= @stop.display_name.upcase %></p>
   <h1 class="reparto-date">Sacale una foto al remito firmado</h1>
-  <p class="reparto-text">Quedó debiendo <strong><%= format_money(@stop.order.balance_due_cents) %></strong>. La foto prueba que recibió el pedido.</p>
+  <p class="reparto-text">Quedó debiendo <strong><%= reparto_money(@stop.balance_due_cents) %></strong>. La foto prueba que recibió el pedido.</p>
 </header>
 
 <%= form_with url: reparto_stop_photo_path(@stop), method: :post, local: true, multipart: true, class: "reparto-form", id: "photo-form" do %>

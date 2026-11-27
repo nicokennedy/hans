@@ -1,0 +1,42 @@
+<fieldset class="reparto-card reparto-evidence mb-3">
+  <legend><%= label %></legend>
+  <%= file_field_tag :evidence_camera, id: "evidence_camera", accept: "image/*", capture: "environment" %>
+  <label class="reparto-button" for="evidence_camera">SACAR FOTO</label>
+  <%= file_field_tag :evidence_gallery, id: "evidence_gallery", accept: local_assigns.fetch(:accept, "image/*") %>
+  <label class="reparto-button" for="evidence_gallery"><%= local_assigns[:accept] ? "ADJUNTAR COMPROBANTE" : "ELEGIR FOTO" %></label>
+  <img alt="Vista previa del comprobante" style="max-width: 100%; max-height: 240px" hidden>
+  <div hidden><p aria-live="polite"></p><button type="button" class="reparto-button">QUITAR ARCHIVO</button></div>
+</fieldset>
+<script>
+  (() => {
+    const fieldset = document.currentScript.previousElementSibling;
+    const inputs = Array.from(fieldset.querySelectorAll("input[type=file]"));
+    const image = fieldset.querySelector("img");
+    const remove = fieldset.querySelector("div");
+    let previewUrl;
+
+    function clearPreview() {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      image.removeAttribute("src");
+      image.hidden = remove.hidden = true;
+    }
+
+    inputs.forEach(input => input.addEventListener("change", () => {
+      if (!input.files.length) return;
+      inputs.filter(other => other !== input).forEach(other => { other.value = ""; });
+      clearPreview();
+      const file = input.files[0];
+      if (file.type.startsWith("image/")) {
+        previewUrl = URL.createObjectURL(file);
+        image.src = previewUrl;
+        image.hidden = false;
+      }
+      remove.querySelector("p").textContent = file.name;
+      remove.hidden = false;
+    }));
+    remove.querySelector("button").addEventListener("click", () => {
+      inputs.forEach(input => { input.value = ""; });
+      clearPreview();
+    });
+  })();
+</script>

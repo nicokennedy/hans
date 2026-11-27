@@ -65,7 +65,7 @@ module DeliveryRoutes
     def move(stop, direction)
       change do
         stop = active_stop(stop)
-        list = @route.stops.active.to_a
+        list = @route.active_stops.to_a
         index = list.index(stop)
         target = direction.to_s == "up" ? index - 1 : index + 1
         next [] if target.negative? || target >= list.size
@@ -81,13 +81,14 @@ module DeliveryRoutes
     def remove(stop, removal_kind:, reason: nil)
       change do
         stop = active_stop(stop)
+        next ["Desagrupá los pedidos antes de cambiar su asignación."] if stop.grouped?
         next ["#{stop.display_name} ya está registrada como #{stop.delivery_status_label.downcase}: no se puede quitar."] if stop.completed?
         next ["Para pasar el pedido a otro repartidor usá \"Pasar a otro repartidor\"."] if removal_kind.to_s == "transferred"
         stop.assign_attributes(removed_at: Time.current, removed_by: @user, removal_kind: removal_kind.to_s, removal_reason: reason.to_s.strip.presence)
         next stop.errors.full_messages unless stop.valid?
 
         stop.save!
-        renumber(@route.stops.active.to_a)
+        renumber(@route.active_stops.to_a)
         Events.record(@route, @user, "stop_removed", stop: stop, reason: stop.removal_reason, removal_kind: stop.removal_kind,
                       summary: "Quitó #{stop.display_name} del recorrido: #{stop.removal_label.downcase}.")
         []
@@ -98,19 +99,19 @@ module DeliveryRoutes
     # quitada ("Pasó a otro repartidor") y se crea una nueva al final del destino. El pedido no
     # se toca. Queda en el historial de los dos recorridos.
     def transfer(stop, target)
-      change do
+      change(related_route: target) do
         stop = active_stop(stop)
+        next ["Desagrupá los pedidos antes de cambiar su asignación."] if stop.grouped?
         next ["Solo se pasan paradas de pedidos. Las paradas manuales se quitan y se agregan en el otro recorrido."] unless stop.order?
         next ["#{stop.display_name} ya está entregado: no se puede pasar a otro reparto."] if stop.completed?
         next ["Elegí otro recorrido del #{fmt(@route.date)}."] if target.nil? || target.id == @route.id || target.date != @route.date
 
-        target.lock!
         next ["#{target.title} ya no está en preparación."] unless target.editable?
 
         from_name = @route.title
         stop.update!(removed_at: Time.current, removed_by: @user, removal_kind: "transferred",
                      removal_reason: target.title)
-        renumber(@route.stops.active.to_a)
+        renumber(@route.active_stops.to_a)
         new_stop = target.stops.create!(kind: "order", order: stop.order, customer: stop.customer,
                                         position: target.stops.active.maximum(:position).to_i + 1)
         Events.record(@route, @user, "stop_transferred_out", stop: stop, to_route_id: target.id,
@@ -137,6 +138,46 @@ module DeliveryRoutes
       end
     end
 
+    def group(stop_ids)
+      ids = Array(stop_ids).map(&:to_i).uniq
+      change do
+        next ["El reparto ya empezó."] unless @route.grouping_editable?
+
+        stops = @route.active_stops.where(id: ids).to_a
+        next ["Elegí dos o más paradas de este reparto."] unless stops.size >= 2 && stops.size == ids.size
+        next ["Elegí paradas de pedidos individuales."] unless stops.all? { |stop| stop.order? && !stop.grouped? }
+
+        orders = Order.where(id: stops.map(&:order_id)).order(:id).lock.index_by(&:id)
+        stops.each { |stop| stop.order = orders.fetch(stop.order_id) }
+        key = stops.first.grouping_key
+        unless key && stops.all? { |stop| stop.grouping_key == key && stop.order.delivery_date == @route.date && !stop.order.canceled? && !stop.order.delivered? }
+          next ["Los pedidos deben tener el mismo cliente, fecha y dirección de entrega."]
+        end
+
+        leader, *members = stops
+        members.each { |stop| stop.update!(group_leader: leader) }
+        Events.record(@route, @user, "stops_grouped", stop: leader, order_ids: stops.map(&:order_id),
+                      summary: "Unificó los pedidos #{stops.map { |stop| stop.order.number }.join(', ')}.")
+        []
+      end
+    end
+
+    def ungroup(stop)
+      change do
+        next ["El reparto ya empezó."] unless @route.grouping_editable?
+
+        leader = active_stop(stop)
+        members = leader.group_members.to_a
+        next ["La parada no tiene pedidos agrupados."] if members.empty?
+
+        members.each { |member| member.update!(group_leader: nil) }
+        renumber(@route.active_stops.to_a)
+        Events.record(@route, @user, "stops_ungrouped", stop: leader, order_ids: [leader, *members].map(&:order_id),
+                      summary: "Desagrupó la entrega de #{leader.display_name}.")
+        []
+      end
+    end
+
     def assign_driver(driver)
       change do
         next ["Elegí un repartidor: todo recorrido tiene un responsable."] if driver.nil?
@@ -154,10 +195,10 @@ module DeliveryRoutes
 
     private
 
-    def change
+    def change(related_route: nil)
       errors = []
       DeliveryRoute.transaction do
-        @route.lock!
+        [@route, related_route].compact.uniq.sort_by(&:id).each(&:lock!)
         unless @route.editable?
           errors = ["El recorrido ya no está en preparación: no se puede modificar desde acá."]
           raise ActiveRecord::Rollback
@@ -177,7 +218,7 @@ module DeliveryRoutes
     end
 
     def active_stop(stop)
-      @route.stops.active.find(stop.id)
+      @route.active_stops.find(stop.id)
     end
 
     def next_position

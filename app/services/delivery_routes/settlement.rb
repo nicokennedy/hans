@@ -46,8 +46,16 @@ module DeliveryRoutes
       counted_expenses.sum(&:amount_cents)
     end
 
+    def incomes
+      @incomes ||= route.incomes.includes(:created_by, :voided_by, evidence_attachment: :blob).to_a
+    end
+
+    def other_income_cents
+      incomes.reject(&:voided?).sum(&:amount_cents)
+    end
+
     def expected_cents
-      collected_cents - expenses_cents
+      collected_cents + other_income_cents - expenses_cents
     end
 
     # Lo que el repartidor tiene que entregar (nunca negativo).
@@ -78,7 +86,7 @@ module DeliveryRoutes
     end
 
     def unpaid_stops
-      stops.select { |stop| stop.order? && stop.delivery_status == "delivered" && stop.order.balance_due_cents.positive? }
+      stops.select { |stop| stop.order? && stop.delivery_status == "delivered" && stop.balance_due_cents.positive? }
     end
   end
 end

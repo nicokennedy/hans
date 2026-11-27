@@ -90,9 +90,9 @@
                     <td><label for="order-<%= order.id %>" class="fw-semibold"><%= order.customer.name %></label></td>
                     <td><%= delivery_address_cell(customer_address_line(order.customer)) %></td>
                     <td class="small"><%= link_to order.number, admin_order_path(order) %></td>
-                    <td class="text-end"><%= format_money(order.total_cents) %></td>
-                    <td class="text-end"><%= format_money(order.amount_paid_cents) %></td>
-                    <td class="text-end <%= 'fw-bold' if order.balance_due_cents.positive? %>"><%= format_money(order.balance_due_cents) %></td>
+                    <td class="text-end"><%= reparto_money(order.total_cents) %></td>
+                    <td class="text-end"><%= reparto_money(order.amount_paid_cents) %></td>
+                    <td class="text-end <%= 'fw-bold' if order.balance_due_cents.positive? %>"><%= reparto_money(order.balance_due_cents) %></td>
                   </tr>
                 <% end %>
               </tbody>

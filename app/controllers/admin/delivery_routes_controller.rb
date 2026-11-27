@@ -15,11 +15,11 @@ class Admin::DeliveryRoutesController < ApplicationController
     @available_drivers = User.active_drivers.to_a
     # Un token por formulario: si "Crear reparto" llega dos veces, se crea un solo recorrido.
     @creation_token = SecureRandom.uuid
-    @stop_counts = DeliveryStop.active.where(delivery_route_id: @routes.map(&:id)).group(:delivery_route_id, :delivery_status).count
+    @stop_counts = DeliveryStop.visible.where(delivery_route_id: @routes.map(&:id)).group(:delivery_route_id, :delivery_status).count
     @recent_routes = DeliveryRoute.recent_first.includes(:driver).limit(12)
     # D8: recorridos de días anteriores que todavía no enviaron la rendición.
     @overdue_routes = DeliveryRoute.where("date < ?", Date.current).where(status: %w[draft in_progress]).where.not(driver_id: nil).includes(:driver).order(:date, :id).to_a
-    @stops_count = DeliveryStop.active.group(:delivery_route_id).count
+    @stops_count = DeliveryStop.visible.group(:delivery_route_id).count
   end
 
   def create

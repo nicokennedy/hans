@@ -1,7 +1,7 @@
 <section class="reparto-card">
-  <div class="reparto-row"><span>Este pedido (<%= @stop.order.number %>)</span><strong><%= format_money(@own_balance) %></strong></div>
+  <div class="reparto-row"><span><%= @stop.grouped? ? "Esta entrega" : "Este pedido (#{@stop.order.number})" %></span><strong><%= reparto_money(@own_balance) %></strong></div>
   <% if @previous_orders.any? %>
-    <div class="reparto-row"><span>Además debe de <%= @previous_orders.size %> pedido<%= "s" unless @previous_orders.size == 1 %> anterior<%= "es" unless @previous_orders.size == 1 %></span><strong><%= format_money(@previous_balance) %></strong></div>
-    <div class="reparto-row reparto-row-total"><span>Debe en total</span><strong><%= format_money(@own_balance + @previous_balance) %></strong></div>
+    <div class="reparto-row"><span>Además debe de <%= @previous_orders.size %> pedido<%= "s" unless @previous_orders.size == 1 %> anterior<%= "es" unless @previous_orders.size == 1 %></span><strong><%= reparto_money(@previous_balance) %></strong></div>
+    <div class="reparto-row reparto-row-total"><span>Debe en total</span><strong><%= reparto_money(@own_balance + @previous_balance) %></strong></div>
   <% end %>
 </section>

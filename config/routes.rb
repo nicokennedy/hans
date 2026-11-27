@@ -50,12 +50,14 @@ Rails.application.routes.draw do
       get "gastos/:id/corregir", to: "expenses#edit", as: :expense_correction
       get "gastos/:id/corregir/confirmar", to: "expenses#confirm_correction", as: :expense_correction_confirm
       post "gastos/:id/corregir", to: "expenses#correct"
+      resources :incomes, path: "otros-ingresos", only: [:index, :new, :create, :edit, :update]
       get "rendicion", to: "settlements#show", as: :settlement
       get "rendicion/enviar", to: "settlements#confirm", as: :settlement_confirm
       post "rendicion/enviar", to: "settlements#submit"
     end
     # R4: cobro de una parada ("¿Te pagaron?") y foto del remito firmado.
     scope "paradas/:stop_id", as: "stop", constraints: { stop_id: /\d+/ } do
+      get "remito", to: "photos#receipt", as: :receipt
       get "cobro", to: "collections#new", as: :collection
       post "cobro", to: "collections#create"
       get "cobro/importe", to: "collections#amount", as: :collection_amount
@@ -82,6 +84,8 @@ Rails.application.routes.draw do
   end
 
   # R4: fotos de remitos firmados. Nunca públicas: solo administración y el repartidor del recorrido.
+  get "fotos-cobros/:id", to: "delivery_photos#collection_evidence", as: :delivery_collection_evidence, constraints: { id: /\d+/ }
+  get "comprobantes-ingresos/:id", to: "delivery_photos#income_evidence", as: :delivery_income_evidence, constraints: { id: /\d+/ }
   get "fotos-remitos/:id", to: "delivery_photos#show", as: :delivery_photo, constraints: { id: /\d+/ }
 
   resource :dashboard, only: [:show]
@@ -298,11 +302,17 @@ Rails.application.routes.draw do
       end
       # R4: historial de rendiciones y diferencias de caja.
       collection { get :settlements, path: "rendiciones" }
-      resources :collections, controller: "delivery_collections", path: "cobros", only: [:new, :create, :edit, :update], constraints: { id: /\d+/ }
+      resources :collections, controller: "delivery_collections", path: "cobros", only: [:show, :new, :create, :edit, :update], constraints: { id: /\d+/ }
+      resources :incomes, controller: "delivery_incomes", path: "otros-ingresos", only: [:index, :new, :create, :edit, :update]
       resources :expenses, controller: "delivery_expenses", path: "gastos", only: [:new, :create, :edit, :update], constraints: { id: /\d+/ }
       resources :stops, controller: "delivery_route_stops", path: "paradas", only: [:create, :update], constraints: { id: /\d+/ } do
-        collection { post :add_orders, path: "agregar-pedidos" }
+        collection do
+          post :add_orders, path: "agregar-pedidos"
+          post :group, path: "unificar"
+        end
         member do
+          patch :ungroup, path: "desagrupar"
+          get :receipt, path: "remito"
           patch :move, path: "mover"
           patch :remove, path: "quitar"
           patch :restore, path: "volver"

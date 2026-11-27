@@ -35,8 +35,8 @@ module DeliveryRoutes
 
         summary = Settlement.new(route)
         route.update!(status: "submitted", submitted_at: Time.current, submitted_by: @user,
-                      collected_cents: summary.collected_cents, expenses_cents: summary.expenses_cents, expected_cash_cents: summary.expected_cents)
-        Events.record(route, @user, "settlement_submitted", collected_cents: summary.collected_cents, expenses_cents: summary.expenses_cents,
+                      collected_cents: summary.collected_cents, other_income_cents: summary.other_income_cents, expenses_cents: summary.expenses_cents, expected_cash_cents: summary.expected_cents)
+        Events.record(route, @user, "settlement_submitted", collected_cents: summary.collected_cents, other_income_cents: summary.other_income_cents, expenses_cents: summary.expenses_cents,
                       expected_cents: summary.expected_cents,
                       summary: "#{@user.display_name} envió la rendición: cobró $#{money(summary.collected_cents)}, gastó $#{money(summary.expenses_cents)}, entrega $#{money(summary.to_deliver_cents)}.")
         nil
@@ -61,7 +61,7 @@ module DeliveryRoutes
         next errors if errors.any?
 
         route.update!(status: "confirmed", confirmed_at: Time.current, confirmed_by: @user,
-                      collected_cents: summary.collected_cents, expenses_cents: summary.expenses_cents, expected_cash_cents: summary.expected_cents,
+                      collected_cents: summary.collected_cents, other_income_cents: summary.other_income_cents, expenses_cents: summary.expenses_cents, expected_cash_cents: summary.expected_cents,
                       counted_cash_cents: counted_cents, difference_cents: difference, unresolved_cents: summary.unresolved_cents, confirmation_note: note)
         Events.record(route, @user, "settlement_confirmed", reason: note, counted_cents: counted_cents, expected_cents: summary.expected_cents,
                       to_deliver_cents: summary.to_deliver_cents, difference_cents: difference, unresolved_cents: summary.unresolved_cents,

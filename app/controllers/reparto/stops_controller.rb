@@ -58,7 +58,7 @@ class Reparto::StopsController < Reparto::BaseController
   end
 
   def set_stop
-    @stop = DeliveryStop.active.where(delivery_route_id: driver_routes.map(&:id))
+    @stop = DeliveryStop.visible.where(delivery_route_id: driver_routes.map(&:id))
                         .includes(order: [:customer, :order_items]).find(params[:id])
     @route = driver_routes.find { |r| r.id == @stop.delivery_route_id }
   end

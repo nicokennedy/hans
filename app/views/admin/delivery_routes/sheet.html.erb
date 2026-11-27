@@ -30,9 +30,9 @@
           <td><%= stop.position %></td>
           <td><strong><%= stop.display_name %></strong><% if stop.manual? %><div class="small"><%= stop.kind_label %></div><% end %></td>
           <td><%= stop.address_line || "SIN DIRECCIÓN" %><% if stop.instructions %><div class="small"><%= stop.instructions %></div><% end %></td>
-          <td class="small"><%= stop.order&.number %></td>
-          <td class="num"><%= stop.order? ? format_money(stop.order.total_cents) : "" %></td>
-          <td class="num"><%= stop.order? ? format_money(stop.order.balance_due_cents) : "" %></td>
+          <td class="small"><%= stop.delivery_orders.map(&:number).join(", ") %></td>
+          <td class="num"><%= stop.order? ? reparto_money(stop.delivery_orders.sum(&:total_cents)) : "" %></td>
+          <td class="num"><%= stop.order? ? reparto_money(stop.balance_due_cents) : "" %></td>
           <td><span class="box"></span></td>
           <td>____________</td>
         </tr>

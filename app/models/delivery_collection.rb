@@ -22,6 +22,7 @@ class DeliveryCollection < ApplicationRecord
   belongs_to :voided_by, class_name: "User", optional: true
   belongs_to :replaces, class_name: "DeliveryCollection", optional: true
   has_one :replacement, class_name: "DeliveryCollection", foreign_key: :replaces_id, inverse_of: :replaces
+  has_one_attached :evidence
 
   validates :mode, inclusion: { in: MODES }
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }

@@ -35,7 +35,7 @@
   <% else %>
     <div class="table-responsive">
       <table class="table align-middle">
-        <thead><tr><th>Fecha</th><th>Recorrido</th><th>Estado</th><th>Enviada</th><th class="text-end">Cobros</th><th class="text-end">Gastos</th><th class="text-end">A entregar</th><th class="text-end">Recibido</th><th class="text-end">Diferencia</th><th>Avisos</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Recorrido</th><th>Estado</th><th>Enviada</th><th class="text-end">Cobros</th><th class="text-end">Otros ingresos</th><th class="text-end">Gastos</th><th class="text-end">A entregar</th><th class="text-end">Recibido</th><th class="text-end">Diferencia</th><th>Avisos</th></tr></thead>
         <tbody>
           <% @routes.each do |route| %>
             <tr>
@@ -44,13 +44,14 @@
               <td><%= delivery_route_status_badge(route) %></td>
               <% live = @live[route.id] %>
               <td class="small"><%= route.submitted_at ? l(route.submitted_at, format: "%d/%m %H:%M") : "Sin enviar" %></td>
-              <td class="text-end"><%= format_money(live ? live.collected_cents : route.collected_cents.to_i) %></td>
-              <td class="text-end"><%= format_money(live ? live.expenses_cents : route.expenses_cents.to_i) %></td>
-              <td class="text-end fw-bold"><%= format_money(live ? live.to_deliver_cents : [route.expected_cash_cents.to_i, 0].max) %></td>
-              <td class="text-end"><%= route.confirmed? ? format_money(route.counted_cash_cents) : "—" %></td>
-              <td class="text-end <%= 'text-danger fw-bold' if route.difference_cents.to_i.nonzero? %>"><%= route.confirmed? ? (route.difference_cents.to_i.zero? ? "$0" : "#{route.difference_cents.negative? ? 'Faltan' : 'Sobran'} #{format_money(route.difference_cents.abs)}") : "—" %></td>
+              <td class="text-end"><%= reparto_money(live ? live.collected_cents : route.collected_cents.to_i) %></td>
+              <td class="text-end"><%= reparto_money(live ? live.other_income_cents : route.other_income_cents) %></td>
+              <td class="text-end"><%= reparto_money(live ? live.expenses_cents : route.expenses_cents.to_i) %></td>
+              <td class="text-end fw-bold"><%= reparto_money(live ? live.to_deliver_cents : [route.expected_cash_cents.to_i, 0].max) %></td>
+              <td class="text-end"><%= route.confirmed? ? reparto_money(route.counted_cash_cents) : "—" %></td>
+              <td class="text-end <%= 'text-danger fw-bold' if route.difference_cents.to_i.nonzero? %>"><%= route.confirmed? ? (route.difference_cents.to_i.zero? ? "$0" : "#{route.difference_cents.negative? ? 'Faltan' : 'Sobran'} #{reparto_money(route.difference_cents.abs)}") : "—" %></td>
               <td class="small">
-                <% if route.unresolved_cents.to_i.positive? %><span class="badge text-bg-warning">Pendiente de resolver <%= format_money(route.unresolved_cents) %></span><% end %>
+                <% if route.unresolved_cents.to_i.positive? %><span class="badge text-bg-warning">Pendiente de resolver <%= reparto_money(route.unresolved_cents) %></span><% end %>
                 <% if (n = @voided_after_close[route.id].to_i).positive? %><span class="badge text-bg-danger"><%= n %> cobro(s) anulado(s) después</span><% end %>
               </td>
             </tr>

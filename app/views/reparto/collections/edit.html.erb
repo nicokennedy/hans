@@ -1,7 +1,7 @@
 <%= link_to "◀ VOLVER A LA PARADA", reparto_stop_path(@stop), class: "reparto-back" %>
 <header class="reparto-header">
   <p class="reparto-kicker">CORREGIR UN COBRO · <%= @stop.display_name.upcase %></p>
-  <h1 class="reparto-date">Anotaste <%= format_money(@collection.amount_cents) %></h1>
+  <h1 class="reparto-date">Anotaste <%= reparto_money(@collection.amount_cents) %></h1>
   <p class="reparto-text">Registrado a las <%= l(@collection.created_at, format: "%H:%M") %><%= " · a identificar" if @collection.unidentified? %>.</p>
 </header>
 

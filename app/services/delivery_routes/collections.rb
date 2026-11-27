@@ -21,8 +21,9 @@ module DeliveryRoutes
     # Pedidos con saldo del cliente de la parada (D5: solo ese cliente), el de la parada primero.
     def self.pending_orders_for(stop)
       orders = CustomerAccounts::Distribution.pending_orders(stop.customer).to_a
-      own = orders.find { |order| order.id == stop.order_id }
-      own ? [own] + (orders - [own]) : orders
+      delivery_orders = stop.delivery_orders
+      own, previous = orders.partition { |order| delivery_orders.include?(order) }
+      own + previous
     end
 
     def initialize(route, user)
@@ -39,6 +40,10 @@ module DeliveryRoutes
       run(token) do
         stop = active_order_stop(stop)
         next ["Esta parada no es un pedido."] unless stop
+
+        if stop.grouped? && stop.collections.includes(:customer_payment).any?(&:counts?)
+          next ["Ya hay un cobro para esta entrega. Corregí el cobro existente."]
+        end
 
         register(stop, amount_cents, allocations, unidentified, token, report: report)
       end
@@ -159,7 +164,7 @@ module DeliveryRoutes
     end
 
     def active_order_stop(stop)
-      stop = @route.stops.active.find_by(id: stop.id)
+      stop = @route.active_stops.find_by(id: stop.id)
       stop if stop&.order?
     end
 
@@ -174,7 +179,7 @@ module DeliveryRoutes
     # hasta el saldo de cada uno (ya sin el cobro anulado). Lo que sobra: saldo a favor.
     def redistribute(old, amount_cents)
       ids = old.allocation_map.keys
-      ids = [old.delivery_stop.order_id] if ids.empty?
+      ids = old.delivery_stop.delivery_orders.map(&:id) if old.delivery_stop.grouped? || ids.empty?
       orders = Order.where(id: ids).index_by(&:id).values_at(*ids).compact
       CustomerAccounts::Distribution.suggest(orders, amount_cents).allocations
     end

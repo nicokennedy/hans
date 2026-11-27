@@ -34,14 +34,14 @@ class Reparto::MoneyFlowTest < ActionDispatch::IntegrationTest
     assert_match "Solo efectivo", response.body
 
     form = confirm_and_save(tipo: "todo")
-    assert_match "$2,000", response.body
+    assert_match "$2.000", response.body
     assert_difference -> { CustomerPayment.count }, 1 do
       post reparto_stop_collection_path(@stop), params: form
       post reparto_stop_collection_path(@stop), params: form
     end
     assert_redirected_to saved_reparto_stop_path(@stop, ya: 1)
     follow_redirect!
-    assert_match "Cobraste <strong>$2,000</strong>", response.body
+    assert_match "Cobraste <strong>$2.000</strong>", response.body
     assert_equal "paid", @order.reload.payment_status
   end
 
@@ -132,7 +132,7 @@ class Reparto::MoneyFlowTest < ActionDispatch::IntegrationTest
     get reparto_route_expense_confirm_path(@route), params: { concepto: "Nafta", importe: "500" }
     assert_redirected_to reparto_route_new_expense_path(@route, concepto: "Nafta", importe: "500")
     follow_redirect!
-    assert_match "Supera lo que cobraste ($0). Avisale a administración.", response.body
+    assert_match "Supera el efectivo disponible ($0). Avisale a administración.", response.body
 
     collect(@route, @stop, 200_000)
     get reparto_route_expense_confirm_path(@route), params: { concepto: "Nafta", importe: "500" }
@@ -151,7 +151,7 @@ class Reparto::MoneyFlowTest < ActionDispatch::IntegrationTest
     get reparto_route_settlement_path(@route)
     assert_match "Mi rendición", response.body
     assert_match "Café Aurora", response.body
-    assert_match "$1,700", response.body
+    assert_match "$1.700", response.body
     assert_match "Te faltan 2 paradas por marcar", response.body
 
     get reparto_route_settlement_confirm_path(@route)

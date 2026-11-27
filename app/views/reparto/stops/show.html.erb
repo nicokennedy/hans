@@ -21,11 +21,15 @@
   <section class="reparto-card">
     <p class="reparto-kicker">LLEVÁS</p>
     <ul class="reparto-items">
-      <% @stop.order.order_items.each do |item| %>
-        <li><span class="reparto-qty"><%= item.quantity %></span> <span><%= item.product_name_snapshot %></span></li>
+      <% @stop.delivery_products.each do |name, quantity| %>
+        <li><span class="reparto-qty"><%= quantity %></span> <span><%= name %></span></li>
       <% end %>
     </ul>
-    <p class="reparto-total"><span>Total del pedido</span> <strong><%= format_money(@stop.order.total_cents) %></strong></p>
+    <p class="reparto-total"><span>Total de la entrega</span> <strong><%= reparto_money(@stop.delivery_orders.sum(&:total_cents)) %></strong></p>
+    <% if @stop.grouped? %>
+      <p class="reparto-total"><span>Saldo pendiente</span> <strong><%= reparto_money(@stop.balance_due_cents) %></strong></p>
+      <%= link_to "VER REMITO AGRUPADO", reparto_stop_receipt_path(@stop), class: "reparto-button" %>
+    <% end %>
   </section>
 <% end %>
 
@@ -46,7 +50,7 @@
             <% if collection.unidentified? %> <span class="reparto-tag">A identificar</span><% end %>
             <% if collection.voided? %> <span class="reparto-tag">Corregido</span><% elsif collection.voided_outside? %> <span class="reparto-tag">Anulado por administración</span><% end %>
           </span>
-          <strong class="<%= 'reparto-strike' unless collection.counts? %>"><%= format_money(collection.amount_cents) %></strong>
+          <strong class="<%= 'reparto-strike' unless collection.counts? %>"><%= reparto_money(collection.amount_cents) %></strong>
         </div>
         <% if route_open && collection.counts? %>
           <%= link_to "Corregir este cobro", reparto_collection_correction_path(collection), class: "reparto-link" %>
@@ -57,7 +61,7 @@
   <% end %>
   <% if @stop.receipt_photo_pending? %>
     <p class="reparto-warning">📷 Falta la foto del remito firmado.</p>
-    <%= link_to "📷 SACAR LA FOTO DEL REMITO", reparto_stop_photo_path(@stop), class: "reparto-button" unless @route.confirmed? %>
+    <%= link_to "📷 SACAR LA FOTO DEL REMITO", reparto_stop_photo_path(@stop), class: "reparto-button" if route_open %>
   <% elsif @stop.photos.any? %>
     <p class="reparto-text">📷 Foto del remito guardada.</p>
   <% elsif @stop.receipt_exception %>

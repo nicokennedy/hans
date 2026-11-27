@@ -28,6 +28,8 @@ class DeliveryStop < ApplicationRecord
   RECEIPT_EXCEPTIONS = { "no_signature" => "El cliente no quiso firmar" }.freeze
 
   belongs_to :delivery_route, inverse_of: :stops
+  belongs_to :group_leader, class_name: "DeliveryStop", optional: true
+  has_many :group_members, -> { order(:id) }, class_name: "DeliveryStop", foreign_key: :group_leader_id
   belongs_to :order, optional: true
   belongs_to :customer, optional: true
   belongs_to :removed_by, class_name: "User", optional: true
@@ -52,11 +54,35 @@ class DeliveryStop < ApplicationRecord
   validates :receipt_exception, inclusion: { in: RECEIPT_EXCEPTIONS.keys }, allow_nil: true
 
   scope :active, -> { where(removed_at: nil) }
+  scope :visible, -> { active.where(group_leader_id: nil) }
   scope :removed, -> { where.not(removed_at: nil) }
   scope :pending_delivery, -> { where(delivery_status: "pending") }
 
   def order?
     kind == "order"
+  end
+
+  def grouped?
+    group_members.exists?
+  end
+
+  def delivery_orders
+    return [] unless order?
+
+    [order] + group_members.includes(:order).map(&:order)
+  end
+
+  def balance_due_cents
+    delivery_orders.sum(&:balance_due_cents)
+  end
+
+  def delivery_products
+    delivery_orders.flat_map(&:order_items).group_by { |item| [item.product_id, item.product_name_snapshot] }
+                   .map { |(_, name), lines| [name, lines.sum(&:quantity)] }
+  end
+
+  def grouping_key
+    [order.customer_id, order.delivery_date, address_line] if order? && address_line.present?
   end
 
   def manual?
@@ -136,7 +162,7 @@ class DeliveryStop < ApplicationRecord
 
   # D9: pedido entregado que sigue con saldo (no pagó o pagó una parte) → foto del remito firmado.
   def receipt_photo_required?
-    order? && delivery_status == "delivered" && order.balance_due_cents.positive?
+    order? && delivery_status == "delivered" && balance_due_cents.positive?
   end
 
   def receipt_photo_pending?

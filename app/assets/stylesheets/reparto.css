@@ -126,3 +126,10 @@ form.button_to .reparto-button { margin-bottom: 14px; }
 .reparto-file { display: block; width: 100%; padding: 16px; border: 3px dashed var(--r-border); border-radius: 14px; font-size: 18px; background: var(--r-surface); }
 .reparto-tag { display: inline-block; padding: 2px 8px; border-radius: 8px; border: 2px solid currentColor; font-size: 15px; font-weight: 800; }
 .reparto-strike { text-decoration: line-through; color: var(--r-muted); }
+
+.reparto-income fieldset { min-inline-size: 0; }
+.reparto-income .reparto-input { display: block; width: 100%; margin-bottom: 14px; }
+.reparto-evidence { min-inline-size: 0; }
+.reparto-evidence input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.reparto-evidence input[type=file]:focus-visible + label { outline: 4px solid #1c5fd6; outline-offset: 2px; }
+.reparto-income .income-types { border: 0; padding: 0; margin: 0 0 14px; }

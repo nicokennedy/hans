@@ -4,10 +4,24 @@ class Admin::DeliveryRouteStopsController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_route
-  before_action :set_stop, only: [:update, :move, :remove, :restore, :transfer]
+  before_action :set_stop, only: [:update, :move, :remove, :restore, :transfer, :ungroup, :receipt]
 
   def add_orders
     respond_with editor.add_orders(params[:order_ids]), "Pedidos agregados al final del recorrido."
+  end
+
+  def group
+    respond_with editor.group(params[:stop_ids]), "Pedidos unificados en una parada."
+  end
+
+  def ungroup
+    respond_with editor.ungroup(@stop), "Pedidos desagrupados."
+  end
+
+  def receipt
+    return head :not_found unless @stop.order? && @stop.group_leader_id.nil?
+
+    render "reparto/photos/receipt", layout: "reparto"
   end
 
   def create

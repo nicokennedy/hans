@@ -1,6 +1,6 @@
 <%= link_to "◀ VOLVER", reparto_stop_collection_amount_path(@stop, tipo: "otro", importe: params[:importe]), class: "reparto-back" %>
 <header class="reparto-header">
-  <p class="reparto-kicker"><%= @stop.display_name.upcase %> · TE PAGÓ <%= format_money(@amount_cents) %></p>
+  <p class="reparto-kicker"><%= @stop.display_name.upcase %> · TE PAGÓ <%= reparto_money(@amount_cents) %></p>
   <h1 class="reparto-date">¿Qué pedidos paga?</h1>
   <p class="reparto-text">Tildá los pedidos. Ya repartimos el importe del más viejo al más nuevo; podés cambiarlo. Lo que sobre queda a favor del cliente.</p>
 </header>
@@ -13,7 +13,7 @@
     <div class="reparto-choice">
       <span style="flex:1">
         <%= order.id == @stop.order_id ? "Este pedido" : "Pedido del #{l(order.delivery_date, format: '%d/%m')}" %><br>
-        <span class="reparto-sub">Debe <%= format_money(order.balance_due_cents) %></span>
+        <span class="reparto-sub">Debe <%= reparto_money(order.balance_due_cents) %></span>
       </span>
       <%= text_field_tag "asignar[#{order.id}]", suggested.positive? ? CustomerAccounts::Money.format_pesos(suggested) : "", class: "reparto-input", inputmode: "numeric",
             autocomplete: "off", placeholder: "$ 0", style: "max-width: 9em", "aria-label": "Importe para el pedido #{order.number}" %>

@@ -1,8 +1,10 @@
 <div class="container py-4" style="max-width: 760px">
   <p class="text-muted mb-1"><%= link_to "← #{@route.title}", admin_delivery_route_path(@route, anchor: "rendicion") %></p>
   <h1 class="h3">Corregir un cobro</h1>
-  <p><strong><%= @collection.customer.name %></strong> · <%= format_money(@collection.amount_cents) %> registrado por <%= @collection.created_by.display_name %> el <%= l(@collection.created_at, format: "%d/%m %H:%M") %><%= " · A identificar" if @collection.unidentified? %>.</p>
+  <p><strong><%= @collection.customer.name %></strong> · <%= reparto_money(@collection.amount_cents) %> registrado por <%= @collection.created_by.display_name %> el <%= l(@collection.created_at, format: "%d/%m %H:%M") %><%= " · A identificar" if @collection.unidentified? %>.</p>
   <p class="text-muted small">Se anula el cobro (y su pago de cuenta corriente, con el motivo) y se registra el correcto. Importe 0 = anularlo sin reemplazo. Si es de otro cliente, anulalo acá y registralo en la parada que corresponde.</p>
+
+  <% if @collection.evidence.attached? %><p><%= link_to "Ver foto del cobro", delivery_collection_evidence_path(@collection) %></p><% end %>
 
   <%= form_with url: admin_delivery_route_collection_path(@route, @collection), method: :patch, local: true, class: "product-card",
         data: { turbo_confirm: "¿Corregir este cobro?" } do %>

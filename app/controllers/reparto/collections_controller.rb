@@ -64,6 +64,9 @@ class Reparto::CollectionsController < Reparto::BaseController
       request_token: params[:request_token], report: REPORTS[plan.kind]
     )
     if result.ok?
+      unless result.already || DeliveryRoutes::OptionalEvidence.attach(result.collection, params[:evidence].presence || params[:evidence_gallery].presence || params[:evidence_camera], current_user)
+        flash[:alert] = "El cobro se guardó sin la foto. No se pudo cargar."
+      end
       after_money_path(already: result.already)
     else
       redirect_to reparto_stop_collection_path(@stop), alert: result.errors.join(" ")
@@ -120,8 +123,8 @@ class Reparto::CollectionsController < Reparto::BaseController
 
   def load_balances
     @orders = DeliveryRoutes::Collections.pending_orders_for(@stop)
-    @own_balance = @stop.order.balance_due_cents
-    @previous_orders = @orders.reject { |order| order.id == @stop.order_id }
+    @own_balance = @stop.balance_due_cents
+    @previous_orders = @orders - @stop.delivery_orders
     @previous_balance = @previous_orders.sum(&:balance_due_cents)
   end
 
@@ -131,7 +134,7 @@ class Reparto::CollectionsController < Reparto::BaseController
     kind = params[:tipo].to_s
     errors = []
     errors << "Elegí qué pasó con el pago." unless KINDS.include?(kind)
-    own_balance = @stop.order.balance_due_cents
+    own_balance = @stop.balance_due_cents
     amount = kind == "todo" ? own_balance : parse_pesos(params[:importe])
     allocations = {}
     unidentified = false
@@ -139,14 +142,14 @@ class Reparto::CollectionsController < Reparto::BaseController
     case kind
     when "todo"
       errors << "Este pedido ya no tiene saldo para cobrar." unless own_balance.positive?
-      allocations = { @stop.order_id => own_balance }
+      allocations = CustomerAccounts::Distribution.suggest(@stop.delivery_orders, amount).allocations
     when "parte"
       if amount.nil? || !amount.positive?
         errors << "Escribí cuánto te pagaron."
       elsif amount >= own_balance
         errors << "Es el total del pedido o más: elegí \"Me pagaron todo\" o \"Me pagaron otro importe\"."
       else
-        allocations = { @stop.order_id => amount }
+        allocations = CustomerAccounts::Distribution.suggest(@stop.delivery_orders, amount).allocations
       end
     when "otro"
       if amount.nil? || !amount.positive?
@@ -158,7 +161,7 @@ class Reparto::CollectionsController < Reparto::BaseController
         end
         errors << "Lo repartido entre pedidos supera lo que te pagaron." if allocations.values.sum > amount
       else
-        allocations = CustomerAccounts::Distribution.suggest([@stop.order].select { |o| o.balance_due_cents.positive? }, amount).allocations
+        allocations = CustomerAccounts::Distribution.suggest(@stop.delivery_orders, amount).allocations
       end
     when "identificar"
       errors << "Escribí cuánto te pagaron." unless amount&.positive?

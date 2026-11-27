@@ -1,0 +1,34 @@
+<% admin = current_user.admin? %>
+<% list = admin ? admin_delivery_route_incomes_path(@route) : reparto_route_incomes_path(@route) %>
+<% target = if @income
+     admin ? admin_delivery_route_income_path(@route, @income) : reparto_route_income_path(@route, @income)
+   else
+     list
+   end %>
+<div class="<%= admin ? 'container py-4' : 'reparto-income' %>">
+  <%= link_to "◀ VOLVER A OTROS INGRESOS", list, class: "reparto-back" %>
+  <h1 class="reparto-date"><%= @income ? "Corregir ingreso" : "Anotar un ingreso" %></h1>
+  <%= form_with url: target, method: @income ? :patch : :post, multipart: true, local: true, data: { turbo: false }, class: "reparto-card" do %>
+    <%= hidden_field_tag :request_token, @request_token %>
+    <fieldset class="income-types mb-3">
+      <legend>Tipo de ingreso</legend>
+      <% DeliveryIncome::KINDS.each do |value, label| %>
+        <label class="reparto-choice d-block">
+          <%= radio_button_tag :kind, value, (params[:kind] || @income&.kind) == value, required: true %>
+          <%= label %>
+        </label>
+      <% end %>
+    </fieldset>
+    <%= label_tag :importe, "Importe en pesos", class: "d-block" %>
+    <%= text_field_tag :importe, params[:importe] || (@income && CustomerAccounts::Money.format_pesos(@income.amount_cents)), inputmode: "decimal", required: true, class: "form-control reparto-input" %>
+    <%= label_tag :description, "Concepto", class: "d-block" %>
+    <%= text_field_tag :description, params[:description] || @income&.description, required: true, maxlength: 500, class: "form-control reparto-input" %>
+    <% if @income %>
+      <p>Para anular el ingreso, ingresá $0.</p>
+      <%= label_tag :motivo, "Motivo de la corrección", class: "d-block" %>
+      <%= text_field_tag :motivo, params[:motivo], required: true, class: "form-control reparto-input" %>
+    <% end %>
+    <%= render "reparto/shared/evidence", label: "Comprobante (opcional)", accept: "image/*,application/pdf" %>
+    <button class="reparto-button reparto-button-primary btn btn-dark" data-saving="Guardando…">GUARDAR INGRESO</button>
+  <% end %>
+</div>

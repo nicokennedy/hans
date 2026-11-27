@@ -5,7 +5,10 @@ class Admin::DeliveryCollectionsController < ApplicationController
   before_action :authenticate_user!
   before_action :require_admin!
   before_action :set_route
-  before_action :set_collection, only: [:edit, :update]
+  before_action :set_collection, only: [:show, :edit, :update]
+
+  def show
+  end
 
   def new
     @stops = @route.active_stops.where(kind: "order").includes(order: :customer).to_a

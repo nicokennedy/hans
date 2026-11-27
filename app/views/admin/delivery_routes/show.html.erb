@@ -7,8 +7,8 @@
       <p class="small text-muted mb-1">Recorrido N.º <%= @route.id %></p>
       <p class="text-muted mb-0">
         <%= @stops.size %> parada(s) · <%= order_stops.size %> pedido(s) ·
-        Total <%= format_money(order_stops.sum { |s| s.order.total_cents }) %> ·
-        Saldo pendiente <%= format_money(order_stops.sum { |s| s.order.balance_due_cents }) %> ·
+        Total <%= reparto_money(order_stops.sum { |s| s.order.total_cents }) %> ·
+        Saldo pendiente <%= reparto_money(order_stops.sum { |s| s.order.balance_due_cents }) %> ·
         <%= @stops.count(&:completed?) %> hecha(s), <%= @stops.count { |s| s.delivery_status == "not_delivered" } %> no entregada(s)
       </p>
       <% if @siblings.any? %>
@@ -46,6 +46,10 @@
 
   <div class="product-card mb-3">
     <h2 class="h5">En el recorrido · <%= @stops.size %></h2>
+    <% @route.grouping_candidates.each do |stops| %>
+      <%= button_to "Unificar entrega · #{stops.first.display_name} (#{stops.map { |stop| stop.order.number }.join(', ')})",
+            group_admin_delivery_route_stops_path(@route), params: { stop_ids: stops.map(&:id) }, class: "btn btn-outline-dark mb-2" %>
+    <% end %>
     <% if @stops.empty? %>
       <p class="text-muted mb-0">No hay paradas. Agregá pedidos del día o paradas manuales.</p>
     <% else %>
@@ -79,13 +83,18 @@
                   <% if stop.delivery_recorded_at %><div class="small text-muted"><%= l(stop.delivery_recorded_at, format: "%H:%M") %> · <%= stop.delivery_recorded_by&.display_name %></div><% end %>
                 </td>
                 <td><%= delivery_address_cell(stop.address_line, maps_url: stop.google_maps_url, instructions: stop.instructions) %></td>
-                <td class="small"><%= stop.order? ? link_to(stop.order.number, admin_order_path(stop.order)) : "—" %></td>
-                <td class="text-end"><%= stop.order? ? format_money(stop.order.total_cents) : "—" %></td>
-                <td class="text-end"><%= stop.order? ? format_money(stop.order.amount_paid_cents) : "—" %></td>
-                <td class="text-end <%= 'fw-bold' if stop.order&.balance_due_cents.to_i.positive? %>"><%= stop.order? ? format_money(stop.order.balance_due_cents) : "—" %></td>
+                <td class="small"><% stop.delivery_orders.each do |order| %><div><%= link_to order.number, admin_order_path(order) %></div><% end %>
+                  <% if stop.grouped? %><%= link_to "Ver remito agrupado", receipt_admin_delivery_route_stop_path(@route, stop) %><% end %></td>
+                <td class="text-end"><%= stop.order? ? reparto_money(stop.delivery_orders.sum(&:total_cents)) : "—" %></td>
+                <td class="text-end"><%= stop.order? ? reparto_money(stop.delivery_orders.sum(&:amount_paid_cents)) : "—" %></td>
+                <td class="text-end <%= 'fw-bold' if stop.balance_due_cents.positive? %>"><%= stop.order? ? reparto_money(stop.balance_due_cents) : "—" %></td>
                 <td>
                   <% if @route.editable? && stop.completed? %>
                     <span class="small text-muted">Entrega registrada: no se mueve ni se quita.</span>
+                  <% elsif stop.grouped? %>
+                    <% if @route.grouping_editable? %>
+                      <%= button_to "Desagrupar", ungroup_admin_delivery_route_stop_path(@route, stop), method: :patch, class: "btn btn-sm btn-outline-dark" %>
+                    <% end %>
                   <% elsif @route.editable? %>
                     <% if stop.order? && @siblings.any? %>
                       <%= form_with url: transfer_admin_delivery_route_stop_path(@route, stop), method: :patch, local: true, class: "d-flex gap-1 mb-1" do %>
@@ -166,7 +175,7 @@
             <li class="form-check">
               <%= check_box_tag "order_ids[]", order.id, false, id: "unassigned-#{order.id}", class: "form-check-input", disabled: !@route.editable? %>
               <label class="form-check-label" for="unassigned-<%= order.id %>">
-                <strong><%= order.customer.name %></strong> · <%= order.number %> · <%= format_money(order.total_cents) %>
+                <strong><%= order.customer.name %></strong> · <%= order.number %> · <%= reparto_money(order.total_cents) %>
                 <% if customer_address_line(order.customer).blank? %><span class="badge text-bg-warning">⚠ Sin dirección cargada</span><% end %>
               </label>
             </li>

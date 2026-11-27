@@ -43,7 +43,7 @@ class DeliveryRoutes::SettlementsTest < ActiveSupport::TestCase
     collect(@r1, @r1.active_stops.first, 30_000)
     result = spend(@r1, 40_000)
     assert_not result.ok?
-    assert_equal ["Supera lo que cobraste ($300). Avisale a administración."], result.errors
+    assert_equal ["Supera el efectivo disponible ($300). Avisale a administración."], result.errors
 
     assert spend(@r1, 30_000).ok?
     assert_not spend(@r1, 1).ok?

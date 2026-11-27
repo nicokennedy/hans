@@ -26,5 +26,6 @@
   <% end %>
   <%= link_to "📤 ENVIAR LA RENDICIÓN", reparto_route_settlement_confirm_path(@route), class: "reparto-button reparto-button-primary" %>
   <%= link_to "☰ VER LAS PARADAS Y COBROS", reparto_route_stops_path(@route), class: "reparto-button" %>
+  <%= link_to "OTROS INGRESOS", reparto_route_incomes_path(@route), class: "reparto-button" %>
   <%= link_to "💵 VER O ANOTAR GASTOS", reparto_route_expenses_path(@route), class: "reparto-button" %>
 <% end %>

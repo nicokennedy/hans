@@ -6,7 +6,7 @@ class Reparto::HomeController < Reparto::BaseController
     return unless current_user.driver?
 
     @routes = todays_routes
-    @stops_by_route = DeliveryStop.active.where(delivery_route_id: @routes.map(&:id)).includes(order: :customer)
+    @stops_by_route = DeliveryStop.visible.where(delivery_route_id: @routes.map(&:id)).includes(order: :customer)
                                   .order(:position, :id).group_by(&:delivery_route_id)
     return unless @routes.one?
 

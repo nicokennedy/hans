@@ -20,27 +20,27 @@
   <% if settlement.voided_outside_collections.any? %>
     <div class="alert alert-danger py-2">
       ⚠ <%= settlement.voided_outside_collections.size %> cobro(s) de este recorrido se anularon desde la cuenta corriente<%= " después del cierre" if route.confirmed? %>:
-      <%= settlement.voided_outside_collections.map { |c| "#{c.customer.name} #{format_money(c.amount_cents)} (#{c.customer_payment.void_reason})" }.join("; ") %>.
+      <%= settlement.voided_outside_collections.map { |c| "#{c.customer.name} #{reparto_money(c.amount_cents)} (#{c.customer_payment.void_reason})" }.join("; ") %>.
       <% if route.confirmed? %>Los importes confirmados del cierre no cambian.<% end %>
     </div>
   <% end %>
 
   <div class="row g-2 mb-3">
     <% confirmed = route.confirmed? %>
-    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Cobros en efectivo</div><div class="fs-5 fw-bold"><%= format_money(confirmed ? route.collected_cents : settlement.collected_cents) %></div></div></div>
-    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Gastos</div><div class="fs-5 fw-bold">− <%= format_money(confirmed ? route.expenses_cents : settlement.expenses_cents) %></div></div></div>
-    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100 border-dark"><div class="small text-muted">Efectivo a entregar</div><div class="fs-5 fw-bold"><%= format_money(confirmed ? [route.expected_cash_cents.to_i, 0].max : settlement.to_deliver_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Cobros en efectivo</div><div class="fs-5 fw-bold"><%= reparto_money(confirmed ? route.collected_cents : settlement.collected_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Gastos</div><div class="fs-5 fw-bold">− <%= reparto_money(confirmed ? route.expenses_cents : settlement.expenses_cents) %></div></div></div>
+    <div class="col-6 col-md-3"><div class="border rounded p-2 h-100 border-dark"><div class="small text-muted">Efectivo a entregar</div><div class="fs-5 fw-bold"><%= reparto_money(confirmed ? [route.expected_cash_cents.to_i, 0].max : settlement.to_deliver_cents) %></div></div></div>
     <% if confirmed %>
-      <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Recibido y contado</div><div class="fs-5 fw-bold"><%= format_money(route.counted_cash_cents) %></div></div></div>
+      <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Recibido y contado</div><div class="fs-5 fw-bold"><%= reparto_money(route.counted_cash_cents) %></div></div></div>
     <% end %>
   </div>
   <% unresolved = confirmed ? route.unresolved_cents.to_i : settlement.unresolved_cents %>
   <% if unresolved.positive? %>
-    <div class="alert alert-warning py-2">Importe pendiente de resolver: <strong><%= format_money(unresolved) %></strong> (los gastos superan los cobros). No es efectivo a entregar ni se compensa solo.</div>
+    <div class="alert alert-warning py-2">Importe pendiente de resolver: <strong><%= reparto_money(unresolved) %></strong> (los gastos superan los cobros). No es efectivo a entregar ni se compensa solo.</div>
   <% end %>
   <% if confirmed %>
     <p class="mb-3"><strong>Diferencia de caja:</strong>
-      <% if route.difference_cents.to_i.zero? %>sin diferencia.<% else %><span class="text-danger fw-bold"><%= format_money(route.difference_cents.abs) %> <%= route.difference_cents.positive? ? "sobrante" : "faltante" %></span>. Se registra como diferencia de caja, no como gasto.<% end %>
+      <% if route.difference_cents.to_i.zero? %>sin diferencia.<% else %><span class="text-danger fw-bold"><%= reparto_money(route.difference_cents.abs) %> <%= route.difference_cents.positive? ? "sobrante" : "faltante" %></span>. Se registra como diferencia de caja, no como gasto.<% end %>
       <% if route.confirmation_note.present? %><br><span class="small">Nota: <%= route.confirmation_note %></span><% end %>
     </p>
   <% end %>
@@ -63,18 +63,20 @@
                   <% if collection.counts? && collection.customer_payment.unapplied_cents.zero? %><span class="badge text-bg-success">ya imputado</span><% end %>
                 <% else %>
                   <% orders = Order.where(id: collection.allocation_map.keys).index_by(&:id) %>
-                  <%= collection.allocation_map.map { |id, cents| "#{orders[id]&.number} #{format_money(cents)}" }.join(", ").presence || "—" %>
-                  <% if collection.credit_cents.positive? %><br>A favor del cliente: <%= format_money(collection.credit_cents) %><% end %>
+                  <%= collection.allocation_map.map { |id, cents| "#{orders[id]&.number} #{reparto_money(cents)}" }.join(", ").presence || "—" %>
+                  <% if collection.credit_cents.positive? %><br>A favor del cliente: <%= reparto_money(collection.credit_cents) %><% end %>
                 <% end %>
                 · <%= link_to "cuenta corriente", admin_customer_account_path(collection.customer_id, anchor: "customer-payment-#{collection.customer_payment_id}") %>
               </td>
-              <td class="text-end fw-bold <%= 'text-decoration-line-through' unless collection.counts? %>"><%= format_money(collection.amount_cents) %></td>
+              <td class="text-end fw-bold <%= 'text-decoration-line-through' unless collection.counts? %>"><%= reparto_money(collection.amount_cents) %></td>
               <td class="small"><%= collection.created_by.display_name %>
                 <% if collection.voided? %><br><span class="text-danger">Corregido por <%= collection.voided_by&.display_name %>: <%= collection.void_reason %></span>
                 <% elsif collection.voided_outside? %><br><span class="text-danger">Anulado en la cuenta corriente: <%= collection.customer_payment.void_reason %></span><% end %>
                 <% if collection.replaces_id %><br><span class="text-muted">Reemplaza un cobro corregido</span><% end %>
               </td>
-              <td><% if route.open_for_admin? && collection.counts? %><%= link_to "Corregir", edit_admin_delivery_route_collection_path(route, collection), class: "btn btn-sm btn-outline-dark" %><% end %></td>
+              <td><%= link_to "Detalle", admin_delivery_route_collection_path(route, collection), class: "btn btn-sm btn-outline-dark" %>
+              <% if collection.evidence.attached? %><%= link_to "Ver foto del cobro", delivery_collection_evidence_path(collection), class: "btn btn-sm btn-outline-dark" %><% end %>
+              <% if route.open_for_admin? && collection.counts? %><%= link_to "Corregir", edit_admin_delivery_route_collection_path(route, collection), class: "btn btn-sm btn-outline-dark" %><% end %></td>
             </tr>
           <% end %>
         </tbody>
@@ -82,6 +84,11 @@
     </div>
   <% end %>
 
+  <h3 class="h6">Otros ingresos</h3>
+  <p><strong><%= reparto_money(confirmed ? route.other_income_cents : settlement.other_income_cents) %></strong>
+     <%= link_to "Ver otros ingresos", admin_delivery_route_incomes_path(route), class: "btn btn-sm btn-outline-dark" %>
+     <% if route.open_for_admin? %><%= link_to "Registrar ingreso", new_admin_delivery_route_income_path(route), class: "btn btn-sm btn-outline-dark" %><% end %>
+  </p>
   <h3 class="h6">Gastos</h3>
   <% if settlement.expenses.empty? %>
     <p class="text-muted small">Sin gastos.</p>
@@ -95,7 +102,7 @@
               <td class="small"><%= l(expense.spent_at, format: "%d/%m %H:%M") %></td>
               <td><%= expense.concept %><% if expense.notes %><br><span class="small text-muted"><%= expense.notes %></span><% end %>
                 <% if expense.admin_exception? %><br><span class="badge text-bg-warning">Excepción: <%= expense.exception_reason %></span><% end %></td>
-              <td class="text-end fw-bold <%= 'text-decoration-line-through' if expense.voided? %>"><%= format_money(expense.amount_cents) %></td>
+              <td class="text-end fw-bold <%= 'text-decoration-line-through' if expense.voided? %>"><%= reparto_money(expense.amount_cents) %></td>
               <td class="small"><%= expense.created_by.display_name %><% if expense.voided? %><br><span class="text-danger">Corregido por <%= expense.voided_by&.display_name %>: <%= expense.void_reason %></span><% end %></td>
               <td class="small"><%= expense.expense_id ? "Gasto ##{expense.expense_id}" : (expense.voided? ? "—" : "Al confirmar el cierre") %></td>
               <td><% if route.open_for_admin? && !expense.voided? %><%= link_to "Corregir", edit_admin_delivery_route_expense_path(route, expense), class: "btn btn-sm btn-outline-dark" %><% end %></td>
@@ -114,7 +121,7 @@
     <ul class="list-group mb-3">
       <% receipt_stops.each do |stop| %>
         <li class="list-group-item d-flex flex-wrap gap-3 align-items-center">
-          <div class="flex-grow-1"><strong><%= stop.display_name %></strong> · <%= stop.order.number %> · saldo <%= format_money(stop.order.balance_due_cents) %></div>
+          <div class="flex-grow-1"><strong><%= stop.display_name %></strong> · <%= stop.delivery_orders.map(&:number).join(", ") %> · saldo <%= reparto_money(stop.balance_due_cents) %></div>
           <% stop.photos.each do |photo| %>
             <%= link_to delivery_photo_path(photo), target: "_blank", rel: "noopener" do %>
               <%= image_tag delivery_photo_path(photo), alt: "Remito de #{stop.display_name}", style: "height: 96px; width: 96px; object-fit: contain;", class: "rounded border bg-white", loading: "lazy" %>
@@ -134,7 +141,7 @@
       <div class="row g-2">
         <div class="col-12 col-md-4">
           <label class="form-label" for="contado">Efectivo recibido y contado</label>
-          <%= text_field_tag :contado, nil, id: "contado", class: "form-control", inputmode: "numeric", required: true, placeholder: "Esperado: #{format_money(settlement.to_deliver_cents)}" %>
+          <%= text_field_tag :contado, nil, id: "contado", class: "form-control", inputmode: "numeric", required: true, placeholder: "Esperado: #{reparto_money(settlement.to_deliver_cents)}" %>
         </div>
         <div class="col-12 col-md-8">
           <label class="form-label" for="nota">Nota (obligatoria si hay diferencia de caja o importe pendiente)</label>
@@ -142,7 +149,7 @@
         </div>
         <% settlement.counted_expenses.reject(&:expense_id).each do |expense| %>
           <div class="col-12 col-md-6">
-            <label class="form-label small" for="categoria-<%= expense.id %>">Categoría del gasto "<%= expense.concept %>" (<%= format_money(expense.amount_cents) %>)</label>
+            <label class="form-label small" for="categoria-<%= expense.id %>">Categoría del gasto "<%= expense.concept %>" (<%= reparto_money(expense.amount_cents) %>)</label>
             <%= select_tag "categorias[#{expense.id}]", options_from_collection_for_select(@expense_categories, :id, :name, @default_category&.id),
                   id: "categoria-#{expense.id}", class: "form-select form-select-sm", include_blank: @default_category ? false : "Elegí una categoría" %>
           </div>

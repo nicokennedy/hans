@@ -24,9 +24,9 @@ class Admin::DeliverySettlementsTest < ActionDispatch::IntegrationTest
     get admin_delivery_route_path(@route)
     assert_response :success
     assert_match "Cobros y rendición", response.body
-    assert_match "$1,500", response.body
+    assert_match "$1.500", response.body
     assert_match "Nafta", response.body
-    assert_match "$1,300", response.body
+    assert_match "$1.300", response.body
     assert_select "img[src=?]", delivery_photo_path(photo)
     assert_match "El repartidor todavía no envió la rendición", response.body
 

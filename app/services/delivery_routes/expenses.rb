@@ -4,7 +4,7 @@ module DeliveryRoutes
   # vez. Con el recorrido bloqueado, para que dos gastos simultáneos no superen el efectivo.
   #
   # Límite: el repartidor no puede registrar un gasto mayor al efectivo disponible del recorrido
-  # ("Supera lo que cobraste ($X). Avisale a administración."). Administración sí, como
+  # ("Supera el efectivo disponible ($X). Avisale a administración."). Administración sí, como
   # excepción con confirmación explícita y motivo; si los gastos quedan por encima de los
   # cobros, la rendición lo muestra como importe pendiente de resolver (no se compensa solo).
   # Idempotente por request_token. Corregir = anular con motivo + registrar el nuevo.
@@ -36,7 +36,7 @@ module DeliveryRoutes
         next ["Escribí el motivo de la corrección."] if reason.blank?
         next ["El importe no es válido."] unless amount_cents.is_a?(Integer) && amount_cents >= 0
 
-        available = available_cents + old.amount_cents
+        available = [Settlement.new(@route).expected_cents + old.amount_cents, 0].max
         old.update!(voided_at: Time.current, voided_by: @user, void_reason: reason)
         if amount_cents.positive?
           created = create(concept, amount_cents, notes.nil? ? old.notes : notes, request_token, exception, exception_reason,
@@ -97,7 +97,7 @@ module DeliveryRoutes
 
       admin_exception = false
       if amount_cents > available
-        return ["Supera lo que cobraste ($#{money(available)}). Avisale a administración."] unless @user.admin?
+        return ["Supera el efectivo disponible ($#{money(available)}). Avisale a administración."] unless @user.admin?
 
         unless exception && exception_reason.to_s.squish.present?
           return ["Supera el efectivo disponible del recorrido ($#{money(available)}). Para registrarlo igual, confirmá la excepción y escribí el motivo."]

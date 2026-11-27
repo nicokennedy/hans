@@ -8,8 +8,8 @@
     <% summary = DeliveryRoutes::Settlement.new(route) %>
     <%= link_to reparto_route_settlement_path(route), class: "reparto-button reparto-button-col" do %>
       <span><%= route.label.upcase %> · <%= l(route.date, format: "%d/%m") %></span>
-      <span class="reparto-sub">Cobros <%= format_money(summary.collected_cents) %> · Gastos <%= format_money(summary.expenses_cents) %></span>
-      <span class="reparto-sub">Para entregar <strong><%= format_money(summary.to_deliver_cents) %></strong> · Sin enviar</span>
+      <span class="reparto-sub">Cobros <%= reparto_money(summary.collected_cents) %> · Otros ingresos <%= reparto_money(summary.other_income_cents) %> · Gastos <%= reparto_money(summary.expenses_cents) %></span>
+      <span class="reparto-sub">Para entregar <strong><%= reparto_money(summary.to_deliver_cents) %></strong> · Sin enviar</span>
     <% end %>
   <% end %>
 <% end %>
